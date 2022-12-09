@@ -68,12 +68,24 @@ int readable(void *pri, const char *buf, int len)
     return 0;
 }
 
+char *g_resp = "HTTP/1.1 200 OK\r\n"
+            "Connection: close\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 125\r\n"
+            "Connection: close\r\n\r\n"
+            "<html>"
+            "<head><title>Hello</title></head>"
+            "<body>"
+            "<center><h1>Hello, Client</h1></center>"
+            "<hr><center>SOCKIO</center>"
+            "</body>"
+            "</html>";
+
 int writeable(void *pri, const char *buf, int len)
 {
-    printf("send: hello client\n");
     struct sio_socket *sock = pri;
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
-    sio_socket_write(sock, "hello client", strlen("hello client"));
+    sio_socket_write(sock, g_resp, strlen(g_resp));
     return 0;
 }
 

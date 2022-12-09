@@ -28,7 +28,7 @@ TARGET_LIST := $(patsubst %.cpp, %, $(TARGET_LIST))
 
 all: $(OBJS) $(TARGET_LIST)
 $(TARGET_LIST):
-	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -o $(TARGET_OUT)$@
+	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath=./ -o $(TARGET_OUT)$@
 
 clean:
 	rm -rf $(OBJ_OUTPUT)*.o $(OBJ_OUTPUT)*.d $(OBJ_OUTPUT)*.d.tmp $(TARGET_OUT)/$(TARGET) $(TARGET_OUT)/$(TARGET).*

@@ -11,17 +11,15 @@ enum sio_server_advcmd
 #define SIO_SERVER_MPLEX_THREAD_LIMIT 4
 #define SIO_SERVER_WORK_THREAD_MULTI_LIMIT 4
 
-struct sio_server_thread_count
+struct sio_server_thread_mask
 {
-    /* mplex thread count */
-    unsigned short mplex_count:SIO_SERVER_MPLEX_THREAD_LIMIT;
-    /* multiples of mplex threads */
-    unsigned short work_multi:SIO_SERVER_WORK_THREAD_MULTI_LIMIT;
+    unsigned int mthrs: 4;
+    unsigned int wthrs: 8;
 };
 
 union sio_server_adv
 {
-    struct sio_server_thread_count thr_count;
+    struct sio_server_thread_mask tmask;
 };
 
 struct sio_server;
@@ -30,7 +28,9 @@ struct sio_server;
 extern "C" {
 #endif
 
-struct sio_server *sio_server_create(enum sio_socket_proto type, struct sio_server_thread_count *thrc);
+struct sio_server *sio_server_create(enum sio_socket_proto type);
+
+struct sio_server *sio_server_create2(enum sio_socket_proto type, struct sio_server_thread_mask tmask);
 
 int sio_server_advance(struct sio_server *serv, enum sio_server_advcmd cmd, union sio_server_adv *adv);
 
