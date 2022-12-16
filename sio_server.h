@@ -3,26 +3,23 @@
 
 #include "sio_socket.h"
 
-enum sio_server_advcmd
-{
-    SIO_SERV_THREAD_MODEL
-};
-
-#define SIO_SERVER_MPLEX_THREAD_LIMIT 4
-#define SIO_SERVER_WORK_THREAD_MULTI_LIMIT 4
-
-struct sio_server_thread_mask
-{
-    unsigned int mthrs: 4;
-    unsigned int wthrs: 8;
-};
-
-union sio_server_adv
-{
-    struct sio_server_thread_mask tmask;
-};
-
 struct sio_server;
+
+enum sio_server_optcmd
+{
+    SIO_SERV_IOOPS
+};
+
+struct sio_server_ioops
+{
+    int (*accept_cb)(struct sio_socket *sock);
+    int (*close_cb)(struct sio_server *sock);
+};
+
+union sio_server_opt
+{
+    struct sio_server_ioops ioops;
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,11 +27,13 @@ extern "C" {
 
 struct sio_server *sio_server_create(enum sio_socket_proto type);
 
-struct sio_server *sio_server_create2(enum sio_socket_proto type, struct sio_server_thread_mask tmask);
+struct sio_server *sio_server_create2(enum sio_socket_proto type, unsigned char threads);
 
-int sio_server_advance(struct sio_server *serv, enum sio_server_advcmd cmd, union sio_server_adv *adv);
+int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt);
 
 int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr);
+
+int sio_server_destory(struct sio_server *serv);
 
 #ifdef __cplusplus
 }

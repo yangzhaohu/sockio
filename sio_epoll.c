@@ -12,6 +12,11 @@
 
 #define sio_mplex_get_efd(ctx) ctx->fd.nfd
 
+#define sio_mplex_op_trans_to_epoll_op(op)                      \
+    if (op == SIO_EV_OPT_ADD) { op = EPOLL_CTL_ADD; }           \
+    else if (op == SIO_EV_OPT_MOD) { op = EPOLL_CTL_MOD; }      \
+    else { op = EPOLL_CTL_DEL; }    
+
 #define sio_event_trans_to_epoll_event(ori, dst)                \
     if (ori & SIO_EVENTS_IN) { dst |= EPOLLIN; }                \
     if (ori & SIO_EVENTS_OUT) { dst |= EPOLLOUT; }              \
@@ -46,7 +51,8 @@ int sio_mplex_epoll_ctl(struct sio_mplex_ctx *ctx, int op, int fd, struct sio_ev
     sio_event_trans_to_epoll_event(event->events, ep_ev.events);
     ep_ev.data.ptr = event->owner.ptr;
     int efd = sio_mplex_get_efd(ctx);
-    return epoll_ctl(efd, EPOLL_CTL_ADD, fd, &ep_ev);
+    sio_mplex_op_trans_to_epoll_op(op);
+    return epoll_ctl(efd, op, fd, &ep_ev);
 }
 
 int sio_mplex_epoll_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)

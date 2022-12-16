@@ -276,6 +276,8 @@ struct sio_socket *sio_socket_create2(enum sio_socket_proto proto)
         SIO_LOGE("sio_socket socket failed\n"),
         free(sock));
 
+    sock->fd = fd;
+
     return sock;
 }
 
@@ -500,6 +502,7 @@ int sio_socket_close(struct sio_socket *sock)
 int sio_socket_destory(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+    CLOSE(sock->fd);
     free(sock);
     return 0;
 }
