@@ -61,15 +61,22 @@ struct sio_socket
 #endif
 
 // close fd and break
-#define sio_socket_close_fd_break(sock, ops)                            \
+#define sio_socket_close_fd(sock, ops)                                  \
     struct sio_event __event = { 0 };                                   \
     sio_mplex_ctl(sock->mp, SIO_EV_OPT_DEL, sock->fd, &__event);        \
     CLOSE(sock->fd);                                                    \
     sock->fd = -1;                                                      \
     if (ops) {                                                          \
         ops(sock, 0, 0);                                                \
-    }                                                                   \
+    }
+
+#define sio_socket_close_fd_break(sock, ops)                            \
+    sio_socket_close_fd(sock, ops);                                     \
     break;
+
+#define sio_socket_close_fd_continue(sock, ops)                         \
+    sio_socket_close_fd(sock, ops);                                     \
+    continue;
 
 // socket nonblock recv errno break
 #ifdef LINUX
@@ -118,7 +125,7 @@ struct sio_socket
     if (event->events & SIO_EVENTS_IN ||                                \
         event->events & SIO_EVENTS_HUP) {                               \
         if (event->events & SIO_EVENTS_HUP) {                           \
-            sio_socket_close_fd_break(sock, ops->read_cb);              \
+            sio_socket_close_fd_continue(sock, ops->read_cb);           \
         }                                                               \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                       \
             sio_socket_socket_recv(sock, ops->read_cb);                 \
