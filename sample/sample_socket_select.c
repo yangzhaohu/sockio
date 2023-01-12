@@ -28,6 +28,7 @@ int socknew(void *ptr, const char *buf, int len)
     struct sio_socket *serv = ptr;
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
     if (sio_socket_accept(serv, sock) == -1) {
+        printf("server close\n");
         return -1;
     }
     g_sock = sock;
@@ -135,7 +136,7 @@ int main(void)
     sio_mplex_thread_create2(mplex);
     
     getc(stdin);
-    sio_socket_close(g_sock);
+    sio_socket_destory(serv);
     getc(stdin);
 
 #ifdef _WIN32

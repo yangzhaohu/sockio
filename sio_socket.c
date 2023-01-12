@@ -69,7 +69,7 @@ struct sio_socket
     if (ops) {                                                          \
         ops(sock, 0, 0);                                                \
     }                                                                   \
-    break;                                                              \
+    break;
 
 // socket nonblock recv errno break
 #ifdef LINUX
@@ -115,7 +115,11 @@ struct sio_socket
 
 // dispatch once
 #define sio_socket_event_dispatch_once(event)                           \
-    if (event->events & SIO_EVENTS_IN) {                                \
+    if (event->events & SIO_EVENTS_IN ||                                \
+        event->events & SIO_EVENTS_HUP) {                               \
+        if (event->events & SIO_EVENTS_HUP) {                           \
+            sio_socket_close_fd_break(sock, ops->read_cb);              \
+        }                                                               \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                       \
             sio_socket_socket_recv(sock, ops->read_cb);                 \
         } else {                                                        \
@@ -273,7 +277,7 @@ struct sio_socket *sio_socket_create2(enum sio_socket_proto proto)
 
     int fd = sio_socket_sock(proto);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, NULL,
-        SIO_LOGE("sio_socket socket failed\n"),
+        SIO_LOGE("socket failed\n"),
         free(sock));
 
     sock->fd = fd;
@@ -321,24 +325,24 @@ int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
     SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
 
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(sock->fd != -1, -1,
-        SIO_LOGE("sio_socket is listenning\n"));
+        SIO_LOGE("socket is listenning\n"));
     
     struct sio_socket_attr *attr = &sock->attr;
     int fd = sio_socket_sock(attr->proto);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
-        SIO_LOGE("sio_socket socket failed\n"));
+        SIO_LOGE("socket socket failed\n"));
     
     struct sockaddr_in addr_in = { 0 };
     sio_socket_addr_in(sock, addr, &addr_in);
 
     int ret = bind(fd, (struct sockaddr *)&addr_in, sizeof(addr_in));
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        SIO_LOGE("sio_socket bind failed\n"),
+        SIO_LOGE("socket bind failed\n"),
         close(fd));
 
     ret = listen(fd, SOMAXCONN);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        SIO_LOGE("sio_socket listen failed\n"),
+        SIO_LOGE("socket listen failed\n"),
         close(fd));
 
     sock->fd = fd;
@@ -393,12 +397,12 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr)
     struct sio_socket_attr *attr = &sock->attr;
     int fd = sio_socket_sock(attr->proto);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
-        SIO_LOGE("sio_socket socket failed\n"));
+        SIO_LOGE("socket failed\n"));
 
     struct sockaddr_in addr_in = { 0 };
     sio_socket_addr_in(sock, addr, &addr_in);
 
-    int ret = connect(fd, (struct sockaddr *)&addr, sizeof(addr_in));
+    int ret = connect(fd, (struct sockaddr *)&addr_in, sizeof(addr_in));
     int err = sio_socket_connect_err_check();
     
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && err == 1, -1, 
@@ -489,20 +493,34 @@ void *sio_socket_private(struct sio_socket *sock)
     return sock->owner.uptr;
 }
 
-int sio_socket_close(struct sio_socket *sock)
+static int sio_socket_shutdown(struct sio_socket *sock)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
 
-    CLOSE(sock->fd);
-
-    return 0;
+    return shutdown(sock->fd, SHUT_RDWR);
 }
+
+/*
+static int sio_socket_close(struct sio_socket *sock)
+{
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
+
+    return CLOSE(sock->fd);
+}
+*/
 
 int sio_socket_destory(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
-    CLOSE(sock->fd);
+
+    int ret = sio_socket_shutdown(sock);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
+        SIO_LOGE("socket shutdown failed\n"));
+
+    // ret = sio_socket_close(sock);
+    // SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
+    //     SIO_LOGE("socket close failed\n"));
+
     free(sock);
     return 0;
 }

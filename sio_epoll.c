@@ -26,7 +26,9 @@
 #define epoll_event_trans_to_sio_event(ori, dst)            \
     if (ori & EPOLLIN) { dst |= SIO_EVENTS_IN; }            \
     if (ori & EPOLLOUT) { dst |= SIO_EVENTS_OUT; }          \
-    if (ori & EPOLLERR) { dst |= SIO_EVENTS_ERR; }
+    if (ori & EPOLLERR) { dst |= SIO_EVENTS_ERR; }          \
+    if (ori & EPOLLHUP) { dst |= SIO_EVENTS_HUP; }          \
+    if (ori & EPOLLRDHUP) { dst |= SIO_EVENTS_RDHUP; }
 
 #ifdef LINUX
 

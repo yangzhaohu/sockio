@@ -76,8 +76,6 @@ int sio_socket_mplex(struct sio_socket *sock, enum SIO_EVENTS_OPT op, enum SIO_E
 
 void *sio_socket_private(struct sio_socket *sock);
 
-int sio_socket_close(struct sio_socket *sock);
-
 int sio_socket_destory(struct sio_socket *sock);
 
 #ifdef __cplusplus

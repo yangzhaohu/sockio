@@ -109,7 +109,7 @@ int sio_mplex_thread_destory(struct sio_mplex_thread *mpt)
     sio_mplex_thread_wait_thread_exit(mpt);
     sio_thread_destory(mpt->thread);
     if (sio_mplex_thread_external_mplex_flag(mpt) == 0) {
-        free(mpt->mplex);
+        sio_mplex_close(mpt->mplex);
     }
     free(mpt);
     

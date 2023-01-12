@@ -67,10 +67,8 @@ static struct sio_io_ops g_serv_ops =
     do { \
         for (int i = 0; i < count; i++) { \
             if (thread[i]) { \
-                free(thread[i]); \
+                sio_mplex_thread_destory(thread[i]); \
                 thread[i] = NULL; \
-            } else { \
-                break; \
             } \
         } \
     } while (0);
@@ -90,7 +88,7 @@ int sio_server_threads_create(struct sio_server *serv, unsigned char threads)
     int ret = 0;
     SIO_SERVER_THREADS_CREATE(mplths, sio_mplex_thread_create(type), threads, ret);
     if (ret == -1) {
-        SIO_SERVER_THREADS_DESTORY(mplths, SIO_SERVER_MAX_THREADS);
+        SIO_SERVER_THREADS_DESTORY(mplths, threads);
         return -1;
     }
 
@@ -260,6 +258,11 @@ void *sio_work_thread_start_routine(void *arg)
 int sio_server_destory(struct sio_server *serv)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
+
     sio_socket_destory(serv->sock);
+
+    //struct sio_mplex_thread **mplths = serv->mplths;
+    //SIO_SERVER_THREADS_DESTORY(mplths, SIO_SERVER_MAX_THREADS);
+
     return 0;
 }

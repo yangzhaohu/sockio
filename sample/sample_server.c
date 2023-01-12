@@ -52,7 +52,7 @@ static int server_newconn(struct sio_socket *sock)
 
 static int server_close(struct sio_server *sock)
 {
-    printf("close\n");
+    printf("server close\n");
     return 0;
 }
 
@@ -69,10 +69,12 @@ int main()
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     sio_server_listen(serv, &addr);
 
+
     getc(stdin);
 
     sio_server_destory(serv);
 
+    getc(stdin);
     getc(stdin);
 
     return 0;
