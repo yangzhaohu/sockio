@@ -39,7 +39,7 @@ struct sio_server_mlb
 struct sio_server
 {
     struct sio_socket *sock;
-    struct sio_server_ioops ioops;
+    struct sio_server_ops ops;
     struct sio_mplex_thread *mplths[SIO_SERVER_MAX_THREADS];
     struct sio_server_mlb mlb;
 };
@@ -154,9 +154,9 @@ struct sio_server *sio_server_create_imp(enum sio_socket_proto type, unsigned ch
 }
 
 static inline
-void sio_server_set_ioops(struct sio_server *serv, struct sio_server_ioops *ioops)
+void sio_server_set_ioops(struct sio_server *serv, struct sio_server_ops *ops)
 {
-    serv->ioops = *ioops;
+    serv->ops = *ops;
 }
 
 struct sio_server *sio_server_create(enum sio_socket_proto type)
@@ -176,8 +176,8 @@ int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union
 
     int ret = 0;
     switch (cmd) {
-    case SIO_SERV_IOOPS:
-        sio_server_set_ioops(serv, &opt->ioops);
+    case SIO_SERV_OPS:
+        sio_server_set_ioops(serv, &opt->ops);
         break;
     
     default:
@@ -211,8 +211,8 @@ static inline
 int sio_server_accept_cb(struct sio_server *serv, struct sio_socket *sock)
 {
     int ret = 0;
-    if (serv->ioops.accept_cb) {
-        ret = serv->ioops.accept_cb(sock);
+    if (serv->ops.accept_cb) {
+        ret = serv->ops.accept_cb(sock);
     }
 
     return ret;
@@ -222,8 +222,8 @@ static inline
 int sio_server_close_cb(struct sio_server *serv)
 {
     int ret = 0;
-    if (serv->ioops.close_cb) {
-        ret = serv->ioops.close_cb(serv);
+    if (serv->ops.close_cb) {
+        ret = serv->ops.close_cb(serv);
     }
 
     return ret;

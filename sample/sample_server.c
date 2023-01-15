@@ -61,14 +61,13 @@ int main()
     struct sio_server *serv = sio_server_create(SIO_SOCK_TCP);
 
     union sio_server_opt ops = {
-        .ioops.accept_cb = server_newconn,
-        .ioops.close_cb = server_close
+        .ops.accept_cb = server_newconn,
+        .ops.close_cb = server_close
     };
-    sio_server_setopt(serv, SIO_SERV_IOOPS, &ops);
+    sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     sio_server_listen(serv, &addr);
-
 
     getc(stdin);
 

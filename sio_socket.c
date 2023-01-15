@@ -122,8 +122,7 @@ struct sio_socket
 
 // dispatch once
 #define sio_socket_event_dispatch_once(event)                           \
-    if (event->events & SIO_EVENTS_IN ||                                \
-        event->events & SIO_EVENTS_HUP) {                               \
+    if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {             \
         if (event->events & SIO_EVENTS_HUP) {                           \
             sio_socket_close_fd_continue(sock, ops->read_cb);           \
         }                                                               \
@@ -504,7 +503,14 @@ static int sio_socket_shutdown(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
 
-    return shutdown(sock->fd, SHUT_RDWR);
+    int ret;
+#ifdef WIN32
+    ret = shutdown(sock->fd, SD_BOTH);
+#else
+    ret = shutdown(sock->fd, SHUT_RDWR);
+#endif
+
+    return ret;
 }
 
 /*

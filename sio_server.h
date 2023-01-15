@@ -7,10 +7,10 @@ struct sio_server;
 
 enum sio_server_optcmd
 {
-    SIO_SERV_IOOPS
+    SIO_SERV_OPS
 };
 
-struct sio_server_ioops
+struct sio_server_ops
 {
     int (*accept_cb)(struct sio_socket *sock);
     int (*close_cb)(struct sio_server *sock);
@@ -18,7 +18,7 @@ struct sio_server_ioops
 
 union sio_server_opt
 {
-    struct sio_server_ioops ioops;
+    struct sio_server_ops ops;
 };
 
 #ifdef __cplusplus
