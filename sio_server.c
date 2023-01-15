@@ -47,7 +47,7 @@ struct sio_server
 static int sio_socket_accpet(void *ptr, const char *data, int len);
 void *sio_work_thread_start_routine(void *arg);
 
-static struct sio_io_ops g_serv_ops = 
+static struct sio_socket_ops g_serv_ops = 
 {
     .read_cb = sio_socket_accpet
 };

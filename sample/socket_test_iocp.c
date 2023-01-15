@@ -32,12 +32,12 @@ int socknew(void *owner, const char *buf, int len);
 int readable(void *owner, const char *buf, int len);
 int writeable(void *owner, const char *buf, int len);
 
-struct sio_io_ops g_serv_ops = 
+struct sio_socket_ops g_serv_ops = 
 {
     .read_cb = socknew
 };
 
-struct sio_io_ops g_sock_ops = 
+struct sio_socket_ops g_sock_ops = 
 {
     .read_cb = readable,
     .write_cb = writeable

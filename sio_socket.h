@@ -2,7 +2,6 @@
 #define SIO_SOCKET_H_
 
 #include "sio_event.h"
-#include "sio_io.h"
 
 enum sio_socket_proto
 {
@@ -14,6 +13,12 @@ struct sio_socket_addr
 {
     char addr[32];
     int port;
+};
+
+struct sio_socket_ops
+{
+    int (*read_cb)(void *owner, const char *data, int len);
+    int (*write_cb)(void *owner, const char *data, int len);
 };
 
 enum sio_socket_optcmd
@@ -35,7 +40,7 @@ enum sio_socket_optcmd
 union sio_socket_opt
 {
     void *private;
-    struct sio_io_ops ops;
+    struct sio_socket_ops ops;
 
     struct sock_buff {
         int rcvbuf;

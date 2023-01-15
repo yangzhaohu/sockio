@@ -12,12 +12,12 @@ struct sio_mplex *g_mplex = NULL;
 
 struct sio_socket *g_sock = NULL;
 
-struct sio_io_ops g_serv_ops = 
+struct sio_socket_ops g_serv_ops = 
 {
     .read_cb = socknew
 };
 
-struct sio_io_ops g_sock_ops = 
+struct sio_socket_ops g_sock_ops = 
 {
     .read_cb = readable,
     .write_cb = writeable

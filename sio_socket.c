@@ -19,7 +19,6 @@
 #include "sio_def.h"
 #include "sio_event.h"
 #include "sio_mplex.h"
-#include "sio_io.h"
 #include "sio_log.h"
 
 // #ifdef WIN32
@@ -42,7 +41,7 @@ struct sio_socket_attr
 struct sio_socket_owner
 {
     void *uptr;
-    struct sio_io_ops ops;
+    struct sio_socket_ops ops;
 };
 
 struct sio_socket
@@ -163,7 +162,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
         }
         struct sio_socket_attr *attr = &sock->attr;
         struct sio_socket_owner *owner = &sock->owner;
-        struct sio_io_ops *ops = &owner->ops;
+        struct sio_socket_ops *ops = &owner->ops;
         // printf("socket fd: %d, event: %d\n", sock->fd, event->events);
 
         sio_socket_event_dispatch_once(event);
@@ -206,7 +205,7 @@ void sio_socket_set_private(struct sio_socket *sock, void *private)
 }
 
 static inline
-void sio_socket_set_ops(struct sio_socket *sock, struct sio_io_ops ops)
+void sio_socket_set_ops(struct sio_socket *sock, struct sio_socket_ops ops)
 {
     struct sio_socket_owner *owner = &sock->owner;
     owner->ops = ops;
