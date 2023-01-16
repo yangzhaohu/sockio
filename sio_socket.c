@@ -38,6 +38,18 @@ struct sio_socket_attr
     int nonblock;
 };
 
+enum sio_socket_shut
+{
+    SIO_SOCK_SHUTNONE = 0,
+    SIO_SOCK_SHUTRD = 1,
+    SIO_SOCK_SHUTWR = 2
+};
+
+struct sio_socket_state
+{
+    enum sio_socket_shut shut;
+};
+
 struct sio_socket_owner
 {
     void *uptr;
@@ -47,6 +59,7 @@ struct sio_socket_owner
 struct sio_socket
 {
     int fd;
+    struct sio_socket_state stat;
     struct sio_socket_attr attr;
     struct sio_socket_owner owner;
     struct sio_mplex *mp;
@@ -54,28 +67,17 @@ struct sio_socket
 };
 
 #ifdef WIN32
+#define SHUTDOWN(fd) shutdown(fd, SD_BOTH)
+#else
+#define SHUTDOWN(fd) shutdown(fd, SHUT_RDWR)
+#endif
+
+#ifdef WIN32
 #define CLOSE(fd) closesocket(fd)
 #else
 #define CLOSE(fd) close(fd)
 #endif
 
-// close fd and break
-#define sio_socket_close_fd(sock, ops)                                  \
-    struct sio_event __event = { 0 };                                   \
-    sio_mplex_ctl(sock->mp, SIO_EV_OPT_DEL, sock->fd, &__event);        \
-    CLOSE(sock->fd);                                                    \
-    sock->fd = -1;                                                      \
-    if (ops) {                                                          \
-        ops(sock, 0, 0);                                                \
-    }
-
-#define sio_socket_close_fd_break(sock, ops)                            \
-    sio_socket_close_fd(sock, ops);                                     \
-    break;
-
-#define sio_socket_close_fd_continue(sock, ops)                         \
-    sio_socket_close_fd(sock, ops);                                     \
-    continue;
 
 // socket nonblock recv errno break
 #ifdef LINUX
@@ -92,13 +94,30 @@ struct sio_socket
     }
 #endif
 
+// shutdown and break loop
+#define sio_socket_shutdown_break(fd)               \
+    SHUTDOWN(fd);                                   \
+    break;
+
+// sio_socket ops call
+#define sio_socket_ops_call(ops, ...)               \
+    if (ops) {                                      \
+        ops(__VA_ARGS__);                           \
+    }
+
+//
+#define sio_socket_state_shut_set(sock, val)        \
+    sock->stat.shut = val
+
+#define sio_socket_state_shut_get(sock)             \
+    sock->stat.shut
+
 
 // server socket accept
 #define sio_socket_server_accept(sock, ops)         \
     if (ops) {                                      \
         ops(sock, 0, 0);                            \
     }
-
 
 // socket recv
 #define sio_socket_socket_recv(sock, ops)                                       \
@@ -108,47 +127,44 @@ struct sio_socket
         len = recv(sock->fd, __buf, SIO_SOCK_RECV_BUFFSIZE, 0);                 \
         if (len < 0) {                                                          \
             sio_socket_recv_errno_break();                                      \
-            sio_socket_close_fd_break(sock, ops);                               \
+            sio_socket_shutdown_break(sock->fd);                                \
         }                                                                       \
         else if (len == 0) {                                                    \
-            sio_socket_close_fd_break(sock, ops);                               \
+            sio_socket_shutdown_break(sock->fd);                                \
         }                                                                       \
-        if (ops) {                                                              \
-            ops(sock, __buf, len);                                              \
-        }                                                                       \
+        sio_socket_ops_call(ops, sock, __buf, len);                             \
     } while (attr->nonblock);
 
 
 // dispatch once
-#define sio_socket_event_dispatch_once(event)                           \
-    if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {             \
-        if (event->events & SIO_EVENTS_HUP) {                           \
-            sio_socket_close_fd_continue(sock, ops->read_cb);           \
-        }                                                               \
-        if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                       \
-            sio_socket_socket_recv(sock, ops->read_cb);                 \
-        } else {                                                        \
-            sio_socket_server_accept(sock, ops->read_cb);               \
-        }                                                               \
-    }                                                                   \
-    if (event->events & SIO_EVENTS_ASYNC_READ) {                        \
-        if (ops->read_cb) {                                             \
-            ops->read_cb(sock, event->buf.ptr, event->buf.len);         \
-        }                                                               \
-    }                                                                   \
-    if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {                      \
-        if (ops->read_cb) {                                             \
-            struct sio_socket *__sock =                                 \
-            SIO_CONTAINER_OF(event->buf.ptr,                            \
-                struct sio_socket,                                      \
-                extbuf);                                                \
-            ops->read_cb(sock, (const char *)__sock, 0);                \
-        }                                                               \
-    }                                                                   \
-    if (event->events & SIO_EVENTS_OUT) {                               \
-        if (ops->write_cb) {                                            \
-            ops->write_cb(sock, 0, 0);                                  \
-        }                                                               \
+#define sio_socket_event_dispatch_once(event)                                   \
+    if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {                     \
+        if (event->events & SIO_EVENTS_HUP) {                                   \
+            sio_socket_ops_call(ops->read_cb, sock, 0, 0);                      \
+            sio_socket_state_shut_set(sock,                                     \
+                SIO_SOCK_SHUTRD | SIO_SOCK_SHUTWR);                             \
+            continue;                                                           \
+        }                                                                       \
+        if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                               \
+            sio_socket_socket_recv(sock, ops->read_cb);                         \
+        } else {                                                                \
+            sio_socket_server_accept(sock, ops->read_cb);                       \
+        }                                                                       \
+    }                                                                           \
+    if (event->events & SIO_EVENTS_ASYNC_READ) {                                \
+        sio_socket_ops_call(ops->read_cb,                                       \
+            sock, event->buf.ptr, event->buf.len);                              \
+    }                                                                           \
+    if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {                              \
+        struct sio_socket *__sock =                                             \
+        SIO_CONTAINER_OF(event->buf.ptr,                                        \
+            struct sio_socket,                                                  \
+            extbuf);                                                            \
+        sio_socket_ops_call(ops->read_cb,                                       \
+            sock, (const char *)__sock, 0);                                     \
+    }                                                                           \
+    if (event->events & SIO_EVENTS_OUT) {                                       \
+        sio_socket_ops_call(ops->write_cb, sock, 0, 0);                         \
     }
 
 
@@ -266,6 +282,9 @@ struct sio_socket *sio_socket_create(enum sio_socket_proto proto)
         SIO_LOGE("sio_socket malloc failed\n"));
 
     memset(sock, 0, sizeof(struct sio_socket));
+
+    struct sio_socket_state *stat = &sock->stat;
+    stat->shut = SIO_SOCK_SHUTNONE;
 
     struct sio_socket_attr *attr = &sock->attr;
     attr->proto = proto;
@@ -498,28 +517,21 @@ void *sio_socket_private(struct sio_socket *sock)
     return sock->owner.uptr;
 }
 
-static int sio_socket_shutdown(struct sio_socket *sock)
+static inline
+int sio_socket_shutdown(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
 
-    int ret;
-#ifdef WIN32
-    ret = shutdown(sock->fd, SD_BOTH);
-#else
-    ret = shutdown(sock->fd, SHUT_RDWR);
-#endif
-
-    return ret;
+    return SHUTDOWN(sock->fd);
 }
 
-/*
-static int sio_socket_close(struct sio_socket *sock)
+static inline
+int sio_socket_close(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
 
     return CLOSE(sock->fd);
 }
-*/
 
 int sio_socket_destory(struct sio_socket *sock)
 {
@@ -529,9 +541,15 @@ int sio_socket_destory(struct sio_socket *sock)
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
         SIO_LOGE("socket shutdown failed\n"));
 
-    // ret = sio_socket_close(sock);
-    // SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
-    //     SIO_LOGE("socket close failed\n"));
+    while (sio_socket_state_shut_get(sock) == SIO_SOCK_SHUTNONE) {
+    }
+
+    struct sio_event event = { 0 };                                 
+    sio_mplex_ctl(sock->mp, SIO_EV_OPT_DEL, sock->fd, &event);
+
+    ret = sio_socket_close(sock);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
+        SIO_LOGE("socket close failed\n"));
 
     free(sock);
     return 0;
