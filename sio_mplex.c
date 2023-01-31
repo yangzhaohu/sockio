@@ -88,7 +88,7 @@ struct sio_mplex *sio_mplex_create(struct sio_mplex_attr *attr)
     return mp;
 }
 
-int sio_mplex_ctl(struct sio_mplex *mp, enum SIO_EVENTS_OPT op, int fd, struct sio_event *event)
+int sio_mplex_ctl(struct sio_mplex *mp, enum sio_events_opt op, int fd, struct sio_event *event)
 {
     SIO_COND_CHECK_RETURN_VAL(!mp || !event, -1);
 

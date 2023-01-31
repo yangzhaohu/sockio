@@ -1,14 +1,14 @@
 #ifndef SIO_EVENT_H_
 #define SIO_EVENT_H_
 
-enum SIO_EVENTS_OPT
+enum sio_events_opt
 {
     SIO_EV_OPT_ADD,
     SIO_EV_OPT_MOD,
     SIO_EV_OPT_DEL
 };
 
-enum SIO_EVENTS
+enum sio_events
 {
     SIO_EVENTS_NONE = 0,
     

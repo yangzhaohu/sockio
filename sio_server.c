@@ -154,7 +154,7 @@ struct sio_server *sio_server_create_imp(enum sio_socket_proto type, unsigned ch
 }
 
 static inline
-void sio_server_set_ioops(struct sio_server *serv, struct sio_server_ops *ops)
+void sio_server_set_ops(struct sio_server *serv, struct sio_server_ops *ops)
 {
     serv->ops = *ops;
 }
@@ -177,7 +177,7 @@ int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union
     int ret = 0;
     switch (cmd) {
     case SIO_SERV_OPS:
-        sio_server_set_ioops(serv, &opt->ops);
+        sio_server_set_ops(serv, &opt->ops);
         break;
     
     default:

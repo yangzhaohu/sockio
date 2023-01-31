@@ -30,7 +30,7 @@ __thread struct sio_select_fout tls_fout= { 0 };
 #endif
 
 static inline 
-void sio_select_in_fds_set(struct sio_select_rwfds *rwfds, int fd, enum SIO_EVENTS events)
+void sio_select_in_fds_set(struct sio_select_rwfds *rwfds, int fd, enum sio_events events)
 {
     if (events & SIO_EVENTS_IN) {
         SIO_FD_SET(fd, &rwfds->rfds);

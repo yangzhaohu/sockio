@@ -494,7 +494,7 @@ int sio_socket_mplex_bind(struct sio_socket *sock, struct sio_mplex *mp)
     return 0;
 }
 
-int sio_socket_mplex(struct sio_socket *sock, enum SIO_EVENTS_OPT op, enum SIO_EVENTS events)
+int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1 || !sock->mp, -1);

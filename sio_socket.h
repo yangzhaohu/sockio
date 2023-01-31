@@ -77,7 +77,7 @@ int sio_socket_write(struct sio_socket *sock, char *buf, int len);
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len);
 
 int sio_socket_mplex_bind(struct sio_socket *sock, struct sio_mplex *mp);
-int sio_socket_mplex(struct sio_socket *sock, enum SIO_EVENTS_OPT op, enum SIO_EVENTS events);
+int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);
 
 void *sio_socket_private(struct sio_socket *sock);
 
