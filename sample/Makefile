@@ -12,6 +12,7 @@ INCLUDES := -I../
 LIBS := -L../target -lsockio
 
 SRCS := sample_server.c \
+		sample_servers.c \
 		sample_socket_select.c
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)

@@ -128,6 +128,8 @@ int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock)
 static inline
 struct sio_server *sio_server_create_imp(enum sio_socket_proto type, unsigned char threads)
 {
+    SIO_COND_CHECK_RETURN_VAL(threads == 0, NULL);
+
     struct sio_server *serv = malloc(sizeof(struct sio_server));
     SIO_COND_CHECK_RETURN_VAL(!serv, NULL);
 
