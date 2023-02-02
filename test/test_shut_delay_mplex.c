@@ -50,14 +50,11 @@ int socknew(void *ptr, const char *buf, int len)
 
 int readable(void *pri, const char *buf, int len)
 {
-    struct sio_socket *sock = pri;
     if (len == 0) {
         printf("socket close\n");
         return 0;
     }
     printf("recv %d: %s\n", len, buf);
-
-    sio_socket_write(sock, "hello client", strlen("hello client"));
 
     return 0;
 }
@@ -111,7 +108,7 @@ int main()
     // send data
     getc(stdin);
     printf("step2: send test data\n");
-    sio_socket_write(client, "hello server", strlen("hello server"));
+    sio_socket_write(client, "hello server\n", strlen("hello server\n"));
 
     // destory client
     getc(stdin);
