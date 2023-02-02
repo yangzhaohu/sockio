@@ -105,6 +105,10 @@ struct sio_socket
         ops(__VA_ARGS__);                           \
     }
 
+#define sio_socket_ops_call_break(ops, ...)         \
+    sio_socket_ops_call(ops, __VA_ARGS__)           \
+    break;
+
 //
 #define sio_socket_state_shut_set(sock, val)        \
     sock->stat.shut = val
@@ -130,7 +134,7 @@ struct sio_socket
             sio_socket_shutdown_break(sock->fd);                                \
         }                                                                       \
         else if (len == 0) {                                                    \
-            sio_socket_shutdown_break(sock->fd);                                \
+            sio_socket_ops_call_break(ops, sock, NULL, 0);                      \
         }                                                                       \
         sio_socket_ops_call(ops, sock, __buf, len);                             \
     } while (attr->nonblock);
