@@ -38,16 +38,17 @@ struct sio_socket_attr
     int nonblock;
 };
 
-enum sio_socket_shut
-{
-    SIO_SOCK_SHUTNONE = 0,
-    SIO_SOCK_SHUTRD = 1,
-    SIO_SOCK_SHUTWR = 2
-};
+// enum sio_socket_shut
+// {
+//     SIO_SOCK_SHUTNOT = 0,
+//     SIO_SOCK_SHUTRD = 1,
+//     SIO_SOCK_SHUTWR = 2
+// };
 
 struct sio_socket_state
 {
-    enum sio_socket_shut shut;
+    int mplexing;
+    // enum sio_socket_shut shut;
 };
 
 struct sio_socket_owner
@@ -67,9 +68,13 @@ struct sio_socket
 };
 
 #ifdef WIN32
-#define SHUTDOWN(fd) shutdown(fd, SD_BOTH)
+#define SIO_SOCK_SHUTRD SD_RECEIVE
+#define SIO_SOCK_SHUTWR SD_SEND
+#define SIO_SOCK_SHUT_RDWR SD_BOTH
 #else
-#define SHUTDOWN(fd) shutdown(fd, SHUT_RDWR)
+#define SIO_SOCK_SHUTRD SHUT_RD
+#define SIO_SOCK_SHUTWR SHUT_WR
+#define SIO_SOCK_SHUT_RDWR SHUT_RDWR
 #endif
 
 #ifdef WIN32
@@ -81,14 +86,17 @@ struct sio_socket
 
 // socket nonblock recv errno break
 #ifdef LINUX
+#define sio_sock_errno errno
 #define sio_socket_recv_errno_break()                   \
-    if (errno == EAGAIN ||                              \
-        errno == EWOULDBLOCK) {                         \
+    int __err = sio_sock_errno;                         \
+    if (__err == EAGAIN ||                              \
+        __err == EWOULDBLOCK) {                         \
         break;                                          \
     }
 #elif defined(WIN32)
+#define sio_sock_errno WSAGetLastError()
 #define sio_socket_recv_errno_break()                   \
-    int __err = WSAGetLastError();                      \
+    int __err = sio_sock_errno;                         \
     if ( __err == WSAEWOULDBLOCK) {                     \
         break;                                          \
     }
@@ -96,7 +104,7 @@ struct sio_socket
 
 // shutdown and break loop
 #define sio_socket_shutdown_break(fd)               \
-    SHUTDOWN(fd);                                   \
+    shutdown(fd, SIO_SOCK_SHUTRD);                  \
     break;
 
 // sio_socket ops call
@@ -109,12 +117,28 @@ struct sio_socket
     sio_socket_ops_call(ops, __VA_ARGS__)           \
     break;
 
+#define sio_socket_state_mplexing_set(sock, val)    \
+    sock->stat.mplexing = val
+
+#define sio_socket_state_mplexing_get(sock)         \
+    sock->stat.mplexing
+
 //
 #define sio_socket_state_shut_set(sock, val)        \
     sock->stat.shut = val
 
 #define sio_socket_state_shut_get(sock)             \
     sock->stat.shut
+
+#define sio_sock_mplex_event_del(sock)                          \
+    do {                                                        \
+        struct sio_event event = { 0 };                         \
+        int ret = sio_mplex_ctl(sock->mp,                       \
+            SIO_EV_OPT_DEL, sock->fd, &event);                  \
+        if (ret == 0) {                                         \
+            sio_socket_state_mplexing_set(sock, 0);             \
+        }                                                       \
+    } while (0);
 
 
 // server socket accept
@@ -134,6 +158,7 @@ struct sio_socket
             sio_socket_shutdown_break(sock->fd);                                \
         }                                                                       \
         else if (len == 0) {                                                    \
+            sio_sock_mplex_event_del(sock);                                     \
             sio_socket_ops_call_break(ops, sock, NULL, 0);                      \
         }                                                                       \
         sio_socket_ops_call(ops, sock, __buf, len);                             \
@@ -144,9 +169,7 @@ struct sio_socket
 #define sio_socket_event_dispatch_once(event)                                   \
     if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {                     \
         if (event->events & SIO_EVENTS_HUP) {                                   \
-            sio_socket_ops_call(ops->read_cb, sock, 0, 0);                      \
-            sio_socket_state_shut_set(sock,                                     \
-                SIO_SOCK_SHUTRD | SIO_SOCK_SHUTWR);                             \
+            sio_sock_mplex_event_del(sock);                                     \
             continue;                                                           \
         }                                                                       \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                               \
@@ -287,8 +310,8 @@ struct sio_socket *sio_socket_create(enum sio_socket_proto proto)
 
     memset(sock, 0, sizeof(struct sio_socket));
 
-    struct sio_socket_state *stat = &sock->stat;
-    stat->shut = SIO_SOCK_SHUTNONE;
+    // struct sio_socket_state *stat = &sock->stat;
+    // stat->shut = SIO_SOCK_SHUTNOT;
 
     struct sio_socket_attr *attr = &sock->attr;
     attr->proto = proto;
@@ -511,7 +534,13 @@ int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_e
     ev.events |= events;
     ev.owner.fd = sock->fd;
     ev.owner.ptr = sock;
-    return sio_mplex_ctl(sock->mp, op, sock->fd, &ev);
+
+    int ret = sio_mplex_ctl(sock->mp, op, sock->fd, &ev);
+
+    if (ret == 0 && op != SIO_EV_OPT_DEL) {
+        sio_socket_state_mplexing_set(sock, 1);
+    }
+    return ret;
 }
 
 void *sio_socket_private(struct sio_socket *sock)
@@ -526,7 +555,7 @@ int sio_socket_shutdown(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
 
-    return SHUTDOWN(sock->fd);
+    return shutdown(sock->fd, SIO_SOCK_SHUT_RDWR);
 }
 
 static inline
@@ -542,18 +571,19 @@ int sio_socket_destory(struct sio_socket *sock)
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
 
     int ret = sio_socket_shutdown(sock);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
-        SIO_LOGE("socket shutdown failed\n"));
+    SIO_COND_CHECK_CALLOPS(ret != 0,
+        SIO_LOGE("socket shutdown failed, err: %d\n", sio_sock_errno));
 
-    while (sio_socket_state_shut_get(sock) == SIO_SOCK_SHUTNONE) {
+    if (sio_socket_state_mplexing_get(sock)) {
+        while (sio_socket_state_mplexing_get(sock)) {
+        }
+    } else {
+        sio_sock_mplex_event_del(sock);
     }
 
-    struct sio_event event = { 0 };                                 
-    sio_mplex_ctl(sock->mp, SIO_EV_OPT_DEL, sock->fd, &event);
-
     ret = sio_socket_close(sock);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
-        SIO_LOGE("socket close failed\n"));
+    SIO_COND_CHECK_CALLOPS(ret != 0,
+        SIO_LOGE("socket close failed, err: %d\n", sio_sock_errno));
 
     free(sock);
     return 0;

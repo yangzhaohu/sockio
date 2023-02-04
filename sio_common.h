@@ -9,7 +9,7 @@
 #define SIO_OFFSET_OF(type, member) ((unsigned long)&(((type*)0)->member))
 #define SIO_CONTAINER_OF(ptr, type, member)	((type *)((char *)(ptr) - SIO_OFFSET_OF(type, member)))
 
-#define c(cond)        \
+#define SIO_COND_CHECK_RETURN_NONE(cond)        \
     if (cond) {                                 \
         return;                                 \
     }
@@ -19,16 +19,20 @@
         return val;                             \
     }
 
+
+#define SIO_COND_CHECK_CALLOPS(cond, ...)                           \
+    if (cond) {                                                     \
+        (__VA_ARGS__);                                              \
+    }
+
 #define SIO_COND_CHECK_CALLOPS_RETURN_NONE(cond, ...)               \
-    if (cond)                                                       \
-    {                                                               \
+    if (cond) {                                                     \
         (__VA_ARGS__);                                              \
         return;                                                     \
     }
 
 #define SIO_COND_CHECK_CALLOPS_RETURN_VAL(cond, val, ...)           \
-    if (cond)                                                       \
-    {                                                               \
+    if (cond) {                                                     \
         (__VA_ARGS__);                                              \
         return val;                                                 \
     }
