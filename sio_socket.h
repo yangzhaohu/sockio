@@ -3,6 +3,13 @@
 
 #include "sio_event.h"
 
+enum sio_socket_shuthow
+{
+    SIO_SOCK_SHUTRD = 1,
+    SIO_SOCK_SHUTWR = 2,
+    SIO_SOCK_SHUTRDWR = SIO_SOCK_SHUTRD | SIO_SOCK_SHUTWR
+};
+
 enum sio_socket_proto
 {
     SIO_SOCK_TCP,
@@ -81,6 +88,8 @@ int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_e
 
 void *sio_socket_private(struct sio_socket *sock);
 
+int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how);
+int sio_socket_close(struct sio_socket *sock);
 int sio_socket_destory(struct sio_socket *sock);
 
 #ifdef __cplusplus
