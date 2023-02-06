@@ -13,7 +13,8 @@ LIBS := -L../target -lsockio
 
 SRCS := sample_server.c \
 		sample_servers.c \
-		sample_socket_select.c
+		sample_socket_select.c \
+		sample_socket_destory.c
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)
 OBJS := $(OBJS:%.cpp=$(OBJ_OUTPUT)%.o)
