@@ -19,6 +19,7 @@
 #include "sio_def.h"
 #include "sio_event.h"
 #include "sio_mplex.h"
+#include "sio_errno.h"
 #include "sio_log.h"
 
 // #ifdef WIN32
@@ -77,24 +78,24 @@ struct sio_socket
 #define CLOSE(fd) close(fd)
 #endif
 
-
-// socket nonblock recv errno break
 #ifdef LINUX
 #define sio_sock_errno errno
-#define sio_socket_recv_errno_break()                   \
-    int __err = sio_sock_errno;                         \
-    if (__err == EAGAIN ||                              \
-        __err == EWOULDBLOCK) {                         \
-        break;                                          \
-    }
-#elif defined(WIN32)
+#else
 #define sio_sock_errno WSAGetLastError()
+#endif
+
+#ifdef LINUX
+#define sio_socket_again() (sio_sock_errno == EAGAIN || \
+    sio_sock_errno == EWOULDBLOCK)
+#else
+#define sio_socket_again() (sio_sock_errno == WSAEWOULDBLOCK)
+#endif
+
+// socket nonblock recv errno break
 #define sio_socket_recv_errno_break()                   \
-    int __err = sio_sock_errno;                         \
-    if ( __err == WSAEWOULDBLOCK) {                     \
+    if (sio_socket_again()) {                           \
         break;                                          \
     }
-#endif
 
 // shutdown and break loop
 #define sio_socket_shutdown_break(fd)               \
@@ -400,7 +401,10 @@ int sio_socket_accept(struct sio_socket *serv, struct sio_socket *sock)
     SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
 
     int fd = accept(serv->fd, NULL, NULL);
-    SIO_COND_CHECK_RETURN_VAL(fd == -1, -1);
+    if (fd == -1) {
+        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(), SIO_ERRNO_AGAIN);
+        return -1;
+    }
 
     sock->fd = fd;
 
@@ -463,8 +467,9 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int maxlen)
     SIO_COND_CHECK_RETURN_VAL(!buf || maxlen == 0, -1);
 
     int ret = recv(sock->fd, buf, maxlen, 0);
-    // SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-    //     SIO_LOGE("errno: %d\n", errno));
+    if (ret == -1) {
+        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(), SIO_ERRNO_AGAIN);
+    }
 
     return ret;
 }
