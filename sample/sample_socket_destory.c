@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
+#include "sio_errno.h"
 #include "sio_mplex_thread.h"
 
 struct sio_mplex *g_mplex = NULL;
@@ -23,29 +24,33 @@ struct sio_socket_ops g_sock_ops =
 int socknew(void *pri, const char *buf, int len)
 {
     struct sio_socket *serv = pri;
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
-    if (sio_socket_accept(serv, sock) == -1) {
-        printf("server close\n");
-        sio_socket_destory(serv);
-        return -1;
+    for (;;) {
+        struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
+        int ret = sio_socket_accept(serv, sock);
+        if (ret == SIO_ERRNO_AGAIN) {
+            break;
+        } else if (ret != 0) {
+            printf("server close\n");
+            sio_socket_destory(serv);
+            return -1;
+        }
+        printf("new socket connect\n");
+
+        union sio_socket_opt opt = { 0 };
+        opt.ops = g_sock_ops;
+        sio_socket_option(sock, SIO_SOCK_OPS, &opt);
+
+        opt.nonblock = 1;
+        ret = sio_socket_option(sock, SIO_SOCK_NONBLOCK, &opt);
+        if (ret == -1) {
+            printf("socket nonlock set failed\n");
+        }
+
+        g_sock = sock;
+
+        sio_socket_mplex_bind(sock, g_mplex);
+        sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
     }
-    
-    printf("new socket connect\n");
-
-    union sio_socket_opt opt = { 0 };
-    opt.ops = g_sock_ops;
-    sio_socket_option(sock, SIO_SOCK_OPS, &opt);
-
-    opt.nonblock = 1;
-    int ret = sio_socket_option(sock, SIO_SOCK_NONBLOCK, &opt);
-    if (ret == -1) {
-        printf("socket nonlock set failed\n");
-    }
-
-    g_sock = sock;
-
-    sio_socket_mplex_bind(sock, g_mplex);
-    sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
     return 0;
 }
