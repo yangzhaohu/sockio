@@ -128,7 +128,7 @@ int main(void)
     // set nonblock
     union sio_socket_opt opt = { 0 };
     opt.nonblock = 1;
-    sio_socket_option(serv, SIO_SOCK_NONBLOCK, &opt);
+    sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
     // serv mplex
     sio_socket_mplex_bind(serv, mplex);

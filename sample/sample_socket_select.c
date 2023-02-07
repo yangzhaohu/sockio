@@ -35,16 +35,16 @@ int socknew(void *ptr, const char *buf, int len)
 
     union sio_socket_opt opt = { 0 };
     opt.ops = g_sock_ops;
-    sio_socket_option(sock, SIO_SOCK_OPS, &opt);
+    sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
     opt.nonblock = 1;
-    int ret = sio_socket_option(sock, SIO_SOCK_NONBLOCK, &opt);
+    int ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
     if (ret == -1) {
         printf("socket nonlock set failed\n");
     }
 
     opt.reuseaddr = 1;
-    sio_socket_option(sock, SIO_SOCK_REUSEADDR, &opt);
+    sio_socket_setopt(sock, SIO_SOCK_REUSEADDR, &opt);
     if (ret == -1) {
         printf("socket reuseaddr set failed\n");
     }
@@ -121,10 +121,10 @@ int main(void)
 
     union sio_socket_opt opt = { 0 };
     opt.ops = g_serv_ops;
-    sio_socket_option(serv, SIO_SOCK_OPS, &opt);
+    sio_socket_setopt(serv, SIO_SOCK_OPS, &opt);
 
     opt.nonblock = 1;
-    sio_socket_option(serv, SIO_SOCK_NONBLOCK, &opt);
+    sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
     struct sio_mplex_attr attr = { SIO_MPLEX_SELECT };
     struct sio_mplex *mplex = sio_mplex_create(&attr);

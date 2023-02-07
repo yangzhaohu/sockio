@@ -141,9 +141,9 @@ struct sio_server *sio_server_create_imp(enum sio_socket_proto type, unsigned ch
 
     union sio_socket_opt opt = { 0 };
     opt.private = serv;
-    sio_socket_option(sock, SIO_SOCK_PRIVATE, &opt);
+    sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
     opt.ops = g_serv_ops;
-    sio_socket_option(sock, SIO_SOCK_OPS, &opt);
+    sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
     serv->sock = sock;
 
@@ -200,7 +200,7 @@ int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr)
 
     union sio_socket_opt opt = { 0 };
     opt.nonblock = 1;
-    ret = sio_socket_option(sock, SIO_SOCK_NONBLOCK, &opt);
+    ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
     ret = sio_server_socket_mlb(serv, sock);

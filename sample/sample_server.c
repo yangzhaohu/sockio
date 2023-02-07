@@ -43,9 +43,9 @@ static int server_newconn(struct sio_socket *sock)
         .ops.read_cb = socket_readable,
         .ops.write_cb = socket_writeable
     };
-    sio_socket_option(sock, SIO_SOCK_OPS, &opt);
+    sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
     opt.nonblock = 1;
-    sio_socket_option(sock, SIO_SOCK_NONBLOCK, &opt);
+    sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
     return 0;
 }

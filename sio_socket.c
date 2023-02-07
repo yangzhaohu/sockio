@@ -329,7 +329,7 @@ struct sio_socket *sio_socket_create2(enum sio_socket_proto proto)
     return sock;
 }
 
-int sio_socket_option(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt)
+int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 

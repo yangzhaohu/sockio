@@ -38,10 +38,10 @@ int socknew(void *pri, const char *buf, int len)
 
         union sio_socket_opt opt = { 0 };
         opt.ops = g_sock_ops;
-        sio_socket_option(sock, SIO_SOCK_OPS, &opt);
+        sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
         opt.nonblock = 1;
-        ret = sio_socket_option(sock, SIO_SOCK_NONBLOCK, &opt);
+        ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
         if (ret == -1) {
             printf("socket nonlock set failed\n");
         }
@@ -81,10 +81,10 @@ int main()
 
     union sio_socket_opt opt = { 0 };
     opt.ops = g_serv_ops;
-    sio_socket_option(serv, SIO_SOCK_OPS, &opt);
+    sio_socket_setopt(serv, SIO_SOCK_OPS, &opt);
 
     opt.nonblock = 1;
-    sio_socket_option(serv, SIO_SOCK_NONBLOCK, &opt);
+    sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
     struct sio_mplex_thread *mpthr = sio_mplex_thread_create(SIO_MPLEX_EPOLL);
     if (mpthr == NULL) {

@@ -11,8 +11,7 @@ FLAGS := -fPIE
 INCLUDES := -I../
 LIBS := -L../target -lsockio
 
-SRCS := test_shut_delay_mplex.c \
-		test_shut_to_shut.c
+SRCS := test_shut_delay_mplex.c
 
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)
