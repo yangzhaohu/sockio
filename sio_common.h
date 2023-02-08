@@ -11,7 +11,7 @@
 
 #define SIO_COND_CHECK_CONTINUE(cond)           \
     if (cond) {                                 \
-        break;                                  \
+        continue;                               \
     }
 
 #define SIO_COND_CHECK_BREAK(cond)              \
