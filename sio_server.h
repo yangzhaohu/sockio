@@ -12,7 +12,7 @@ enum sio_server_optcmd
 
 struct sio_server_ops
 {
-    int (*accept_cb)(struct sio_socket *sock);
+    int (*accept_cb)(struct sio_socket *serv, struct sio_socket **sock);
     int (*close_cb)(struct sio_server *sock);
 };
 

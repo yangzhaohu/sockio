@@ -7,6 +7,8 @@
 #include "sio_mplex.h"
 #include "sio_mplex_thread.h"
 #include "sio_thread.h"
+#include "sio_errno.h"
+#include "sio_log.h"
 // #include <windows.h>
 // MemoryBarrier();
 
@@ -210,14 +212,9 @@ int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr)
 }
 
 static inline
-int sio_server_accept_cb(struct sio_server *serv, struct sio_socket *sock)
+int sio_server_accept_cb(struct sio_server *serv, struct sio_socket **sock)
 {
-    int ret = 0;
-    if (serv->ops.accept_cb) {
-        ret = serv->ops.accept_cb(sock);
-    }
-
-    return ret;
+    return serv->ops.accept_cb == NULL ? 0 : serv->ops.accept_cb(serv->sock, sock);
 }
 
 static inline
@@ -237,17 +234,17 @@ static int sio_socket_accpet(void *ptr, const char *data, int len)
     struct sio_server *serv = sio_socket_private(sock_serv);
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
 
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
-    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+    do {
+        struct sio_socket *sock = NULL;
+        int ret = sio_server_accept_cb(serv, &sock);
+        SIO_COND_CHECK_BREAK(ret == SIO_ERRNO_AGAIN);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+            sio_server_close_cb(serv));
 
-    int ret = sio_socket_accept(sock_serv, sock);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        sio_server_close_cb(serv));
-
-    sio_server_accept_cb(serv, sock);
-
-    ret = sio_server_socket_mlb(serv, sock);
-    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+        ret = sio_server_socket_mlb(serv, sock);
+        SIO_COND_CHECK_CALLOPS(ret == -1,
+            SIO_LOGE("socket mplex failed\n"));
+    } while (1);
 
     return 0;
 }

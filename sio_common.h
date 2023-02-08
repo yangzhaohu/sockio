@@ -9,6 +9,16 @@
 #define SIO_OFFSET_OF(type, member) ((unsigned long)&(((type*)0)->member))
 #define SIO_CONTAINER_OF(ptr, type, member)	((type *)((char *)(ptr) - SIO_OFFSET_OF(type, member)))
 
+#define SIO_COND_CHECK_CONTINUE(cond)           \
+    if (cond) {                                 \
+        break;                                  \
+    }
+
+#define SIO_COND_CHECK_BREAK(cond)              \
+    if (cond) {                                 \
+        break;                                  \
+    }
+
 #define SIO_COND_CHECK_RETURN_NONE(cond)        \
     if (cond) {                                 \
         return;                                 \

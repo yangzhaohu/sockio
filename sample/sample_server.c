@@ -37,17 +37,25 @@ static int socket_writeable(void *ptr, const char *data, int len)
     return 0;
 }
 
-static int server_newconn(struct sio_socket *sock)
+static int server_newconn(struct sio_socket *serv, struct sio_socket **sock)
 {
+    struct sio_socket *sock2 = sio_socket_create(SIO_SOCK_TCP);
     union sio_socket_opt opt = {
         .ops.read_cb = socket_readable,
         .ops.write_cb = socket_writeable
     };
-    sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
+    sio_socket_setopt(sock2, SIO_SOCK_OPS, &opt);
     opt.nonblock = 1;
-    sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
+    sio_socket_setopt(sock2, SIO_SOCK_NONBLOCK, &opt);
 
-    return 0;
+    int ret = sio_socket_accept(serv, sock2);
+    if(ret == -1) {
+        sio_socket_destory(sock2);
+        sock2 = NULL;
+    }
+
+    *sock = sock2;
+    return ret;
 }
 
 static int server_close(struct sio_server *sock)
@@ -69,11 +77,24 @@ int main()
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     sio_server_listen(serv, &addr);
 
+#define SOCKET_CONNECT_TEST_COUNT 16
+    struct sio_socket *client[SOCKET_CONNECT_TEST_COUNT] = { NULL };
+    for (int i = 0; i < SOCKET_CONNECT_TEST_COUNT; i++) {
+        client[i] = sio_socket_create(SIO_SOCK_TCP);
+        sio_socket_connect(client[i], &addr);
+        sio_socket_write(client[i], "1234", strlen("1234"));
+    }
+
+    getc(stdin);
+
+    for (int i = 0; i < SOCKET_CONNECT_TEST_COUNT; i++) {
+        sio_socket_shutdown(client[i], SIO_SOCK_SHUTRDWR);
+    }
+
     getc(stdin);
 
     sio_server_destory(serv);
 
-    getc(stdin);
     getc(stdin);
 
     return 0;
