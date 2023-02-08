@@ -543,9 +543,10 @@ void *sio_socket_private(struct sio_socket *sock)
     return sock->owner.uptr;
 }
 
-int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how)
+static inline
+int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socket_shuthow how)
 {
-    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, 0);
     SIO_COND_CHECK_RETURN_VAL(how < SIO_SOCK_SHUTRD || how > SIO_SOCK_SHUTRDWR, -1);
 
     int shut = 0;
@@ -566,9 +567,17 @@ int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how)
     return ret;
 }
 
-int sio_socket_close(struct sio_socket *sock)
+int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how)
 {
-    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
+    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+
+    return sio_socket_shutdown_imp(sock, how);
+}
+
+static inline
+int sio_socket_close_imp(struct sio_socket *sock)
+{
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, 0);
 
     int ret = CLOSE(sock->fd);
     if (ret == 0) {
@@ -579,6 +588,13 @@ int sio_socket_close(struct sio_socket *sock)
     return ret;
 }
 
+int sio_socket_close(struct sio_socket *sock)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+
+    return sio_socket_close_imp(sock);
+}
+
 int sio_socket_destory(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
@@ -586,13 +602,13 @@ int sio_socket_destory(struct sio_socket *sock)
     struct sio_socket_state *stat = &sock->stat;
     int how = (~stat->shut) & 0x03;
     if (how != 0) {
-        int ret = sio_socket_shutdown(sock, how);
+        int ret = sio_socket_shutdown_imp(sock, how);
         SIO_COND_CHECK_CALLOPS(ret != 0,
             SIO_LOGE("socket shutdown: %d failed, err: %d\n", how, sio_sock_errno));
     }
 
     if (stat->closed == 0) {
-        int ret = sio_socket_close(sock);
+        int ret = sio_socket_close_imp(sock);
         SIO_COND_CHECK_CALLOPS(ret != 0,
             SIO_LOGE("socket close failed, err: %d\n", sio_sock_errno));
     }
