@@ -238,6 +238,7 @@ static int sio_socket_accpet(void *ptr, const char *data, int len)
         struct sio_socket *sock = NULL;
         int ret = sio_server_accept_cb(serv, &sock);
         SIO_COND_CHECK_BREAK(ret == SIO_ERRNO_AGAIN);
+        SIO_COND_CHECK_CONTINUE(ret == SIO_ERRNO_IGNORE);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
             sio_server_close_cb(serv));
 
