@@ -98,7 +98,7 @@ static int server_accepted(struct sio_socket *serv, struct sio_socket **sock)
     opt.nonblock = 1;
     sio_socket_setopt(sock2, SIO_SOCK_NONBLOCK, &opt);
 
-    int ret = sio_socket_accept(serv, sock2);
+    int ret = sio_socket_accept(serv, &sock2);
     if(ret == -1) {
         sio_socket_destory(sock2);
     }

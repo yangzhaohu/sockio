@@ -25,7 +25,7 @@ int socknew(void *ptr, const char *buf, int len)
     printf("socket new connect comein\n");
     struct sio_socket *serv = ptr;
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
-    if (sio_socket_accept(serv, sock) == -1) {
+    if (sio_socket_accept(serv, &sock) == -1) {
         printf("server close\n");
         return -1;
     }

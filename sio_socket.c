@@ -293,18 +293,14 @@ void sio_socket_addr_in(struct sio_socket *sock, struct sio_socket_addr *addr, s
     // inet_pton(AF_INET, addr->addr, &addr_in->sin_addr);
 }
 
-struct sio_socket *sio_socket_create(enum sio_socket_proto proto)
+static inline
+struct sio_socket *sio_socket_create_imp(enum sio_socket_proto proto)
 {
-    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
-
     struct sio_socket *sock = malloc(sizeof(struct sio_socket));
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock, NULL,
         SIO_LOGE("sio_socket malloc failed\n"));
 
     memset(sock, 0, sizeof(struct sio_socket));
-
-    // struct sio_socket_state *stat = &sock->stat;
-    // stat->shut = SIO_SOCK_SHUTNOT;
 
     struct sio_socket_attr *attr = &sock->attr;
     attr->proto = proto;
@@ -314,9 +310,18 @@ struct sio_socket *sio_socket_create(enum sio_socket_proto proto)
     return sock;
 }
 
+struct sio_socket *sio_socket_create(enum sio_socket_proto proto)
+{
+    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
+
+    return sio_socket_create_imp(proto);
+}
+
 struct sio_socket *sio_socket_create2(enum sio_socket_proto proto)
 {
-    struct sio_socket *sock = sio_socket_create(proto);
+    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
+
+    struct sio_socket *sock = sio_socket_create_imp(proto);
     SIO_COND_CHECK_RETURN_VAL(!sock, NULL);
 
     int fd = sio_socket_sock(proto);
@@ -395,9 +400,28 @@ int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
     return 0;
 }
 
-int sio_socket_accept(struct sio_socket *serv, struct sio_socket *sock)
+// int sio_socket_accept(struct sio_socket *serv, struct sio_socket *sock)
+// {
+//     SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
+//     SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
+
+//     int fd = accept(serv->fd, NULL, NULL);
+//     if (fd == -1) {
+//         SIO_COND_CHECK_RETURN_VAL(sio_socket_again(), SIO_ERRNO_AGAIN);
+//         return -1;
+//     }
+
+//     sock->fd = fd;
+
+//     struct sio_socket_attr *attr = &sock->attr;
+//     attr->mean = SIO_SOCK_MEAN_SOCKET;
+
+//     return 0;
+// }
+
+int sio_socket_accept(struct sio_socket *serv, struct sio_socket **sock)
 {
-    SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
+    SIO_COND_CHECK_RETURN_VAL(!serv, -1);
     SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
 
     int fd = accept(serv->fd, NULL, NULL);
@@ -406,9 +430,15 @@ int sio_socket_accept(struct sio_socket *serv, struct sio_socket *sock)
         return -1;
     }
 
-    sock->fd = fd;
+    struct sio_socket_attr *attr = &serv->attr;
+    if (*sock == NULL) {
+        *sock = sio_socket_create_imp(attr->proto);
+        SIO_COND_CHECK_RETURN_VAL(!(*sock), -1);
+    }
 
-    struct sio_socket_attr *attr = &sock->attr;
+    (*sock)->fd = fd;
+
+    attr = &(*sock)->attr;
     attr->mean = SIO_SOCK_MEAN_SOCKET;
 
     return 0;
