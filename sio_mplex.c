@@ -59,7 +59,7 @@ void sio_mplex_release(struct sio_mplex *mp)
 }
 
 struct sio_mplex *sio_mplex_create(struct sio_mplex_attr *attr)
-{   
+{
     SIO_COND_CHECK_RETURN_VAL(!attr, NULL);
 
     enum SIO_MPLEX_TYPE type = attr->type;
