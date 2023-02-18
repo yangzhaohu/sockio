@@ -33,6 +33,8 @@ int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union
 
 int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr);
 
+int sio_server_shutdown(struct sio_server *serv);
+
 int sio_server_destory(struct sio_server *serv);
 
 #ifdef __cplusplus

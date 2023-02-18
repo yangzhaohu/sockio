@@ -255,6 +255,13 @@ void *sio_work_thread_start_routine(void *arg)
     return NULL;
 }
 
+int sio_server_shutdown(struct sio_server *serv)
+{
+    SIO_COND_CHECK_RETURN_VAL(!serv, -1);
+
+    return sio_socket_shutdown(serv->sock, SIO_SOCK_SHUTRDWR);
+}
+
 int sio_server_destory(struct sio_server *serv)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
