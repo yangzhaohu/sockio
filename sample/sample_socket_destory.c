@@ -26,7 +26,7 @@ int socknew(void *pri, const char *buf, int len)
     struct sio_socket *serv = pri;
     for (;;) {
         struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
-        int ret = sio_socket_accept(serv, sock);
+        int ret = sio_socket_accept(serv, &sock);
         if (ret == SIO_ERRNO_AGAIN) {
             break;
         } else if (ret != 0) {
