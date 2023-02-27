@@ -11,8 +11,6 @@ extern "C" {
 
 struct sio_mplex_thread *sio_mplex_thread_create(enum SIO_MPLEX_TYPE type);
 
-struct sio_mplex_thread *sio_mplex_thread_create2(struct sio_mplex *mplex);
-
 struct sio_mplex *sio_mplex_thread_mplex_ref(struct sio_mplex_thread *mpt);
 
 int sio_mplex_thread_destory(struct sio_mplex_thread *mpt);

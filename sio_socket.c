@@ -282,6 +282,28 @@ int sio_socket_set_addrreuse(struct sio_socket *sock, int reuse)
     return 0;
 }
 
+static inline
+int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_socket_optcmd cmd)
+{
+    int ret = 0;
+#ifdef LINUX
+    int optname = cmd == SIO_SOCK_RCVBUF ? SO_RCVBUF : SO_SNDBUF;
+    ret = setsockopt(sock->fd, SOL_SOCKET, optname, &size, sizeof(size));
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    ret = setsockopt(sock->fd, SOL_SOCKET, optname, &size, sizeof(size));
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    // socklen_t sent = sizeof(size);
+    // size = 0;
+    // ret = getsockopt(sock->fd, SOL_SOCKET, SO_SNDBUF, &size, &sent);
+    // printf("sent buf: %d\n", size);
+    // SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+#endif
+
+    return ret;
+}
+
 static inline 
 void sio_socket_addr_in(struct sio_socket *sock, struct sio_socket_addr *addr, struct sockaddr_in *addr_in)
 {
@@ -338,7 +360,7 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 
-    int ret = 0;
+    int ret = -1;
     switch (cmd) {
     case SIO_SOCK_PRIVATE:
         sio_socket_set_private(sock, opt->private);
@@ -360,6 +382,11 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
     
     case SIO_SOCK_REUSEADDR:
         ret = sio_socket_set_addrreuse(sock, opt->reuseaddr);
+        break;
+
+    case SIO_SOCK_RCVBUF:
+    case SIO_SOCK_SNDBUF:
+        ret = sio_socket_set_buffsize(sock, opt->buff.rcvbuf, cmd);
         break;
     
     default:

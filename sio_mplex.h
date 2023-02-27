@@ -29,6 +29,8 @@ int sio_mplex_wait(struct sio_mplex *mp, struct sio_event *event, int count);
 
 int sio_mplex_close(struct sio_mplex *mp);
 
+int sio_mplex_destory(struct sio_mplex *mp);
+
 #ifdef __cplusplus
 }
 #endif

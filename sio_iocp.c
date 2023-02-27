@@ -124,7 +124,7 @@ int sio_iocp_post_recv(struct sio_event *event)
     return 0;
 }
 
-struct sio_mplex_ctx *sio_mplex_iocp_open(void)
+struct sio_mplex_ctx *sio_mplex_iocp_create(void)
 {
     struct sio_mplex_ctx *ctx = malloc(sizeof(struct sio_mplex_ctx));
     SIO_COND_CHECK_RETURN_VAL(!ctx, NULL);
@@ -191,9 +191,14 @@ int sio_mplex_iocp_close(struct sio_mplex_ctx *ctx)
     return -1;
 }
 
+int sio_mplex_iocp_destory(struct sio_mplex_ctx *ctx)
+{
+    return -1;
+}
+
 #else
 
-struct sio_mplex_ctx *sio_mplex_iocp_open(void)
+struct sio_mplex_ctx *sio_mplex_iocp_create(void)
 {
     return NULL;
 }
@@ -209,6 +214,11 @@ int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int 
 }
 
 int sio_mplex_iocp_close(struct sio_mplex_ctx *ctx)
+{
+    return -1;
+}
+
+int sio_mplex_iocp_destory(struct sio_mplex_ctx *ctx)
 {
     return -1;
 }

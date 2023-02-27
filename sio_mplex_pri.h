@@ -15,10 +15,11 @@ struct sio_mplex_ctx
 
 struct sio_mplex_ops
 {
-    struct sio_mplex_ctx * (*open)(void);
+    struct sio_mplex_ctx * (*create)(void);
     int (*ctl)(struct sio_mplex_ctx *mpctx, int op, int fd, struct sio_event *event);
     int (*wait)(struct sio_mplex_ctx *mpctx, struct sio_event *event, int count);
     int (*close)(struct sio_mplex_ctx *mpctx);
+    int (*destory)(struct sio_mplex_ctx *mpctx);
 };
 
 #endif

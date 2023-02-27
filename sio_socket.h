@@ -34,8 +34,10 @@ enum sio_socket_optcmd
     SIO_SOCK_PRIVATE,
     /*set callback ops function */
     SIO_SOCK_OPS,
-    /* set send/recv buffer size */
-    SIO_SOCK_BUFF,
+    /* set recv buffer size */
+    SIO_SOCK_RCVBUF,
+    /* set send buffer size */
+    SIO_SOCK_SNDBUF,
     /* set socket nonblock */
     SIO_SOCK_NONBLOCK,
     /* set socket reuseaddr */

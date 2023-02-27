@@ -18,28 +18,31 @@ struct sio_mplex
 static const 
 struct sio_mplex_ops g_mplex_select_ops =
 {
-    .open = sio_mplex_select_open,
+    .create = sio_mplex_select_create,
     .ctl  = sio_mplex_select_ctl,
     .wait = sio_mplex_select_wait,
-    .close = sio_mplex_select_close
+    .close = sio_mplex_select_close,
+    .destory = sio_mplex_select_destory
 };
 
 static const 
 struct sio_mplex_ops g_mplex_epoll_ops =
 {
-    .open = sio_mplex_epoll_open,
+    .create = sio_mplex_epoll_create,
     .ctl  = sio_mplex_epoll_ctl,
     .wait = sio_mplex_epoll_wait,
-    .close = sio_mplex_epoll_close
+    .close = sio_mplex_epoll_close,
+    .destory = sio_mplex_epoll_destory
 };
 
 static const 
 struct sio_mplex_ops g_mplex_iocp_ops =
 {
-    .open = sio_mplex_iocp_open,
+    .create = sio_mplex_iocp_create,
     .ctl  = sio_mplex_iocp_ctl,
     .wait = sio_mplex_iocp_wait,
-    .close = sio_mplex_iocp_close
+    .close = sio_mplex_iocp_close,
+    .destory = sio_mplex_iocp_destory
 };
 
 static const
@@ -78,7 +81,7 @@ struct sio_mplex *sio_mplex_create(struct sio_mplex_attr *attr)
     
     mp->ops = ops;
 
-    struct sio_mplex_ctx *ctx = ops->open();
+    struct sio_mplex_ctx *ctx = ops->create();
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!ctx, NULL,
         SIO_LOGE("sio_mplex open failed\n"),
         free(mp));
@@ -113,6 +116,19 @@ int sio_mplex_close(struct sio_mplex *mp)
     int ret = ops->close(mp->ctx);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
+    return 0;
+}
+
+int sio_mplex_destory(struct sio_mplex *mp)
+{
+    SIO_COND_CHECK_RETURN_VAL(!mp, -1);
+
+    const struct sio_mplex_ops *ops = mp->ops;
+
+    int ret = ops->destory(mp->ctx);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
     sio_mplex_release(mp);
+
     return 0;
 }

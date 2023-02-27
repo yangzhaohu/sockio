@@ -228,7 +228,7 @@ int sio_select_check_out_bounds(int fd)
     return 0;
 }
 
-struct sio_mplex_ctx *sio_mplex_select_open(void)
+struct sio_mplex_ctx *sio_mplex_select_create(void)
 {
 #ifdef WIN32
     sio_mutex_init(g_mutex);
@@ -276,6 +276,11 @@ int sio_mplex_select_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, in
 }
 
 int sio_mplex_select_close(struct sio_mplex_ctx *ctx)
+{
+    return 0;
+}
+
+int sio_mplex_select_destory(struct sio_mplex_ctx *ctx)
 {
     return 0;
 }

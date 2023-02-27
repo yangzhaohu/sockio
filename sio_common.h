@@ -47,5 +47,10 @@
         return val;                                                 \
     }
 
+#define SIO_COND_CHECK_CALLOPS_BREAK(cond, ...)                     \
+    if (cond) {                                                     \
+        (__VA_ARGS__);                                              \
+        break;                                                     \
+    }
 
 #endif

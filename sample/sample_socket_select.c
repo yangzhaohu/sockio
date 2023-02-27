@@ -27,7 +27,7 @@ int socknew(void *ptr, const char *buf, int len)
 {
     struct sio_socket *serv = ptr;
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
-    if (sio_socket_accept(serv, sock) == -1) {
+    if (sio_socket_accept(serv, &sock) == -1) {
         printf("server close\n");
         return -1;
     }
@@ -126,14 +126,12 @@ int main(void)
     opt.nonblock = 1;
     sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_mplex_attr attr = { SIO_MPLEX_SELECT };
-    struct sio_mplex *mplex = sio_mplex_create(&attr);
+    struct sio_mplex_thread *mpthr = sio_mplex_thread_create(SIO_MPLEX_SELECT);
+    struct sio_mplex *mplex = sio_mplex_thread_mplex_ref(mpthr);
     g_mplex = mplex;
 
     sio_socket_mplex_bind(serv, mplex);
     sio_socket_mplex(serv, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
-
-    sio_mplex_thread_create2(mplex);
     
     getc(stdin);
     sio_socket_destory(serv);
