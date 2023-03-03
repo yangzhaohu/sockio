@@ -5,6 +5,7 @@
 #include "sio_thread_pri.h"
 #include "sio_thread_pthread.h"
 #include "sio_thread_win.h"
+#include "sio_log.h"
 
 struct sio_thread
 {
@@ -17,11 +18,13 @@ static const
 struct sio_thread_ops g_phtread_ops =
 #ifdef WIN32
 {
-    .create = sio_thread_win_create
+    .create = sio_thread_win_create,
+    .destory = sio_thread_win_destory
 };
 #else
 {
-    .create = sio_thread_pthread_create
+    .create = sio_thread_pthread_create,
+    .destory = sio_thread_pthread_destory
 };
 #endif 
 
@@ -50,10 +53,11 @@ int sio_thread_start(struct sio_thread *thread)
     struct sio_thread_pri *pri = &thread->pri;
     const struct sio_thread_ops *ops = thread->ops;
 
-    int tid = ops->create(pri);
+    unsigned long int tid = ops->create(pri);
     SIO_COND_CHECK_RETURN_VAL(tid == -1, -1);
 
     thread->tid = tid;
+
     return 0;
 }
 
@@ -64,5 +68,12 @@ int sio_thread_start(struct sio_thread *thread)
 
 int sio_thread_destory(struct sio_thread *thread)
 {
-    return 0;
+    SIO_COND_CHECK_RETURN_VAL(!thread, -1);
+
+    const struct sio_thread_ops *ops = thread->ops;
+
+    unsigned long int tid = thread->tid;
+    int ret = ops->destory(tid);
+
+    return ret;
 }

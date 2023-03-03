@@ -12,7 +12,7 @@ struct sio_thread_ops
     unsigned long int (*create)(struct sio_thread_pri *pri);
     int (*self)(void);
     // int (*st_join)(void);
-    int (*close)(unsigned long int tid);
+    int (*destory)(unsigned long int tid);
 };
 
 #endif

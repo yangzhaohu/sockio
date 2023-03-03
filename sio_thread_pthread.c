@@ -5,7 +5,9 @@
 #ifdef LINUX
 #include <pthread.h>
 #endif
+#include "sio_common.h"
 #include "sio_thread_pri.h"
+#include "sio_log.h"
 
 #ifdef LINUX
 unsigned long int sio_thread_pthread_create(struct sio_thread_pri *pri)
@@ -16,6 +18,15 @@ unsigned long int sio_thread_pthread_create(struct sio_thread_pri *pri)
     }
 
     return tid;
+}
+
+int sio_thread_pthread_destory(unsigned long int tid)
+{
+    int ret = pthread_join(tid, NULL);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
+        SIO_LOGE("pthread join err: %d", ret));
+
+    return 0;
 }
 
 #endif

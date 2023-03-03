@@ -5,23 +5,12 @@
 #include "sio_thread.h"
 #include "sio_log.h"
 
-enum sio_mplex_thread_state
-{
-    SIO_MPLEX_THREAD_DEFAULT,
-    SIO_MPLEX_THREAD_RUNNING,
-    SIO_MPLEX_THREAD_RUNSTOP,
-    SIO_MPLEX_THREAD_STOPPED
-};
-
 struct sio_mplex_thread
 {
     struct sio_mplex *mplex;
     struct sio_thread *thread;
-    enum sio_mplex_thread_state tstate;
 };
 
-#define sio_mplex_thread_set_state(mpt, val)     mpt->tstate = val;
-#define sio_mplex_thread_get_state(mpt)          mpt->tstate
 
 extern int sio_socket_event_dispatch(struct sio_event *events, int count);
 
@@ -32,7 +21,7 @@ void *sio_mplex_thread_start_routine(void *arg)
 
     struct sio_event events[128];
 
-    while (sio_mplex_thread_get_state(mpt) == SIO_MPLEX_THREAD_RUNNING) {
+    while (1) {
         int count = sio_mplex_wait(mplex, events, 128);
         if (count > 0) {
             sio_socket_event_dispatch(events, count);
@@ -40,8 +29,6 @@ void *sio_mplex_thread_start_routine(void *arg)
             break;
         }
     }
-
-    sio_mplex_thread_set_state(mpt, SIO_MPLEX_THREAD_STOPPED);
 
     return NULL;
 }
@@ -60,7 +47,6 @@ struct sio_mplex_thread *sio_mplex_thread_create_imp(struct sio_mplex *mplex)
         free(mpt));
 
     mpt->thread = thread;
-    sio_mplex_thread_set_state(mpt, SIO_MPLEX_THREAD_RUNNING);
 
     int ret = sio_thread_start(thread);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
@@ -89,23 +75,11 @@ struct sio_mplex *sio_mplex_thread_mplex_ref(struct sio_mplex_thread *mpt)
     return mpt->mplex;
 }
 
-static inline
-int sio_mplex_thread_wait_thread_exit(struct sio_mplex_thread *mpt)
-{
-    enum sio_mplex_thread_state state = sio_mplex_thread_get_state(mpt);
-    while (state != SIO_MPLEX_THREAD_DEFAULT &&
-        state != SIO_MPLEX_THREAD_STOPPED) {
-            state = sio_mplex_thread_get_state(mpt);
-        }
-    return 0;
-}
-
 int sio_mplex_thread_destory(struct sio_mplex_thread *mpt)
 {
     SIO_COND_CHECK_RETURN_VAL(!mpt, -1);
 
     sio_mplex_close(mpt->mplex);
-    sio_mplex_thread_wait_thread_exit(mpt);
 
     sio_thread_destory(mpt->thread);
     sio_mplex_destory(mpt->mplex);
