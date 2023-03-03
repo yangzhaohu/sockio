@@ -206,5 +206,10 @@ int sio_servers_destory(struct sio_servers *servs)
     int ret = sio_server_destory(servs->serv);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
+    struct sio_thread **worthrs = servs->worthrs;
+    SIO_SERVERS_THREADS_DESTORY(worthrs, SIO_SERVERS_MAX_THREADS);
+
+    free(servs);
+
     return 0;
 }

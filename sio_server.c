@@ -271,5 +271,7 @@ int sio_server_destory(struct sio_server *serv)
     struct sio_mplex_thread **mplths = serv->mplths;
     SIO_SERVER_THREADS_DESTORY(mplths, SIO_SERVER_MAX_THREADS);
 
+    free(serv);
+
     return 0;
 }
