@@ -74,6 +74,9 @@ int sio_thread_destory(struct sio_thread *thread)
 
     unsigned long int tid = thread->tid;
     int ret = ops->destory(tid);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    free(thread);
 
     return ret;
 }
