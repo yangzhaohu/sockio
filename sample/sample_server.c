@@ -45,13 +45,14 @@ static int server_newconn(struct sio_socket *serv, struct sio_socket **sock)
         .ops.write_cb = socket_writeable
     };
     sio_socket_setopt(sock2, SIO_SOCK_OPS, &opt);
-    opt.nonblock = 1;
-    sio_socket_setopt(sock2, SIO_SOCK_NONBLOCK, &opt);
 
     int ret = sio_socket_accept(serv, &sock2);
     if(ret == -1) {
         sio_socket_destory(sock2);
         sock2 = NULL;
+    } else {
+        opt.nonblock = 1;
+        sio_socket_setopt(sock2, SIO_SOCK_NONBLOCK, &opt);
     }
 
     *sock = sock2;
