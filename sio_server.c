@@ -212,9 +212,9 @@ int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr)
 }
 
 static inline
-int sio_server_accept_cb(struct sio_server *serv, struct sio_socket **sock)
+struct sio_socket *sio_server_accept_cb(struct sio_server *serv)
 {
-    return serv->ops.accept_cb == NULL ? 0 : serv->ops.accept_cb(serv->sock, sock);
+    return serv->ops.accept_cb == NULL ? 0 : serv->ops.accept_cb(serv->sock);
 }
 
 static inline
@@ -235,12 +235,15 @@ static int sio_socket_accpet(void *ptr, const char *data, int len)
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
 
     do {
-        struct sio_socket *sock = NULL;
-        int ret = sio_server_accept_cb(serv, &sock);
+        int ret = sio_socket_accept_has_pend(serv->sock);
         SIO_COND_CHECK_BREAK(ret == SIO_ERRNO_AGAIN);
-        SIO_COND_CHECK_CONTINUE(ret == SIO_ERRNO_IGNORE);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
             sio_server_close_cb(serv));
+
+        struct sio_socket *sock = sio_server_accept_cb(serv);
+        if (sock == NULL) {
+            continue;
+        }
 
         ret = sio_server_socket_mlb(serv, sock);
         SIO_COND_CHECK_CALLOPS(ret == -1,

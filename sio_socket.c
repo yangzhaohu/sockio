@@ -427,46 +427,41 @@ int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
     return 0;
 }
 
-// int sio_socket_accept(struct sio_socket *serv, struct sio_socket *sock)
-// {
-//     SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
-//     SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
+#ifdef WIN32
+__declspec(thread) int tls_accept_pend_fd = -1;
+#else
+__thread int tls_accept_pend_fd = -1;
+#endif
 
-//     int fd = accept(serv->fd, NULL, NULL);
-//     if (fd == -1) {
-//         SIO_COND_CHECK_RETURN_VAL(sio_socket_again(), SIO_ERRNO_AGAIN);
-//         return -1;
-//     }
-
-//     sock->fd = fd;
-
-//     struct sio_socket_attr *attr = &sock->attr;
-//     attr->mean = SIO_SOCK_MEAN_SOCKET;
-
-//     return 0;
-// }
-
-int sio_socket_accept(struct sio_socket *serv, struct sio_socket **sock)
+int sio_socket_accept_has_pend(struct sio_socket *sock)
 {
-    SIO_COND_CHECK_RETURN_VAL(!serv, -1);
-    SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
+    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
+    SIO_COND_CHECK_RETURN_VAL(sock->attr.mean != SIO_SOCK_MEAN_SERVER, -1);
 
-    int fd = accept(serv->fd, NULL, NULL);
-    if (fd == -1) {
+    SIO_COND_CHECK_RETURN_VAL(tls_accept_pend_fd != -1, 0);
+
+    tls_accept_pend_fd = accept(sock->fd, NULL, NULL);
+    if (tls_accept_pend_fd == -1) {
         SIO_COND_CHECK_RETURN_VAL(sio_socket_again(), SIO_ERRNO_AGAIN);
         return -1;
     }
 
-    struct sio_socket_attr *attr = &serv->attr;
-    if (*sock == NULL) {
-        *sock = sio_socket_create_imp(attr->proto);
-        SIO_COND_CHECK_RETURN_VAL(!(*sock), -1);
-    }
+    return 0;
+}
 
-    (*sock)->fd = fd;
+int sio_socket_accept(struct sio_socket *sock, struct sio_socket *serv)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || !serv, -1);
+    SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
 
-    attr = &(*sock)->attr;
+    SIO_COND_CHECK_RETURN_VAL(tls_accept_pend_fd == -1, -1);
+
+    struct sio_socket_attr *attr = &sock->attr;
     attr->mean = SIO_SOCK_MEAN_SOCKET;
+
+    sock->fd = tls_accept_pend_fd;
+    tls_accept_pend_fd = -1;
 
     return 0;
 }
