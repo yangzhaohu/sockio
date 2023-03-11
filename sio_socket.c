@@ -433,21 +433,29 @@ __declspec(thread) int tls_accept_pend_fd = -1;
 __thread int tls_accept_pend_fd = -1;
 #endif
 
-int sio_socket_accept_has_pend(struct sio_socket *sock)
+int sio_socket_accept_has_pend_imp(struct sio_socket *sock)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(sock->attr.mean != SIO_SOCK_MEAN_SERVER, -1);
 
     SIO_COND_CHECK_RETURN_VAL(tls_accept_pend_fd != -1, 0);
 
-    tls_accept_pend_fd = accept(sock->fd, NULL, NULL);
-    if (tls_accept_pend_fd == -1) {
+    int fd = accept(sock->fd, NULL, NULL);
+    if (fd == -1) {
         SIO_COND_CHECK_RETURN_VAL(sio_socket_again(), SIO_ERRNO_AGAIN);
         return -1;
     }
 
+    tls_accept_pend_fd = fd;
+
     return 0;
+}
+
+int sio_socket_accept_has_pend(struct sio_socket *sock)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+
+    return sio_socket_accept_has_pend_imp(sock);
 }
 
 int sio_socket_accept(struct sio_socket *sock, struct sio_socket *serv)
@@ -455,7 +463,11 @@ int sio_socket_accept(struct sio_socket *sock, struct sio_socket *serv)
     SIO_COND_CHECK_RETURN_VAL(!sock || !serv, -1);
     SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
 
-    SIO_COND_CHECK_RETURN_VAL(tls_accept_pend_fd == -1, -1);
+    int ret = 0;
+    if (tls_accept_pend_fd == -1) {
+        ret = sio_socket_accept_has_pend_imp(serv);
+    }
+    SIO_COND_CHECK_RETURN_VAL(tls_accept_pend_fd == -1, ret);
 
     struct sio_socket_attr *attr = &sock->attr;
     attr->mean = SIO_SOCK_MEAN_SOCKET;
