@@ -19,7 +19,8 @@ SRCS := sio_mplex.c \
 		sio_thread.c \
 		sio_thread_pthread.c \
 		sio_thread_win.c \
-		sio_mplex_thread.c
+		sio_mplex_thread.c \
+		sio_atomic.c
 
 .PHONY: incre all clean help
 
