@@ -214,18 +214,13 @@ int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr)
 static inline
 struct sio_socket *sio_server_accept_cb(struct sio_server *serv)
 {
-    return serv->ops.accept_cb == NULL ? 0 : serv->ops.accept_cb(serv->sock);
+    return serv->ops.accept_cb == NULL ? NULL : serv->ops.accept_cb(serv->sock);
 }
 
 static inline
 int sio_server_close_cb(struct sio_server *serv)
 {
-    int ret = 0;
-    if (serv->ops.close_cb) {
-        ret = serv->ops.close_cb(serv);
-    }
-
-    return ret;
+    return serv->ops.close_cb == NULL ? 0 : serv->ops.close_cb(serv);
 }
 
 static int sio_socket_accpet(void *ptr, const char *data, int len)
