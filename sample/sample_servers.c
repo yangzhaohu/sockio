@@ -14,6 +14,6 @@ int main()
     sio_servers_destory(servs);
 
     getc(stdin);
-    getc(stdin);
+
     return 0;
 }

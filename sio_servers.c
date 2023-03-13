@@ -51,7 +51,7 @@ struct sio_servers
         } \
     } while (0);
 
-static int socket_readable(void *ptr, const char *data, int len)
+static int sio_socket_readable(void *ptr, const char *data, int len)
 {
     struct sio_socket *sock = ptr;
     if (len == 0) {
@@ -78,7 +78,7 @@ static char *g_resp =
             "</body>"
             "</html>";
 
-static int socket_writeable(void *ptr, const char *data, int len)
+static int sio_socket_writeable(void *ptr, const char *data, int len)
 {
     struct sio_socket *sock = ptr;
 
@@ -87,12 +87,12 @@ static int socket_writeable(void *ptr, const char *data, int len)
     return 0;
 }
 
-static int server_accepted(struct sio_server *serv)
+static int sio_server_newconn(struct sio_server *serv)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
     union sio_socket_opt opt = {
-        .ops.read_cb = socket_readable,
-        .ops.write_cb = socket_writeable
+        .ops.read_cb = sio_socket_readable,
+        .ops.write_cb = sio_socket_writeable
     };
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
@@ -110,7 +110,7 @@ static int server_accepted(struct sio_server *serv)
     return ret;
 }
 
-static int server_closed(struct sio_server *sock)
+static int sio_server_closed(struct sio_server *sock)
 {
     printf("server close\n");
     return 0;
@@ -149,8 +149,8 @@ struct sio_server *sio_servers_create_server(enum sio_socket_proto type, unsigne
     SIO_COND_CHECK_RETURN_VAL(!serv, NULL);
 
     union sio_server_opt ops = {
-        .ops.accept_cb = server_accepted,
-        .ops.close_cb = server_closed
+        .ops.accept_cb = sio_server_newconn,
+        .ops.close_cb = sio_server_closed
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 
