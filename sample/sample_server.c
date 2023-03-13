@@ -49,6 +49,7 @@ static struct sio_socket *server_newconn(struct sio_socket *serv)
     int ret = sio_socket_accept(sock, serv);
     if(ret == -1) {
         sio_socket_destory(sock);
+        sock = NULL;
     } else {
         opt.nonblock = 1;
         sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
