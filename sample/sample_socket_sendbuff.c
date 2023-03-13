@@ -36,14 +36,7 @@ int socknew(void *pri, const char *buf, int len)
         }
 
         struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
-        sio_socket_accept(sock, serv);
-        if (ret == SIO_ERRNO_AGAIN) {
-            break;
-        } else if (ret != 0) {
-            printf("server close\n");
-            sio_socket_destory(serv);
-            return -1;
-        }
+        sio_socket_accept(serv, sock);
         printf("new socket connect\n");
 
         union sio_socket_opt opt = { 0 };

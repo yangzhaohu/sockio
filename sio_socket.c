@@ -462,18 +462,18 @@ int sio_socket_accept_has_pend(struct sio_socket *sock)
     return sio_socket_accept_has_pend_imp(sock);
 }
 
-int sio_socket_accept(struct sio_socket *sock, struct sio_socket *serv)
+int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock || !serv, -1);
-    SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
+    SIO_COND_CHECK_RETURN_VAL(!sock || !newsock, -1);
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
 
-    int ret = sio_socket_accept_has_pend_imp(serv);
+    int ret = sio_socket_accept_has_pend_imp(sock);
     SIO_COND_CHECK_RETURN_VAL(ret != 0, ret);
 
-    struct sio_socket_attr *attr = &sock->attr;
+    struct sio_socket_attr *attr = &newsock->attr;
     attr->mean = SIO_SOCK_MEAN_SOCKET;
 
-    sock->fd = sio_socket_accept_pend_fd();
+    newsock->fd = sio_socket_accept_pend_fd();
     sio_socket_accept_pend_fd_clear();
 
     return 0;

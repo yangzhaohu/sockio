@@ -87,7 +87,7 @@ static int socket_writeable(void *ptr, const char *data, int len)
     return 0;
 }
 
-static struct sio_socket *server_accepted(struct sio_socket *serv)
+static int server_accepted(struct sio_server *serv)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
     union sio_socket_opt opt = {
@@ -96,16 +96,18 @@ static struct sio_socket *server_accepted(struct sio_socket *serv)
     };
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
-    int ret = sio_socket_accept(sock, serv);
+    int ret = sio_server_accept(serv, sock);
     if(ret == -1) {
         sio_socket_destory(sock);
-        sock = NULL;
-    } else {
-        opt.nonblock = 1;
-        sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
+        return ret;
     }
 
-    return sock;
+    opt.nonblock = 1;
+    sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
+
+    sio_server_socket_mplex(serv, sock);
+
+    return ret;
 }
 
 static int server_closed(struct sio_server *sock)

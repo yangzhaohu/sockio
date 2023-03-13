@@ -211,10 +211,24 @@ int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr)
     return 0;
 }
 
-static inline
-struct sio_socket *sio_server_accept_cb(struct sio_server *serv)
+int sio_server_accept(struct sio_server *serv, struct sio_socket* sock)
 {
-    return serv->ops.accept_cb == NULL ? NULL : serv->ops.accept_cb(serv->sock);
+    SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
+
+    return sio_socket_accept(serv->sock, sock);
+}
+
+int sio_server_socket_mplex(struct sio_server *serv, struct sio_socket* sock)
+{
+    SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
+
+    return sio_server_socket_mlb(serv, sock);
+}
+
+static inline
+int sio_server_accept_cb(struct sio_server *serv)
+{
+    return serv->ops.accept_cb == NULL ? 0 : serv->ops.accept_cb(serv);
 }
 
 static inline
@@ -235,14 +249,8 @@ static int sio_socket_accpet(void *ptr, const char *data, int len)
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
             sio_server_close_cb(serv));
 
-        struct sio_socket *sock = sio_server_accept_cb(serv);
-        if (sock == NULL) {
-            continue;
-        }
+        sio_server_accept_cb(serv);
 
-        ret = sio_server_socket_mlb(serv, sock);
-        SIO_COND_CHECK_CALLOPS(ret == -1,
-            SIO_LOGE("socket mplex failed\n"));
     } while (1);
 
     return 0;

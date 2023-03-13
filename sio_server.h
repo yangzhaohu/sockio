@@ -12,8 +12,8 @@ enum sio_server_optcmd
 
 struct sio_server_ops
 {
-    struct sio_socket* (*accept_cb)(struct sio_socket *serv);
-    int (*close_cb)(struct sio_server *sock);
+    int(*accept_cb)(struct sio_server *serv);
+    int (*close_cb)(struct sio_server *serv);
 };
 
 union sio_server_opt
@@ -32,6 +32,10 @@ struct sio_server *sio_server_create2(enum sio_socket_proto type, unsigned char 
 int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt);
 
 int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr);
+
+int sio_server_accept(struct sio_server *serv, struct sio_socket* sock);
+
+int sio_server_socket_mplex(struct sio_server *serv, struct sio_socket* sock);
 
 int sio_server_shutdown(struct sio_server *serv);
 

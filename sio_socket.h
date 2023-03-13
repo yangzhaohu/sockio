@@ -76,7 +76,7 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
 int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr);
 
 int sio_socket_accept_has_pend(struct sio_socket *sock);
-int sio_socket_accept(struct sio_socket *sock, struct sio_socket *serv);
+int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock);
 int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock);
 
 int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr);

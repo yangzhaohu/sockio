@@ -33,7 +33,7 @@ int socknew(void *pri, const char *buf, int len)
     };
     struct sio_socket *sock = sio_socket_create(&config);
     struct sio_socket *serv = pri;
-    if (sio_socket_accept(sock, serv) == -1) {
+    if (sio_socket_accept(serv, sock) == -1) {
         return -1;
     }
     g_sock = sock;
