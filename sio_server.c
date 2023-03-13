@@ -272,11 +272,10 @@ int sio_server_destory(struct sio_server *serv)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
 
-    sio_socket_destory(serv->sock);
-
     struct sio_mplex_thread **mplths = serv->mplths;
     SIO_SERVER_THREADS_DESTORY(mplths, SIO_SERVER_MAX_THREADS);
 
+    sio_socket_destory(serv->sock);
     free(serv);
 
     return 0;
