@@ -115,7 +115,10 @@ int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock)
     struct sio_mplex *mplex = sio_mplex_thread_mplex_ref(mplth);
     SIO_COND_CHECK_RETURN_VAL(!mplex, -1);
 
-    int ret = sio_socket_mplex_bind(sock, mplex);
+    union sio_socket_opt opt = {
+        .mplex = mplex
+    };
+    int ret = sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
     ret = sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);

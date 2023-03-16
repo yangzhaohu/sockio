@@ -248,8 +248,16 @@ void sio_socket_set_ops(struct sio_socket *sock, struct sio_socket_ops ops)
 }
 
 static inline
+void sio_socket_set_mplex(struct sio_socket *sock, struct sio_mplex *mplex)
+{
+    sock->mp = mplex;
+}
+
+static inline
 int sio_socket_set_nonblock(struct sio_socket *sock, int nonblock)
 {
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
+
 #ifdef LINUX
     int opt = fcntl(sock->fd, F_GETFL);
     SIO_COND_CHECK_RETURN_VAL(opt == -1, -1);
@@ -272,6 +280,8 @@ int sio_socket_set_nonblock(struct sio_socket *sock, int nonblock)
 static inline
 int sio_socket_set_addrreuse(struct sio_socket *sock, int reuse)
 {
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
+
 #ifdef LINUX
 #elif defined(WIN32)
     char reused = reuse ? 1 : 0;
@@ -285,10 +295,11 @@ int sio_socket_set_addrreuse(struct sio_socket *sock, int reuse)
 static inline
 int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_socket_optcmd cmd)
 {
-    int ret = 0;
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
+
 #ifdef LINUX
     int optname = cmd == SIO_SOCK_RCVBUF ? SO_RCVBUF : SO_SNDBUF;
-    ret = setsockopt(sock->fd, SOL_SOCKET, optname, &size, sizeof(size));
+    int ret = setsockopt(sock->fd, SOL_SOCKET, optname, &size, sizeof(size));
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
     ret = setsockopt(sock->fd, SOL_SOCKET, optname, &size, sizeof(size));
@@ -299,6 +310,8 @@ int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_socket_o
     // ret = getsockopt(sock->fd, SOL_SOCKET, SO_SNDBUF, &size, &sent);
     // printf("sent buf: %d\n", size);
     // SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+#else
+    int ret = -1;
 #endif
 
     return ret;
@@ -360,7 +373,7 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 
-    int ret = -1;
+    int ret = 0;
     switch (cmd) {
     case SIO_SOCK_PRIVATE:
         sio_socket_set_private(sock, opt->private);
@@ -370,16 +383,14 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
         sio_socket_set_ops(sock, opt->ops);
         break;
 
-    default:
+    case SIO_SOCK_MPLEX:
+        sio_socket_set_mplex(sock, opt->mplex);
         break;
-    }
 
-    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
-    switch (cmd) {
     case SIO_SOCK_NONBLOCK:
         ret = sio_socket_set_nonblock(sock, opt->nonblock);
         break;
-    
+
     case SIO_SOCK_REUSEADDR:
         ret = sio_socket_set_addrreuse(sock, opt->reuseaddr);
         break;
@@ -388,8 +399,9 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
     case SIO_SOCK_SNDBUF:
         ret = sio_socket_set_buffsize(sock, opt->buff.rcvbuf, cmd);
         break;
-    
+
     default:
+        ret = -1;
         break;
     }
 
@@ -575,13 +587,13 @@ int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
     return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
-int sio_socket_mplex_bind(struct sio_socket *sock, struct sio_mplex *mp)
-{
-    SIO_COND_CHECK_RETURN_VAL(!sock || !mp, -1);
+// int sio_socket_mplex_bind(struct sio_socket *sock, struct sio_mplex *mp)
+// {
+//     SIO_COND_CHECK_RETURN_VAL(!sock || !mp, -1);
 
-    sock->mp = mp;
-    return 0;
-}
+//     sock->mp = mp;
+//     return 0;
+// }
 
 int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events)
 {

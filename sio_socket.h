@@ -3,6 +3,9 @@
 
 #include "sio_event.h"
 
+struct sio_socket;
+struct sio_mplex;
+
 enum sio_socket_shuthow
 {
     SIO_SOCK_SHUTRD = 1,
@@ -32,8 +35,10 @@ enum sio_socket_optcmd
 {
     /* set pointer to private data */
     SIO_SOCK_PRIVATE,
-    /*set callback ops function */
+    /* set callback ops function */
     SIO_SOCK_OPS,
+    /* set socket mplex */
+    SIO_SOCK_MPLEX,
     /* set recv buffer size */
     SIO_SOCK_RCVBUF,
     /* set send buffer size */
@@ -50,6 +55,7 @@ union sio_socket_opt
 {
     void *private;
     struct sio_socket_ops ops;
+    struct sio_mplex *mplex;
 
     struct sock_buff {
         int rcvbuf;
@@ -59,9 +65,6 @@ union sio_socket_opt
     int reuseaddr;
     int keepalive;
 };
-
-struct sio_socket;
-struct sio_mplex;
 
 
 #ifdef __cplusplus
@@ -87,7 +90,7 @@ int sio_socket_async_read(struct sio_socket *sock, char *buf, int maxlen);
 int sio_socket_write(struct sio_socket *sock, char *buf, int len);
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len);
 
-int sio_socket_mplex_bind(struct sio_socket *sock, struct sio_mplex *mp);
+// int sio_socket_mplex_bind(struct sio_socket *sock, struct sio_mplex *mp);
 int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);
 
 void *sio_socket_private(struct sio_socket *sock);

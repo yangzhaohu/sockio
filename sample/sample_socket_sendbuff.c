@@ -50,11 +50,12 @@ int socknew(void *pri, const char *buf, int len)
         }
 
         opt.buff.rcvbuf = opt.buff.sndbuf = 4096;
-        sio_socket_setopt(serv, SIO_SOCK_BUFF, &opt);
+        sio_socket_setopt(serv, SIO_SOCK_RCVBUF, &opt);
 
         g_sock = sock;
 
-        sio_socket_mplex_bind(sock, g_mplex);
+        opt.mplex = g_mplex;
+        sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
         sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
     }
 
@@ -112,12 +113,13 @@ int main()
 
     g_mplex = sio_mplex_thread_mplex_ref(mpthr);
 
-    sio_socket_mplex_bind(serv, g_mplex);
+    opt.mplex = g_mplex;
+    sio_socket_setopt(serv, SIO_SOCK_MPLEX, &opt);
     sio_socket_mplex(serv, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
     struct sio_socket *client = sio_socket_create(SIO_SOCK_TCP);
     opt.buff.rcvbuf = opt.buff.sndbuf = 4096;
-    int ret = sio_socket_setopt(serv, SIO_SOCK_BUFF, &opt);
+    int ret = sio_socket_setopt(serv, SIO_SOCK_RCVBUF, &opt);
     if (ret == -1) {
         printf("buff size set failed\n");
     }
