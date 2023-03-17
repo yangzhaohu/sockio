@@ -49,7 +49,7 @@ int socknew(void *pri, const char *buf, int len)
             printf("socket nonlock set failed\n");
         }
 
-        opt.buff.rcvbuf = opt.buff.sndbuf = 4096;
+        opt.rcvbuf = opt.sndbuf = 4096;
         sio_socket_setopt(serv, SIO_SOCK_RCVBUF, &opt);
 
         g_sock = sock;
@@ -118,7 +118,7 @@ int main()
     sio_socket_mplex(serv, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
     struct sio_socket *client = sio_socket_create(SIO_SOCK_TCP);
-    opt.buff.rcvbuf = opt.buff.sndbuf = 4096;
+    opt.rcvbuf = opt.sndbuf = 4096;
     int ret = sio_socket_setopt(serv, SIO_SOCK_RCVBUF, &opt);
     if (ret == -1) {
         printf("buff size set failed\n");

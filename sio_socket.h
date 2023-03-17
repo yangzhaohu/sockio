@@ -56,11 +56,8 @@ union sio_socket_opt
     void *private;
     struct sio_socket_ops ops;
     struct sio_mplex *mplex;
-
-    struct sock_buff {
-        int rcvbuf;
-        int sndbuf;
-    }buff;
+    int rcvbuf;
+    int sndbuf;
     int nonblock;
     int reuseaddr;
     int keepalive;

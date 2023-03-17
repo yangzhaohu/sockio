@@ -396,8 +396,10 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
         break;
 
     case SIO_SOCK_RCVBUF:
+        ret = sio_socket_set_buffsize(sock, opt->rcvbuf, cmd);
+        break;
     case SIO_SOCK_SNDBUF:
-        ret = sio_socket_set_buffsize(sock, opt->buff.rcvbuf, cmd);
+        ret = sio_socket_set_buffsize(sock, opt->sndbuf, cmd);
         break;
 
     default:
