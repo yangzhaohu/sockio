@@ -32,6 +32,7 @@ struct sio_server *sio_server_create(enum sio_socket_proto type);
 struct sio_server *sio_server_create2(enum sio_socket_proto type, unsigned char threads);
 
 int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt);
+int sio_server_getopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt);
 
 int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr);
 

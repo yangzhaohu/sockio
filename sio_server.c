@@ -174,6 +174,13 @@ void sio_server_set_private(struct sio_server *serv, void *private)
 }
 
 static inline
+void sio_server_get_private(struct sio_server *serv, void **private)
+{
+    struct sio_server_owner *owner = &serv->owner;
+    *private = owner->pri;
+}
+
+static inline
 void sio_server_set_ops(struct sio_server *serv, struct sio_server_ops *ops)
 {
     // serv->ops = *ops;
@@ -205,6 +212,24 @@ int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union
         sio_server_set_ops(serv, &opt->ops);
         break;
     
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
+}
+
+int sio_server_getopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt)
+{
+    SIO_COND_CHECK_RETURN_VAL(!serv || !opt, -1);
+
+    int ret = 0;
+    switch (cmd) {
+    case SIO_SERV_PRIVATE:
+        sio_server_get_private(serv, &opt->private);
+        break;
+
     default:
         ret = -1;
         break;
