@@ -7,6 +7,7 @@ struct sio_server;
 
 enum sio_server_optcmd
 {
+    SIO_SERV_PRIVATE,
     SIO_SERV_OPS
 };
 
@@ -18,6 +19,7 @@ struct sio_server_ops
 
 union sio_server_opt
 {
+    void *private;
     struct sio_server_ops ops;
 };
 

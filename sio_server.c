@@ -38,10 +38,16 @@ struct sio_server_mlb
 //     int a;
 // };
 
+struct sio_server_owner
+{
+    void *pri;
+    struct sio_server_ops ops;
+};
+
 struct sio_server
 {
     struct sio_socket *sock;
-    struct sio_server_ops ops;
+    struct sio_server_owner owner;
     struct sio_mplex_thread *mplths[SIO_SERVER_MAX_THREADS];
     struct sio_server_mlb mlb;
 };
@@ -161,9 +167,18 @@ struct sio_server *sio_server_create_imp(enum sio_socket_proto type, unsigned ch
 }
 
 static inline
+void sio_server_set_private(struct sio_server *serv, void *private)
+{
+    struct sio_server_owner *owner = &serv->owner;
+    owner->pri = private;
+}
+
+static inline
 void sio_server_set_ops(struct sio_server *serv, struct sio_server_ops *ops)
 {
-    serv->ops = *ops;
+    // serv->ops = *ops;
+    struct sio_server_owner *owner = &serv->owner;
+    owner->ops = *ops;
 }
 
 struct sio_server *sio_server_create(enum sio_socket_proto type)
@@ -183,6 +198,9 @@ int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union
 
     int ret = 0;
     switch (cmd) {
+    case SIO_SERV_PRIVATE:
+        sio_server_set_private(serv, opt->private);
+        break;
     case SIO_SERV_OPS:
         sio_server_set_ops(serv, &opt->ops);
         break;
@@ -231,13 +249,16 @@ int sio_server_socket_mplex(struct sio_server* serv, struct sio_socket* sock)
 static inline
 int sio_server_accept_cb(struct sio_server *serv)
 {
-    return serv->ops.accept_cb == NULL ? 0 : serv->ops.accept_cb(serv);
+    struct sio_server_owner *owner = &serv->owner;
+
+    return owner->ops.accept_cb == NULL ? 0 : owner->ops.accept_cb(serv);
 }
 
 static inline
 int sio_server_close_cb(struct sio_server *serv)
 {
-    return serv->ops.close_cb == NULL ? 0 : serv->ops.close_cb(serv);
+    struct sio_server_owner *owner = &serv->owner;
+    return owner->ops.close_cb == NULL ? 0 : owner->ops.close_cb(serv);
 }
 
 static int sio_socket_accpet(void *ptr, const char *data, int len)
