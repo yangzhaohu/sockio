@@ -239,7 +239,7 @@ int sio_server_accept(struct sio_server *serv, struct sio_socket* sock)
     return sio_socket_accept(serv->sock, sock);
 }
 
-int sio_server_socket_mplex(struct sio_server* serv, struct sio_socket* sock)
+int sio_server_socket_mplex(struct sio_server *serv, struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
 
