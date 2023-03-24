@@ -11,9 +11,15 @@
 #define SIO_SERVER_THREADS_RATIO 16
 
 
+struct sio_servers_owner
+{
+    struct sio_servers_ops ops;
+};
+
 struct sio_servers
 {
     struct sio_server *serv;
+    struct sio_servers_owner owner;
     struct sio_thread *worthrs[SIO_SERVERS_MAX_THREADS];
 };
 
@@ -53,37 +59,16 @@ struct sio_servers
 
 static int sio_socket_readable(void *ptr, const char *data, int len)
 {
-    struct sio_socket *sock = ptr;
     if (len == 0) {
         printf("client socket close\n");
         return 0;
     }
 
-    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
-
     return 0;
 }
 
-static char *g_resp = 
-            "HTTP/1.1 200 OK\r\n"
-            "Connection: close\r\n"
-            "Content-Type: text/html\r\n"
-            "Content-Length: 125\r\n"
-            "Connection: close\r\n\r\n"
-            "<html>"
-            "<head><title>Hello</title></head>"
-            "<body>"
-            "<center><h1>Hello, Client</h1></center>"
-            "<hr><center>SOCKIO</center>"
-            "</body>"
-            "</html>";
-
 static int sio_socket_writeable(void *ptr, const char *data, int len)
 {
-    struct sio_socket *sock = ptr;
-
-    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
-    sio_socket_write(sock, g_resp, strlen(g_resp));
     return 0;
 }
 
@@ -104,6 +89,16 @@ static int sio_server_newconn(struct sio_server *serv)
 
     opt.nonblock = 1;
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
+
+    union sio_server_opt opts = { 0 };
+    sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);
+    struct sio_servers *servs = opts.private;
+    if (servs) {
+        struct sio_servers_owner *owner = &servs->owner;
+        if (owner->ops.new_conn) {
+            owner->ops.new_conn(sock);
+        }
+    }
 
     sio_server_socket_mplex(serv, sock);
 
@@ -169,6 +164,11 @@ struct sio_servers *sio_servers_create_imp(enum sio_socket_proto type, unsigned 
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!serv, NULL,
         free(servs));
 
+    union sio_server_opt ops = {
+        .private = servs
+    };
+    sio_server_setopt(serv, SIO_SERV_PRIVATE, &ops);
+
     servs->serv = serv;
 
     int ret = sio_servers_create_threads(servs, workthrs);
@@ -177,6 +177,13 @@ struct sio_servers *sio_servers_create_imp(enum sio_socket_proto type, unsigned 
         free(servs));
 
     return servs;
+}
+
+static inline
+void sio_servers_set_ops(struct sio_servers *servs, struct sio_servers_ops *ops)
+{
+    struct sio_servers_owner *owner = &servs->owner;
+    owner->ops = *ops;
 }
 
 struct sio_servers *sio_servers_create(enum sio_socket_proto type)
@@ -193,6 +200,24 @@ struct sio_servers *sio_servers_create2(enum sio_socket_proto type, unsigned cha
     unsigned char workthrs = threads - servthrs;
     workthrs = workthrs == 0 ? 1 : workthrs;
     return sio_servers_create_imp(type, servthrs, workthrs);
+}
+
+int sio_servers_setopt(struct sio_servers *servs, enum sio_servers_optcmd cmd, union sio_servers_opt *opt)
+{
+    SIO_COND_CHECK_RETURN_VAL(!servs || !opt, -1);
+
+    int ret = 0;
+    switch (cmd) {
+    case SIO_SERVS_OPS:
+        sio_servers_set_ops(servs, &opt->ops);
+        break;
+
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
 }
 
 int sio_servers_listen(struct sio_servers *servs, struct sio_socket_addr *addr)
