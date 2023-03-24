@@ -660,8 +660,7 @@ int sio_socket_close_imp(struct sio_socket *sock)
 
     int ret = CLOSE(sock->fd);
     if (ret == 0) {
-        struct sio_socket_state *stat = &sock->stat;
-        stat->closed = 1;
+        sock->fd = -1;
     }
 
     return ret;
@@ -678,15 +677,15 @@ int sio_socket_destory(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
 
-    struct sio_socket_state *stat = &sock->stat;
-    int how = (~stat->shut) & 0x03;
-    if (how != 0) {
-        int ret = sio_socket_shutdown_imp(sock, how);
-        SIO_COND_CHECK_CALLOPS(ret != 0,
-            SIO_LOGE("socket shutdown: %d failed, err: %d\n", how, sio_sock_errno));
-    }
+    if (sock->fd != -1) {
+        struct sio_socket_state *stat = &sock->stat;
+        int how = (~stat->shut) & 0x03;
+        if (how != 0) {
+            int ret = sio_socket_shutdown_imp(sock, how);
+            SIO_COND_CHECK_CALLOPS(ret != 0,
+                SIO_LOGE("socket shutdown: %d failed, err: %d\n", how, sio_sock_errno));
+        }
 
-    if (stat->closed == 0) {
         int ret = sio_socket_close_imp(sock);
         SIO_COND_CHECK_CALLOPS(ret != 0,
             SIO_LOGE("socket close failed, err: %d\n", sio_sock_errno));
