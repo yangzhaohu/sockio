@@ -76,8 +76,8 @@ static int sio_server_newconn(struct sio_server *serv)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
     union sio_socket_opt opt = {
-        .ops.read_cb = sio_socket_readable,
-        .ops.write_cb = sio_socket_writeable
+        .ops.read = sio_socket_readable,
+        .ops.write = sio_socket_writeable
     };
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 

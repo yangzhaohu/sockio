@@ -14,12 +14,12 @@ int readable(void *ptr, const char *buf, int len);
 
 struct sio_socket_ops g_serv_ops = 
 {
-    .read_cb = socknew
+    .read = socknew
 };
 
 struct sio_socket_ops g_sock_ops = 
 {
-    .read_cb = readable
+    .read = readable
 };
 
 int socknew(void *pri, const char *buf, int len)

@@ -27,8 +27,8 @@ struct sio_socket_addr
 
 struct sio_socket_ops
 {
-    int (*read_cb)(void *owner, const char *data, int len);
-    int (*write_cb)(void *owner, const char *data, int len);
+    int (*read)(void *owner, const char *data, int len);
+    int (*write)(void *owner, const char *data, int len);
 };
 
 enum sio_socket_optcmd

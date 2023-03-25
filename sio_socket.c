@@ -162,17 +162,17 @@ struct sio_socket
     if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {                     \
         if (event->events & SIO_EVENTS_HUP) {                                   \
             sio_sock_mplex_event_del(sock);                                     \
-            sio_socket_ops_call_break(ops->read_cb, sock, NULL, 0);             \
+            sio_socket_ops_call_break(ops->read, sock, NULL, 0);             \
             continue;                                                           \
         }                                                                       \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                               \
-            sio_socket_socket_recv(sock, ops->read_cb);                         \
+            sio_socket_socket_recv(sock, ops->read);                         \
         } else {                                                                \
-            sio_socket_server_accept(sock, ops->read_cb);                       \
+            sio_socket_server_accept(sock, ops->read);                       \
         }                                                                       \
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_READ) {                                \
-        sio_socket_ops_call(ops->read_cb,                                       \
+        sio_socket_ops_call(ops->read,                                       \
             sock, event->buf.ptr, event->buf.len);                              \
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {                              \
@@ -180,11 +180,11 @@ struct sio_socket
         SIO_CONTAINER_OF(event->buf.ptr,                                        \
             struct sio_socket,                                                  \
             extbuf);                                                            \
-        sio_socket_ops_call(ops->read_cb,                                       \
+        sio_socket_ops_call(ops->read,                                       \
             sock, (const char *)__sock, 0);                                     \
     }                                                                           \
     if (event->events & SIO_EVENTS_OUT) {                                       \
-        sio_socket_ops_call(ops->write_cb, sock, 0, 0);                         \
+        sio_socket_ops_call(ops->write, sock, 0, 0);                         \
     }
 
 

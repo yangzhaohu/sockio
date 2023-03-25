@@ -14,13 +14,13 @@ struct sio_socket *g_sock = NULL;
 
 struct sio_socket_ops g_serv_ops = 
 {
-    .read_cb = socknew
+    .read = socknew
 };
 
 struct sio_socket_ops g_sock_sock = 
 {
-    .read_cb = readable,
-    .write_cb = writeable
+    .read = readable,
+    .write = writeable
 };
 
 int socknew(void *pri, const char *buf, int len)

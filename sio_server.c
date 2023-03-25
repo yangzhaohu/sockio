@@ -57,7 +57,7 @@ void *sio_work_thread_start_routine(void *arg);
 
 static struct sio_socket_ops g_serv_ops = 
 {
-    .read_cb = sio_socket_accpet
+    .read = sio_socket_accpet
 };
 
 #define SIO_SERVER_THREADS_CREATE(thread, ops, count, ret) \
