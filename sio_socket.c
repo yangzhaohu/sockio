@@ -48,7 +48,7 @@ struct sio_socket_state
 
 struct sio_socket_owner
 {
-    void *uptr;
+    void *pri;
     struct sio_socket_ops ops;
 };
 
@@ -237,7 +237,7 @@ static inline
 void sio_socket_set_private(struct sio_socket *sock, void *private)
 {
     struct sio_socket_owner *owner = &sock->owner;
-    owner->uptr = private;
+    owner->pri = private;
 }
 
 static inline
@@ -619,7 +619,7 @@ void *sio_socket_private(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, NULL);
 
-    return sock->owner.uptr;
+    return sock->owner.pri;
 }
 
 static inline
