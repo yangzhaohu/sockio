@@ -276,14 +276,7 @@ int sio_server_accept_cb(struct sio_server *serv)
 {
     struct sio_server_owner *owner = &serv->owner;
 
-    return owner->ops.accept_cb == NULL ? 0 : owner->ops.accept_cb(serv);
-}
-
-static inline
-int sio_server_close_cb(struct sio_server *serv)
-{
-    struct sio_server_owner *owner = &serv->owner;
-    return owner->ops.close_cb == NULL ? 0 : owner->ops.close_cb(serv);
+    return owner->ops.accept == NULL ? 0 : owner->ops.accept(serv);
 }
 
 static int sio_socket_accpet(void *ptr, const char *data, int len)
@@ -295,8 +288,7 @@ static int sio_socket_accpet(void *ptr, const char *data, int len)
     do {
         int ret = sio_socket_accept_has_pend(serv->sock);
         SIO_COND_CHECK_BREAK(ret == SIO_ERRNO_AGAIN);
-        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-            sio_server_close_cb(serv));
+        SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
         sio_server_accept_cb(serv);
 

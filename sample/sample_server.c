@@ -60,19 +60,12 @@ static int server_newconn(struct sio_server *serv)
     return ret;
 }
 
-static int server_close(struct sio_server *sock)
-{
-    printf("server close\n");
-    return 0;
-}
-
 int main()
 {
     struct sio_server *serv = sio_server_create(SIO_SOCK_TCP);
 
     union sio_server_opt ops = {
-        .ops.accept_cb = server_newconn,
-        .ops.close_cb = server_close
+        .ops.accept = server_newconn
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 

@@ -13,8 +13,7 @@ enum sio_server_optcmd
 
 struct sio_server_ops
 {
-    int(*accept_cb)(struct sio_server *serv);
-    int (*close_cb)(struct sio_server *serv);
+    int (*accept)(struct sio_server *serv);
 };
 
 union sio_server_opt

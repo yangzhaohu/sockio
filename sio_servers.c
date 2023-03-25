@@ -105,12 +105,6 @@ static int sio_server_newconn(struct sio_server *serv)
     return ret;
 }
 
-static int sio_server_closed(struct sio_server *sock)
-{
-    printf("server close\n");
-    return 0;
-}
-
 void *sio_servers_thread_start_routine(void *arg)
 {
     return NULL;
@@ -144,8 +138,7 @@ struct sio_server *sio_servers_create_server(enum sio_socket_proto type, unsigne
     SIO_COND_CHECK_RETURN_VAL(!serv, NULL);
 
     union sio_server_opt ops = {
-        .ops.accept_cb = sio_server_newconn,
-        .ops.close_cb = sio_server_closed
+        .ops.accept = sio_server_newconn
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 
