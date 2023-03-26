@@ -37,7 +37,7 @@ struct sio_event_buffer
 struct sio_event_owner
 {
     unsigned long int fd;
-    void *ptr;
+    void *pri;
 };
 
 struct sio_event

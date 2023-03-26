@@ -48,7 +48,7 @@ void sio_iocp_overlapped_link(struct sio_overlapped *ovlp, struct sio_event *eve
 {
     ovlp->wsabuf.buf = event->buf.ptr;
     ovlp->wsabuf.len = event->buf.len;
-    ovlp->ptr = event->owner.ptr;
+    ovlp->ptr = event->owner.pri;
     ovlp->fd = event->owner.fd;
     ovlp->events = event->events;
 }
@@ -179,7 +179,7 @@ int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int 
     // ret = GetQueuedCompletionStatusEx(iocp, ovlps, count, &rmcnt, INFINITE, TRUE);
 
     event[0].events = ovlp->events;
-    event[0].owner.ptr = ovlp->ptr;
+    event[0].owner.pri = ovlp->ptr;
     event[0].buf.ptr = ovlp->wsabuf.buf;
     event[0].buf.len = recv;
 
