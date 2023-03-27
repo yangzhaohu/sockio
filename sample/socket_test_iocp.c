@@ -28,9 +28,9 @@ void win_sock_init(void) {}
 void win_sock_cleanup(void) {}
 #endif
 
-int socknew(void *owner, const char *buf, int len);
-int readable(void *owner, const char *buf, int len);
-int writeable(void *owner, const char *buf, int len);
+int socknew(struct sio_socket *serv, const char *buf, int len);
+int readable(struct sio_socket *sock, const char *buf, int len);
+int writeable(struct sio_socket *sock, const char *buf, int len);
 
 struct sio_socket_ops g_serv_ops = 
 {
@@ -71,9 +71,8 @@ int post_socket_read(struct sio_socket *sock)
     return 0;
 }
 
-int socknew(void *pri, const char *data, int len)
+int socknew(struct sio_socket *serv, const char *data, int len)
 {
-    struct sio_socket *serv = pri;
     struct sio_socket *sock = (struct sio_socket *)data;
     post_socket_read(sock);
 
@@ -81,20 +80,20 @@ int socknew(void *pri, const char *data, int len)
     return 0;
 }
 
-int readable(void *pri, const char *data, int len)
+int readable(struct sio_socket *sock, const char *data, int len)
 {
     if (len <= 0) {
         printf("close\n");
         return 0;
     }
-    struct sio_socket *sock = pri;
+
     g_sock = sock;
     printf("recv %d: %s\n", len, data);
     sio_socket_async_read(sock, (char *)data, 512);
     return 0;
 }
 
-int writeable(void *pri, const char *data, int len)
+int writeable(struct sio_socket *sock, const char *data, int len)
 {
     return 0;
 }

@@ -8,8 +8,8 @@ struct sio_mplex *g_mplex = NULL;
 
 struct sio_socket *g_sock = NULL;
 
-int socknew(void *ptr, const char *buf, int len);
-int readable(void *ptr, const char *buf, int len);
+int socknew(struct sio_socket *serv, const char *buf, int len);
+int readable(struct sio_socket *sock, const char *buf, int len);
 
 struct sio_socket_ops g_serv_ops = 
 {
@@ -21,10 +21,9 @@ struct sio_socket_ops g_sock_ops =
     .read = readable
 };
 
-int socknew(void *ptr, const char *buf, int len)
+int socknew(struct sio_socket *serv, const char *buf, int len)
 {
     printf("socket new connect comein\n");
-    struct sio_socket *serv = ptr;
     int ret = sio_socket_accept_has_pend(serv);
     if (ret == SIO_ERRNO_AGAIN) {
         return 0;
@@ -36,7 +35,7 @@ int socknew(void *ptr, const char *buf, int len)
 
 
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
-    sio_socket_accept(sock, serv);
+    sio_socket_accept(serv, sock);
 
     union sio_socket_opt opt = { 0 };
     opt.ops = g_sock_ops;
@@ -50,13 +49,14 @@ int socknew(void *ptr, const char *buf, int len)
 
     g_sock = sock;
 
-    // sio_socket_mplex_bind(sock, g_mplex);
+    // opt.mplex = g_mplex;
+    // sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
     // sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
     return 0;
 }
 
-int readable(void *pri, const char *buf, int len)
+int readable(struct sio_socket *sock, const char *buf, int len)
 {
     if (len == 0) {
         printf("socket close\n");
@@ -92,7 +92,9 @@ int main()
 
     g_mplex = sio_mplex_thread_mplex_ref(mpthr);
 
-    sio_socket_mplex_bind(serv, g_mplex);
+    opt.mplex = g_mplex;
+    sio_socket_setopt(serv, SIO_SOCK_MPLEX, &opt);
+
     sio_socket_mplex(serv, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
     printf("please enter\n");
@@ -110,7 +112,8 @@ int main()
     opt.nonblock = 1;
     sio_socket_setopt(client, SIO_SOCK_NONBLOCK, &opt);
 
-    sio_socket_mplex_bind(client, g_mplex);
+    opt.mplex = g_mplex;
+    sio_socket_setopt(client, SIO_SOCK_MPLEX, &opt);
     sio_socket_mplex(client, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
     // send data
@@ -126,7 +129,8 @@ int main()
     // delay mplex
     getc(stdin);
     printf("step4: server accept remote socket delay mplex\n");
-    sio_socket_mplex_bind(g_sock, g_mplex);
+    opt.mplex = g_mplex;
+    sio_socket_setopt(g_sock, SIO_SOCK_MPLEX, &opt);
     sio_socket_mplex(g_sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
     getc(stdin);

@@ -52,7 +52,7 @@ struct sio_server
     struct sio_server_mlb mlb;
 };
 
-static int sio_socket_accpet(void *ptr, const char *data, int len);
+static int sio_socket_accpet(struct sio_socket *sock, const char *data, int len);
 void *sio_work_thread_start_routine(void *arg);
 
 static struct sio_socket_ops g_serv_ops = 
@@ -279,10 +279,9 @@ int sio_server_accept_cb(struct sio_server *serv)
     return owner->ops.accept == NULL ? 0 : owner->ops.accept(serv);
 }
 
-static int sio_socket_accpet(void *ptr, const char *data, int len)
+static int sio_socket_accpet(struct sio_socket *sock, const char *data, int len)
 {
-    struct sio_socket *sock_serv = ptr;
-    struct sio_server *serv = sio_socket_private(sock_serv);
+    struct sio_server *serv = sio_socket_private(sock);
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
 
     do {

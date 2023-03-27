@@ -15,9 +15,8 @@ char *g_resp = "HTTP/1.1 200 OK\r\n"
             "</body>"
             "</html>";
 
-static int socket_readable(void *ptr, const char *data, int len)
+static int socket_readable(struct sio_socket *sock, const char *data, int len)
 {
-    struct sio_socket *sock = ptr;
     if (len == 0) {
         printf("client socket close\n");
         return 0;
@@ -28,10 +27,8 @@ static int socket_readable(void *ptr, const char *data, int len)
     return 0;
 }
 
-static int socket_writeable(void *ptr, const char *data, int len)
+static int socket_writeable(struct sio_socket *sock, const char *data, int len)
 {
-    struct sio_socket *sock = ptr;
-
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
     sio_socket_write(sock, g_resp, strlen(g_resp));
     return 0;

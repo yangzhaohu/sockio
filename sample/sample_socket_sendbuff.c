@@ -9,8 +9,8 @@ struct sio_mplex *g_mplex = NULL;
 
 struct sio_socket *g_sock = NULL;
 
-int socknew(void *ptr, const char *buf, int len);
-int readable(void *ptr, const char *buf, int len);
+int socknew(struct sio_socket *serv, const char *buf, int len);
+int readable(struct sio_socket *sock, const char *buf, int len);
 
 struct sio_socket_ops g_serv_ops = 
 {
@@ -22,9 +22,8 @@ struct sio_socket_ops g_sock_ops =
     .read = readable
 };
 
-int socknew(void *pri, const char *buf, int len)
+int socknew(struct sio_socket *serv, const char *buf, int len)
 {
-    struct sio_socket *serv = pri;
     for (;;) {
         int ret = sio_socket_accept_has_pend(serv);
         if (ret == SIO_ERRNO_AGAIN) {
@@ -62,9 +61,8 @@ int socknew(void *pri, const char *buf, int len)
     return 0;
 }
 
-int readable(void *pri, const char *buf, int len)
+int readable(struct sio_socket *sock, const char *buf, int len)
 {
-    struct sio_socket *sock = pri;
     if (len == 0) {
         printf("socket close\n");
         sio_socket_destory(sock);

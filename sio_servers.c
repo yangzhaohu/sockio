@@ -57,7 +57,7 @@ struct sio_servers
         } \
     } while (0);
 
-static int sio_socket_readable(void *ptr, const char *data, int len)
+static int sio_socket_readable(struct sio_socket *sock, const char *data, int len)
 {
     if (len == 0) {
         printf("client socket close\n");
@@ -67,7 +67,7 @@ static int sio_socket_readable(void *ptr, const char *data, int len)
     return 0;
 }
 
-static int sio_socket_writeable(void *ptr, const char *data, int len)
+static int sio_socket_writeable(struct sio_socket *sock, const char *data, int len)
 {
     return 0;
 }
