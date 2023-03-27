@@ -281,7 +281,9 @@ int sio_server_accept_cb(struct sio_server *serv)
 
 static int sio_socket_accpet(struct sio_socket *sock, const char *data, int len)
 {
-    struct sio_server *serv = sio_socket_private(sock);
+    union sio_socket_opt opt = { 0 };
+    sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
+    struct sio_server *serv = opt.private;
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
 
     do {

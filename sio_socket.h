@@ -72,11 +72,13 @@ struct sio_socket *sio_socket_create(enum sio_socket_proto proto);
 struct sio_socket *sio_socket_create2(enum sio_socket_proto proto);
 
 int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt);
+int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt);
 
 int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr);
 
 int sio_socket_accept_has_pend(struct sio_socket *sock);
 int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock);
+
 int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock);
 
 int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr);
@@ -87,10 +89,7 @@ int sio_socket_async_read(struct sio_socket *sock, char *buf, int maxlen);
 int sio_socket_write(struct sio_socket *sock, char *buf, int len);
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len);
 
-// int sio_socket_mplex_bind(struct sio_socket *sock, struct sio_mplex *mp);
 int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);
-
-void *sio_socket_private(struct sio_socket *sock);
 
 int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how);
 int sio_socket_close(struct sio_socket *sock);

@@ -162,17 +162,17 @@ struct sio_socket
     if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {                     \
         if (event->events & SIO_EVENTS_HUP) {                                   \
             sio_sock_mplex_event_del(sock);                                     \
-            sio_socket_ops_call_break(ops->read, sock, NULL, 0);             \
+            sio_socket_ops_call_break(ops->read, sock, NULL, 0);                \
             continue;                                                           \
         }                                                                       \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                               \
-            sio_socket_socket_recv(sock, ops->read);                         \
+            sio_socket_socket_recv(sock, ops->read);                            \
         } else {                                                                \
-            sio_socket_server_accept(sock, ops->read);                       \
+            sio_socket_server_accept(sock, ops->read);                          \
         }                                                                       \
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_READ) {                                \
-        sio_socket_ops_call(ops->read,                                       \
+        sio_socket_ops_call(ops->read,                                          \
             sock, event->buf.ptr, event->buf.len);                              \
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {                              \
@@ -180,11 +180,11 @@ struct sio_socket
         SIO_CONTAINER_OF(event->buf.ptr,                                        \
             struct sio_socket,                                                  \
             extbuf);                                                            \
-        sio_socket_ops_call(ops->read,                                       \
+        sio_socket_ops_call(ops->read,                                          \
             sock, (const char *)__sock, 0);                                     \
     }                                                                           \
     if (event->events & SIO_EVENTS_OUT) {                                       \
-        sio_socket_ops_call(ops->write, sock, 0, 0);                         \
+        sio_socket_ops_call(ops->write, sock, 0, 0);                            \
     }
 
 
@@ -238,6 +238,13 @@ void sio_socket_set_private(struct sio_socket *sock, void *private)
 {
     struct sio_socket_owner *owner = &sock->owner;
     owner->pri = private;
+}
+
+static inline
+void sio_socket_get_private(struct sio_socket *sock, void **private)
+{
+    struct sio_socket_owner *owner = &sock->owner;
+    *private = owner->pri;
 }
 
 static inline
@@ -400,6 +407,24 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
         break;
     case SIO_SOCK_SNDBUF:
         ret = sio_socket_set_buffsize(sock, opt->sndbuf, cmd);
+        break;
+
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
+}
+
+int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
+
+    int ret = 0;
+    switch (cmd) {
+    case SIO_SOCK_PRIVATE:
+        sio_socket_get_private(sock, &opt->private);
         break;
 
     default:
@@ -589,14 +614,6 @@ int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
     return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
-// int sio_socket_mplex_bind(struct sio_socket *sock, struct sio_mplex *mp)
-// {
-//     SIO_COND_CHECK_RETURN_VAL(!sock || !mp, -1);
-
-//     sock->mp = mp;
-//     return 0;
-// }
-
 int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
@@ -613,13 +630,6 @@ int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_e
 
     int ret = sio_mplex_ctl(sock->mp, op, sock->fd, &ev);
     return ret;
-}
-
-void *sio_socket_private(struct sio_socket *sock)
-{
-    SIO_COND_CHECK_RETURN_VAL(!sock, NULL);
-
-    return sock->owner.pri;
 }
 
 static inline
