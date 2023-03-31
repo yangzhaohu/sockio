@@ -7,7 +7,7 @@ struct sio_queue;
 extern "C" {
 #endif
 
-struct sio_queue *sio_queue_create(unsigned int size);
+struct sio_queue *sio_queue_create();
 
 int sio_queue_destory(struct sio_queue *queue);
 
