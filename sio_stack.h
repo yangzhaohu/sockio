@@ -13,9 +13,7 @@ struct sio_stack *sio_stack_create();
 
 int sio_stack_push(struct sio_stack *stack, struct sio_list_head *entry);
 
-int sio_stack_pop(struct sio_stack *stack);
-
-struct sio_list_head *sio_stack_top(struct sio_stack *stack);
+struct sio_list_head *sio_stack_pop(struct sio_stack *stack);
 
 int sio_stack_destory(struct sio_stack *stack);
 

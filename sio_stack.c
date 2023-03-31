@@ -28,18 +28,11 @@ int sio_stack_push(struct sio_stack *stack, struct sio_list_head *entry)
     return -1;
 }
 
-int sio_stack_pop(struct sio_stack *stack)
-{
-    SIO_COND_CHECK_RETURN_VAL(!stack, -1);
-
-    return 0;
-}
-
-struct sio_list_head *sio_stack_top(struct sio_stack *stack)
+struct sio_list_head *sio_stack_pop(struct sio_stack *stack)
 {
     SIO_COND_CHECK_RETURN_VAL(!stack, NULL);
 
-    return stack->head.next;
+    return NULL;
 }
 
 int sio_stack_destory(struct sio_stack *stack)
