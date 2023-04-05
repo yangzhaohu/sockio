@@ -5,6 +5,7 @@
 #include "sio_common.h"
 #include "sio_server.h"
 #include "sio_thread.h"
+#include "sio_queue.h"
 
 #define SIO_SERVERS_MAX_THREADS 255
 
@@ -16,11 +17,27 @@ struct sio_servers_owner
     struct sio_servers_ops ops;
 };
 
+struct sio_servers_sockpool
+{
+    unsigned char size;
+    unsigned char index;
+    struct sio_queue **sks;
+};
+
+struct sio_servers_taskpool
+{
+    unsigned char size;
+    struct sio_thread **threads;
+    struct sio_queue **tks;
+};
+
 struct sio_servers
 {
     struct sio_server *serv;
     struct sio_servers_owner owner;
-    struct sio_thread *worthrs[SIO_SERVERS_MAX_THREADS];
+
+    struct sio_servers_sockpool skpool;
+    struct sio_servers_taskpool tkpool;
 };
 
 
@@ -111,27 +128,6 @@ void *sio_servers_thread_start_routine(void *arg)
 }
 
 static inline
-int sio_servers_create_threads(struct sio_servers *servs, unsigned char threads)
-{
-    struct sio_thread **worthrs = servs->worthrs;
-
-    int ret = 0;
-    SIO_SERVERS_THREADS_CREATE(worthrs, sio_thread_create(sio_servers_thread_start_routine, servs), threads, ret);
-    if (ret == -1) {
-        SIO_SERVERS_THREADS_DESTORY(worthrs, threads);
-        return -1;
-    }
-
-    SIO_SERVERS_THREADS_START(worthrs, threads, ret);
-    if (ret == -1) {
-        SIO_SERVERS_THREADS_DESTORY(worthrs, threads);
-        return -1;
-    }
-
-    return 0;
-}
-
-static inline
 struct sio_server *sio_servers_create_server(enum sio_socket_proto type, unsigned char threads)
 {
     struct sio_server *serv = sio_server_create2(type, threads);
@@ -143,6 +139,174 @@ struct sio_server *sio_servers_create_server(enum sio_socket_proto type, unsigne
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 
     return serv;
+}
+
+/*
+* skpool init
+*/
+
+static inline
+int sio_servers_skpool_queue_init(struct sio_servers_sockpool *skpool, int size)
+{
+    skpool->sks = malloc(sizeof(struct sio_queue *) * size);
+    SIO_COND_CHECK_RETURN_VAL(skpool->sks == NULL, -1);
+
+    for (int i = 0; i < size; i++) {
+        skpool->sks[i] = sio_queue_create();
+    }
+
+    return 0;
+}
+
+static inline
+int sio_servers_skpool_queue_uninit(struct sio_servers_sockpool *skpool)
+{
+    for (int i = 0; i < skpool->size; i++) {
+        struct sio_queue *sk = skpool->sks[i];
+        SIO_COND_CHECK_CALLOPS(sk != NULL,
+            sio_queue_destory(sk),
+            skpool->sks[i] = NULL);
+    }
+
+    free(skpool->sks);
+    skpool->sks = NULL;
+
+    return 0;
+}
+
+static inline
+int sio_servers_skpool_init(struct sio_servers *servs, int size)
+{
+    struct sio_servers_sockpool *skpool = &servs->skpool;
+    skpool->size = size;
+
+    int ret = sio_servers_skpool_queue_init(skpool, size);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    return 0;
+}
+
+static inline
+int sio_servers_skpool_uninit(struct sio_servers *servs)
+{
+    struct sio_servers_sockpool *skpool = &servs->skpool;
+
+    sio_servers_skpool_queue_uninit(skpool);
+
+    return 0;
+}
+
+/*
+* tkpool init
+*/
+
+static inline
+int sio_servers_tkpool_thread_create(struct sio_servers_taskpool *tkpool, int size)
+{
+    struct sio_thread **threads = tkpool->threads;
+    struct sio_servers *servs = SIO_CONTAINER_OF(tkpool, struct sio_servers, tkpool);
+
+    int ret = 0;
+    SIO_SERVERS_THREADS_CREATE(threads, sio_thread_create(sio_servers_thread_start_routine, servs), size, ret);
+    if (ret == -1) {
+        SIO_SERVERS_THREADS_DESTORY(threads, size);
+        return -1;
+    }
+
+    SIO_SERVERS_THREADS_START(threads, size, ret);
+    if (ret == -1) {
+        SIO_SERVERS_THREADS_DESTORY(threads, size);
+        return -1;
+    }
+
+    return 0;
+}
+
+static inline
+int sio_servers_tkpool_thread_destory(struct sio_servers_taskpool *tkpool, int size)
+{
+    struct sio_thread **threads = tkpool->threads;
+    SIO_SERVERS_THREADS_DESTORY(threads, size);
+
+    return 0;
+}
+
+static inline
+int sio_servers_tkpool_thread_init(struct sio_servers_taskpool *tkpool, int size)
+{
+    tkpool->threads = malloc(sizeof(struct sio_thread *) * size);
+    SIO_COND_CHECK_RETURN_VAL(tkpool->threads == NULL, -1);
+
+    int ret = sio_servers_tkpool_thread_create(tkpool, size);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    return 0;
+}
+
+static inline
+int sio_servers_tkpool_thread_uninit(struct sio_servers_taskpool *tkpool)
+{
+    sio_servers_tkpool_thread_destory(tkpool, tkpool->size);
+    free(tkpool->threads);
+    tkpool->threads = NULL;
+
+    return 0;
+}
+
+static inline
+int sio_servers_tkpool_queue_init(struct sio_servers_taskpool *tkpool, int size)
+{
+    tkpool->tks = malloc(sizeof(struct sio_queue *) * size);
+    SIO_COND_CHECK_RETURN_VAL(tkpool->tks == NULL, -1);
+
+    for (int i = 0; i < size; i++) {
+        tkpool->tks[i] = sio_queue_create();
+    }
+
+    return 0;
+}
+
+static inline
+int sio_servers_tkpool_queue_uninit(struct sio_servers_taskpool *tkpool)
+{
+    for (int i = 0; i < tkpool->size; i++) {
+        struct sio_queue *tk = tkpool->tks[i];
+        SIO_COND_CHECK_CALLOPS(tk != NULL, 
+            sio_queue_destory(tk),
+            tkpool->tks[i] = NULL);
+    }
+
+    free(tkpool->tks);
+    tkpool->tks = NULL;
+
+    return 0;
+}
+
+static inline
+int sio_servers_tkpool_init(struct sio_servers *servs, int size)
+{
+    struct sio_servers_taskpool *tkpool = &servs->tkpool;
+    tkpool->size = size;
+
+    int ret = sio_servers_tkpool_thread_init(tkpool, size);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    ret = sio_servers_tkpool_queue_init(tkpool, size);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        sio_servers_tkpool_thread_uninit(tkpool));
+
+    return 0;
+}
+
+static inline
+int sio_servers_tkpool_uninit(struct sio_servers *servs)
+{
+    struct sio_servers_taskpool *tkpool = &servs->tkpool;
+
+    sio_servers_tkpool_thread_uninit(tkpool);
+    sio_servers_tkpool_queue_uninit(tkpool);
+
+    return 0;
 }
 
 static inline
@@ -164,9 +328,15 @@ struct sio_servers *sio_servers_create_imp(enum sio_socket_proto type, unsigned 
 
     servs->serv = serv;
 
-    int ret = sio_servers_create_threads(servs, workthrs);
+    int ret = sio_servers_skpool_init(servs, servthrs);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         sio_server_destory(serv),
+        free(servs));
+
+    ret = sio_servers_tkpool_init(servs, workthrs);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
+        sio_server_destory(serv),
+        sio_servers_skpool_uninit(servs),
         free(servs));
 
     return servs;
@@ -227,8 +397,8 @@ int sio_servers_destory(struct sio_servers *servs)
     int ret = sio_server_destory(servs->serv);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
-    struct sio_thread **worthrs = servs->worthrs;
-    SIO_SERVERS_THREADS_DESTORY(worthrs, SIO_SERVERS_MAX_THREADS);
+    sio_servers_skpool_uninit(servs);
+    sio_servers_tkpool_uninit(servs);
 
     free(servs);
 
