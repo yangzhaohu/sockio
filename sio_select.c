@@ -112,25 +112,25 @@ void sio_select_check_modify_maxfd(struct sio_select_fin *in, int fd)
 static inline
 void sio_select_event_set(int fd, struct sio_event *event)
 {
-    sio_mutex_lock(g_mutex);
+    sio_mutex_lock(&g_mutex);
     struct sio_select_fin *in = &g_fin;
     sio_select_in_set(in, fd, event);
 #ifndef WIN32
     sio_select_check_modify_maxfd(in, fd);
 #endif
-    sio_mutex_unlock(g_mutex);
+    sio_mutex_unlock(&g_mutex);
 }
 
 static inline
 void sio_select_event_clr(int fd)
 {
-    sio_mutex_lock(g_mutex);
+    sio_mutex_lock(&g_mutex);
     struct sio_select_fin *in = &g_fin;
     sio_select_in_clr(in, fd);
 #ifndef WIN32
     sio_select_check_modify_maxfd(in, fd);
 #endif
-    sio_mutex_unlock(g_mutex);
+    sio_mutex_unlock(&g_mutex);
 }
 
 
@@ -171,7 +171,7 @@ int sio_in_event_owner_index(fd)
 static inline
 int sio_select_event(struct sio_event *event, int count)
 {
-    sio_mutex_lock(g_mutex);
+    sio_mutex_lock(&g_mutex);
     struct sio_select_fout *out = &tls_fout;
     sio_fd_set *rfds = &out->fds.rfds;
     sio_fd_set *wfds = &out->fds.wfds;
@@ -201,7 +201,7 @@ int sio_select_event(struct sio_event *event, int count)
     sio_out_event_get(rfds, SIO_EVENTS_IN);
     sio_out_event_get(wfds, SIO_EVENTS_OUT);
 #endif
-    sio_mutex_unlock(g_mutex);
+    sio_mutex_unlock(&g_mutex);
 
     return resolved;
 }
@@ -212,7 +212,7 @@ int sio_select_check_out_bounds(int fd)
 #ifndef WIN32
     SIO_COND_CHECK_RETURN_VAL(fd >= SIO_FD_SETSIZE, -1);
 #else
-    sio_mutex_lock(g_mutex);
+    sio_mutex_lock(&g_mutex);
     struct sio_select_fin *in = &g_fin;
     sio_fd_set *rfds = &in->fds.rfds;
     sio_fd_set *wfds = &in->fds.wfds;
@@ -222,7 +222,7 @@ int sio_select_check_out_bounds(int fd)
         wfds->fd_count > SIO_FD_SETSIZE)) {
         return -1;
     }
-    sio_mutex_unlock(g_mutex);
+    sio_mutex_unlock(&g_mutex);
 #endif
 
     return 0;
@@ -256,7 +256,7 @@ int sio_mplex_select_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, in
     int resolved = sio_select_event(event, count);
     SIO_COND_CHECK_RETURN_VAL(resolved > 0, resolved);
 
-    sio_mutex_lock(g_mutex);
+    sio_mutex_lock(&g_mutex);
     struct sio_select_fin *in = &g_fin;
     struct sio_select_fout *out = &tls_fout;
     memcpy(&out->fds, &in->fds, sizeof(struct sio_select_rwfds));
@@ -266,7 +266,7 @@ int sio_mplex_select_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, in
 
     sio_fd_set *rfds = &out->fds.rfds;
     sio_fd_set *wfds = &out->fds.wfds;
-    sio_mutex_unlock(g_mutex);
+    sio_mutex_unlock(&g_mutex);
 
     int ret = select(maxfd + 1, (fd_set *)rfds, (fd_set *)wfds, NULL, NULL/*&timeout*/);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
