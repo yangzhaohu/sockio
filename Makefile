@@ -15,7 +15,7 @@ SRCS := sio_mplex.c \
 		sio_iocp.c \
 		sio_socket.c \
 		sio_server.c \
-		sio_servers.c \
+		sio_servflow.c \
 		sio_thread.c \
 		sio_thread_pthread.c \
 		sio_thread_win.c \

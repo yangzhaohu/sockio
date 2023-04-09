@@ -12,7 +12,7 @@ INCLUDES := -I../
 LIBS := -L../target -lsockio
 
 SRCS := sample_server.c \
-		sample_servers.c \
+		sample_servflow.c \
 		sample_socket_select.c \
 		sample_socket_destory.c \
 		sample_epoll_wait_wakeup.c \
