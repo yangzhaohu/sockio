@@ -30,7 +30,7 @@ int servflow_flow_data(struct sio_sockflow *flow, const char *data, int len)
 
 int main()
 {
-    struct sio_servflow *servflow = sio_servflow_create2(SIO_SERVFLOW_TCP, 16);
+    struct sio_servflow *servflow = sio_servflow_create2(SIO_SERVFLOW_TCP, 2, 4);
 
     union sio_servflow_opt opt = {
         .ops.flow_new = servflow_flow_new,

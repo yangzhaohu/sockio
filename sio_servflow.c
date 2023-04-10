@@ -407,36 +407,36 @@ int sio_servflow_tkpool_uninit(struct sio_servflow *flow)
 }
 
 static inline
-struct sio_servflow *sio_servflow_create_imp(enum sio_servflow_proto type, unsigned char servthrs, unsigned char workthrs)
+struct sio_servflow *sio_servflow_create_imp(enum sio_servflow_proto type, sio_thread_capacity io, sio_thread_capacity flow)
 {
-    struct sio_servflow *flow = malloc(sizeof(struct sio_servflow));
+    struct sio_servflow *servflow = malloc(sizeof(struct sio_servflow));
     SIO_COND_CHECK_RETURN_VAL(!flow, NULL);
 
-    memset(flow, 0, sizeof(struct sio_servflow));
+    memset(servflow, 0, sizeof(struct sio_servflow));
 
-    struct sio_server *serv = sio_servflow_create_server(type, servthrs);
+    struct sio_server *serv = sio_servflow_create_server(type, io);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!serv, NULL,
-        free(flow));
+        free(servflow));
 
     union sio_server_opt ops = {
-        .private = flow
+        .private = servflow
     };
     sio_server_setopt(serv, SIO_SERV_PRIVATE, &ops);
 
-    flow->serv = serv;
+    servflow->serv = serv;
 
-    int ret = sio_servflow_skpool_init(flow, servthrs);
+    int ret = sio_servflow_skpool_init(servflow, io);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         sio_server_destory(serv),
-        free(flow));
+        free(servflow));
 
-    ret = sio_servflow_tkpool_init(flow, workthrs);
+    ret = sio_servflow_tkpool_init(servflow, flow);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         sio_server_destory(serv),
-        sio_servflow_skpool_uninit(flow),
-        free(flow));
+        sio_servflow_skpool_uninit(servflow),
+        free(servflow));
 
-    return flow;
+    return servflow;
 }
 
 static inline
@@ -451,15 +451,11 @@ struct sio_servflow *sio_servflow_create(enum sio_servflow_proto type)
     return sio_servflow_create_imp(type, 1, 1);
 }
 
-struct sio_servflow *sio_servflow_create2(enum sio_servflow_proto type, unsigned char threads)
+struct sio_servflow *sio_servflow_create2(enum sio_servflow_proto type, sio_thread_capacity io, sio_thread_capacity flow)
 {
-    SIO_COND_CHECK_RETURN_VAL(threads == 0, NULL);
+    SIO_COND_CHECK_RETURN_VAL(io == 0 || flow == 0, NULL);
 
-    unsigned char servthrs = threads % SIO_SERVER_THREADS_RATIO;
-    servthrs = servthrs == 0 ? 1 : servthrs;
-    unsigned char workthrs = threads - servthrs;
-    workthrs = workthrs == 0 ? 1 : workthrs;
-    return sio_servflow_create_imp(type, servthrs, workthrs);
+    return sio_servflow_create_imp(type, io, flow);
 }
 
 int sio_servflow_setopt(struct sio_servflow *flow, enum sio_servflow_optcmd cmd, union sio_servflow_opt *opt)

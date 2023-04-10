@@ -1,6 +1,8 @@
 #ifndef SIO_SERVFLOW_H_
 #define SIO_SERVFLOW_H_
 
+typedef unsigned char sio_thread_capacity;
+
 struct sio_servflow;
 struct sio_sockflow;
 
@@ -38,7 +40,7 @@ extern "C" {
 
 struct sio_servflow *sio_servflow_create(enum sio_servflow_proto type);
 
-struct sio_servflow *sio_servflow_create2(enum sio_servflow_proto type, unsigned char threads);
+struct sio_servflow *sio_servflow_create2(enum sio_servflow_proto type, sio_thread_capacity io, sio_thread_capacity flow);
 
 int sio_servflow_setopt(struct sio_servflow *flow, enum sio_servflow_optcmd cmd, union sio_servflow_opt *opt);
 
