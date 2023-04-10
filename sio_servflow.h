@@ -22,6 +22,11 @@ enum sio_servflow_optcmd
     SIO_SERVFLOW_OPS
 };
 
+enum sio_sockflow_optcmd
+{
+    SIO_SOCKFLOW_PRIVATE
+};
+
 struct sio_servflow_ops
 {
     int (*flow_new)(struct sio_sockflow *flow);
@@ -32,6 +37,11 @@ struct sio_servflow_ops
 union sio_servflow_opt
 {
     struct sio_servflow_ops ops;
+};
+
+union sio_sockflow_opt
+{
+    void *private;
 };
 
 #ifdef __cplusplus
@@ -45,6 +55,10 @@ struct sio_servflow *sio_servflow_create2(enum sio_servflow_proto type, sio_thre
 int sio_servflow_setopt(struct sio_servflow *flow, enum sio_servflow_optcmd cmd, union sio_servflow_opt *opt);
 
 int sio_servflow_listen(struct sio_servflow *flow, struct sio_servflow_addr *addr);
+
+int sio_sockflow_setopt(struct sio_sockflow *flow, enum sio_sockflow_optcmd cmd, union sio_sockflow_opt *opt);
+
+int sio_sockflow_getopt(struct sio_sockflow *flow, enum sio_sockflow_optcmd cmd, union sio_sockflow_opt *opt);
 
 int sio_sockflow_write(struct sio_sockflow *flow, char *buf, int len);
 

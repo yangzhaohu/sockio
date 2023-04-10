@@ -18,6 +18,8 @@ struct sio_sockflow
 {
     struct sio_socket *sock;
     struct sio_servflow *servflow;
+
+    void *pri;
 };
 
 struct sio_servflow_owner
@@ -118,6 +120,9 @@ static int sio_socket_readable(struct sio_socket *sock, const char *data, int le
         if (owner->ops.flow_data) {
             owner->ops.flow_data(sockflow, data, len);
         }
+
+        // struct sio_servflow_taskpool *tkpool = &servflow->tkpool;
+        // printf("tkpool: %d\n", sio_servflow_tkpool_getindex(tkpool));
     }
 
     return 0;
@@ -485,6 +490,50 @@ int sio_servflow_listen(struct sio_servflow *flow, struct sio_servflow_addr *add
     skaddr.port = addr->port;
 
     return sio_server_listen(flow->serv, &skaddr);
+}
+
+static inline
+void sio_sockflow_set_private(struct sio_sockflow *flow, void *private)
+{
+    flow->pri = private;
+}
+
+static inline
+void sio_sockflow_get_private(struct sio_sockflow *flow, void **private)
+{
+    *private = flow->pri;
+}
+
+int sio_sockflow_setopt(struct sio_sockflow *flow, enum sio_sockflow_optcmd cmd, union sio_sockflow_opt *opt)
+{
+    int ret = 0;
+    switch (cmd) {
+    case SIO_SOCKFLOW_PRIVATE:
+        sio_sockflow_set_private(flow, opt->private);
+        break;
+
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
+}
+
+int sio_sockflow_getopt(struct sio_sockflow *flow, enum sio_sockflow_optcmd cmd, union sio_sockflow_opt *opt)
+{
+    int ret = 0;
+    switch (cmd) {
+    case SIO_SOCKFLOW_PRIVATE:
+        sio_sockflow_get_private(flow, &opt->private);
+        break;
+
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
 }
 
 int sio_sockflow_write(struct sio_sockflow *flow, char *buf, int len)
