@@ -43,7 +43,8 @@ struct sio_socket_state
 {
     // enum sio_events events;
     enum sio_socket_shuthow shut;
-    int closed;
+    int closed:1;
+    int placement:1;
 };
 
 struct sio_socket_owner
@@ -338,15 +339,21 @@ void sio_socket_addr_in(struct sio_socket *sock, struct sio_socket_addr *addr, s
 static inline
 struct sio_socket *sio_socket_create_imp(enum sio_socket_proto proto, char *placement)
 {
+    int plmt = 0;
     struct sio_socket *sock = (struct sio_socket *)placement;
 
     if (sock == NULL) {
         sock = malloc(sizeof(struct sio_socket));
+    } else {
+        plmt = 1;
     }
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock, NULL,
         SIO_LOGE("sio_socket malloc failed\n"));
 
     memset(sock, 0, sizeof(struct sio_socket));
+
+    struct sio_socket_state *stat = &sock->stat;
+    stat->placement = plmt;
 
     struct sio_socket_attr *attr = &sock->attr;
     attr->proto = proto;
@@ -710,6 +717,9 @@ int sio_socket_destory(struct sio_socket *sock)
             SIO_LOGE("socket close failed, err: %d\n", sio_sock_errno));
     }
 
-    free(sock);
+    struct sio_socket_state *stat = &sock->stat;
+    SIO_COND_CHECK_CALLOPS(stat->placement == 0,
+        free(sock));
+
     return 0;
 }
