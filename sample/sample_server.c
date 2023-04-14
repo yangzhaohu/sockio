@@ -36,7 +36,7 @@ static int socket_writeable(struct sio_socket *sock, const char *data, int len)
 
 static int server_newconn(struct sio_server *serv)
 {
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
+    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
     union sio_socket_opt opt = {
         .ops.read = socket_readable,
         .ops.write = socket_writeable
@@ -72,7 +72,7 @@ int main()
 #define SOCKET_CONNECT_TEST_COUNT 16
     struct sio_socket *client[SOCKET_CONNECT_TEST_COUNT] = { NULL };
     for (int i = 0; i < SOCKET_CONNECT_TEST_COUNT; i++) {
-        client[i] = sio_socket_create(SIO_SOCK_TCP);
+        client[i] = sio_socket_create(SIO_SOCK_TCP, NULL);
         sio_socket_connect(client[i], &addr);
         sio_socket_write(client[i], "1234", strlen("1234"));
     }

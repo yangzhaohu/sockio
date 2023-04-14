@@ -336,9 +336,13 @@ void sio_socket_addr_in(struct sio_socket *sock, struct sio_socket_addr *addr, s
 }
 
 static inline
-struct sio_socket *sio_socket_create_imp(enum sio_socket_proto proto)
+struct sio_socket *sio_socket_create_imp(enum sio_socket_proto proto, char *placement)
 {
-    struct sio_socket *sock = malloc(sizeof(struct sio_socket));
+    struct sio_socket *sock = (struct sio_socket *)placement;
+
+    if (sock == NULL) {
+        sock = malloc(sizeof(struct sio_socket));
+    }
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock, NULL,
         SIO_LOGE("sio_socket malloc failed\n"));
 
@@ -352,18 +356,23 @@ struct sio_socket *sio_socket_create_imp(enum sio_socket_proto proto)
     return sock;
 }
 
-struct sio_socket *sio_socket_create(enum sio_socket_proto proto)
+unsigned int sio_socket_struct_size()
 {
-    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
-
-    return sio_socket_create_imp(proto);
+    return sizeof(struct sio_socket);
 }
 
-struct sio_socket *sio_socket_create2(enum sio_socket_proto proto)
+struct sio_socket *sio_socket_create(enum sio_socket_proto proto, char *placement)
 {
     SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
 
-    struct sio_socket *sock = sio_socket_create_imp(proto);
+    return sio_socket_create_imp(proto, placement);
+}
+
+struct sio_socket *sio_socket_create2(enum sio_socket_proto proto, char *placement)
+{
+    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
+
+    struct sio_socket *sock = sio_socket_create_imp(proto, placement);
     SIO_COND_CHECK_RETURN_VAL(!sock, NULL);
 
     int fd = sio_socket_sock(proto);

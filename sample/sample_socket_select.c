@@ -31,7 +31,7 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
         return -1;
     }
 
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
+    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
     sio_socket_accept(serv, sock);
     g_sock = sock;
 
@@ -111,7 +111,7 @@ int main(void)
     }
 #endif
 
-    struct sio_socket *serv = sio_socket_create(SIO_SOCK_TCP);
+    struct sio_socket *serv = sio_socket_create(SIO_SOCK_TCP, NULL);
 
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {

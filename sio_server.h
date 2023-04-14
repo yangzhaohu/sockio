@@ -35,7 +35,7 @@ int sio_server_getopt(struct sio_server *serv, enum sio_server_optcmd cmd, union
 
 int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr);
 
-int sio_server_accept(struct sio_server *serv, struct sio_socket* sock);
+int sio_server_accept(struct sio_server *serv, struct sio_socket *sock);
 
 int sio_server_socket_mplex(struct sio_server *serv, struct sio_socket *sock);
 

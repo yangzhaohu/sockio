@@ -135,7 +135,7 @@ static int sio_socket_writeable(struct sio_socket *sock, const char *data, int l
 
 static int sio_server_newconn(struct sio_server *serv)
 {
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
+    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
     union sio_socket_opt opt = {
         .ops.read = sio_socket_readable,
         .ops.write = sio_socket_writeable

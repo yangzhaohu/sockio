@@ -34,7 +34,7 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
         }
         printf("new socket connect\n");
 
-        struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
+        struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
         sio_socket_accept(serv, sock);
 
         union sio_socket_opt opt = { 0 };
@@ -73,7 +73,7 @@ int readable(struct sio_socket *sock, const char *buf, int len)
 int main()
 {
     // server create
-    struct sio_socket *serv = sio_socket_create(SIO_SOCK_TCP);
+    struct sio_socket *serv = sio_socket_create(SIO_SOCK_TCP, NULL);
 
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {
@@ -100,10 +100,10 @@ int main()
 
     sio_socket_mplex(serv, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
-    struct sio_socket *client = sio_socket_create(SIO_SOCK_TCP);
+    struct sio_socket *client = sio_socket_create(SIO_SOCK_TCP, NULL);
     sio_socket_connect(client, &addr);
 
-    struct sio_socket *client2 = sio_socket_create(SIO_SOCK_TCP);
+    struct sio_socket *client2 = sio_socket_create(SIO_SOCK_TCP, NULL);
     sio_socket_connect(client2, &addr);
 
     getc(stdin);

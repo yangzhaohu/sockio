@@ -25,7 +25,7 @@ struct sio_socket_ops g_sock_sock =
 
 int socknew(struct sio_socket *serv, const char *buf, int len)
 {
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP);
+    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
     if (sio_socket_accept(serv, sock) == -1) {
         return -1;
     }

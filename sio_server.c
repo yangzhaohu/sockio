@@ -146,7 +146,7 @@ struct sio_server *sio_server_create_imp(enum sio_socket_proto type, unsigned ch
 
     memset(serv, 0, sizeof(struct sio_server));
 
-    struct sio_socket *sock = sio_socket_create(type);
+    struct sio_socket *sock = sio_socket_create(type, NULL);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock, NULL,
         free(serv));
 
@@ -257,7 +257,7 @@ int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr)
     return 0;
 }
 
-int sio_server_accept(struct sio_server *serv, struct sio_socket* sock)
+int sio_server_accept(struct sio_server *serv, struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
 
