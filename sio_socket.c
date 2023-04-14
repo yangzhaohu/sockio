@@ -43,7 +43,6 @@ struct sio_socket_state
 {
     // enum sio_events events;
     enum sio_socket_shuthow shut;
-    int closed:1;
     int placement:1;
 };
 
