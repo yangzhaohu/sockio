@@ -51,60 +51,72 @@ struct sio_fifo *sio_fifo_create(unsigned int size, unsigned int esize)
     return fifo;
 }
 
-int sio_fifo_in(struct sio_fifo *fifo, const sio_fifo_ele *buf, unsigned int count)
+static inline
+void sio_fifo_copy_in(struct sio_fifo *fifo, const sio_fifo_ele *buf,
+    unsigned int len, unsigned int off)
+{
+    unsigned int size = fifo->mask + 1;
+    unsigned int esize = fifo->esize;
+    unsigned int l;
+
+    off &= fifo->mask;
+    if (esize != 1) {
+        size *= esize;
+        len *= esize;
+        off *= esize;
+    }
+    l = len < (size - off) ? len : (size - off);
+
+    memcpy(fifo->data + off, buf, l);
+    memcpy(fifo->data, buf + len, len - l);
+
+    // smp_wmb();
+}
+
+int sio_fifo_in(struct sio_fifo *fifo, const sio_fifo_ele *buf, unsigned int len)
 {
     unsigned int l;
 
     l = sio_fifo_free_size(fifo);
-    l = l < count ? l : count;
+    l = l < len ? l : len;
 
-    unsigned int size = fifo->mask + 1;
-    unsigned int esize = fifo->esize;
-    unsigned int len;
-    unsigned int off;
-
-    off = fifo->in & fifo->mask;
-    if (esize != 1) {
-        size *= esize;
-        l *= esize;
-        off *= esize;
-    }
-    len = l < (size - off) ? l : (size - off);
-
-    memcpy(fifo->data + off, buf, len);
-    memcpy(fifo->data, buf + len, l - len);
-
-    // smp_wmb();
+    sio_fifo_copy_in(fifo, buf, len, fifo->in);
 
     fifo->in += l;
 
     return l;
 }
 
-int sio_fifo_out(struct sio_fifo *fifo, sio_fifo_ele *buf, unsigned int count)
+static inline
+void sio_fifo_copy_out(struct sio_fifo *fifo, sio_fifo_ele *buf,
+    unsigned int len, unsigned int off)
+{
+    unsigned int size = fifo->mask + 1;
+    unsigned int esize = fifo->esize;
+    unsigned int l;
+
+    off &= fifo->mask;
+    if (esize != 1) {
+        size *= esize;
+        len *= esize;
+        off *= esize;
+    }
+    l = len < (size - off) ? len : (size - off);
+
+    memcpy(buf, fifo->data + off, l);
+    memcpy(buf + len, fifo->data, len - l);
+
+    // smp_wmb();
+}
+
+int sio_fifo_out(struct sio_fifo *fifo, sio_fifo_ele *buf, unsigned int len)
 {
     unsigned int l;
 
     l = fifo->in - fifo->out;
-    l = l < count ? l : count;
+    l = l < len ? l : len;
 
-    unsigned int size = fifo->mask + 1;
-    unsigned int esize = fifo->esize;
-    unsigned int len;
-    unsigned int off;
-
-    off = fifo->out & fifo->mask;
-    if (esize != 1) {
-        size *= esize;
-        l *= esize;
-        off *= esize;
-    }
-    len = l < (size - off) ? l : (size - off);
-
-    memcpy(buf, fifo->data + off, len);
-    memcpy(buf + len, fifo->data, l - len);
-
-    // smp_wmb();
+    sio_fifo_copy_out(fifo, buf, len, fifo->out);
 
     fifo->out += l;
 

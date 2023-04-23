@@ -11,9 +11,9 @@ extern "C" {
 
 struct sio_fifo *sio_fifo_create(unsigned int size, unsigned int esize);
 
-int sio_fifo_in(struct sio_fifo *fifo, const sio_fifo_ele *buf, unsigned int count);
+int sio_fifo_in(struct sio_fifo *fifo, const sio_fifo_ele *buf, unsigned int len);
 
-int sio_fifo_out(struct sio_fifo *fifo, sio_fifo_ele *buf, unsigned int count);
+int sio_fifo_out(struct sio_fifo *fifo, sio_fifo_ele *buf, unsigned int len);
 
 int sio_fifo_destory(struct sio_fifo *fifo);
 
