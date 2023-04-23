@@ -4,10 +4,9 @@
 
 static char *g_resp =
             "HTTP/1.1 200 OK\r\n"
-            "Connection: close\r\n"
+            "Connection: keep-alive\r\n"
             "Content-Type: text/html\r\n"
-            "Content-Length: 125\r\n"
-            "Connection: close\r\n\r\n"
+            "Content-Length: 125\r\n\r\n"
             "<html>"
             "<head><title>Hello</title></head>"
             "<body>"
@@ -18,14 +17,13 @@ static char *g_resp =
 
 int servflow_flow_new(struct sio_sockflow *flow)
 {
-    printf("new flow enter\n");
-    sio_sockflow_write(flow, g_resp, strlen(g_resp));
     return 0;
 }
 
 int servflow_flow_data(struct sio_sockflow *flow, const char *data, int len)
 {
-    printf("recv: %s\n", data);
+    sio_sockflow_write(flow, g_resp, strlen(g_resp));
+    return 0;
 }
 
 int main()
