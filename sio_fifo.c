@@ -5,11 +5,11 @@
 
 struct sio_fifo
 {
-	unsigned int in;
-	unsigned int out;
+    unsigned int in;
+    unsigned int out;
     unsigned int mask;
-	unsigned int esize;
-	void *data;
+    unsigned int esize;
+    void *data;
 };
 
 static inline
