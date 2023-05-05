@@ -16,9 +16,7 @@
 
 struct sio_sockflow
 {
-    struct sio_socket *sock;
     struct sio_servflow *servflow;
-
     void *pri;
 };
 
@@ -105,15 +103,15 @@ int sio_servflow_tkpool_getindex(struct sio_servflow_taskpool *tkpool)
 
 static int sio_socket_readable(struct sio_socket *sock, const char *data, int len)
 {
-    if (len == 0) {
-        printf("client socket close\n");
-        return 0;
-    }
-
     union sio_socket_opt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_sockflow *sockflow = opt.private;
+    if (len == 0) {
+        free(sockflow);
+        return 0;
+    }
+
     struct sio_servflow *servflow = sockflow->servflow;
     if (servflow) {
         struct sio_servflow_owner *owner = &servflow->owner;
@@ -133,46 +131,65 @@ static int sio_socket_writeable(struct sio_socket *sock, const char *data, int l
     return 0;
 }
 
-static int sio_server_newconn(struct sio_server *serv)
+static inline
+void *sio_sockflow_sock_mem()
 {
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
+    int size = sizeof(struct sio_sockflow) + sio_socket_struct_size();
+    void *mem = malloc(size);
+    SIO_COND_CHECK_RETURN_VAL(!mem, NULL);
+
+    memset(mem, 0, size);
+
+    return mem;
+}
+
+static inline
+struct sio_sockflow *sio_sockflow_setup(struct sio_servflow *servflow)
+{
+    void *mem = sio_sockflow_sock_mem();
+    SIO_COND_CHECK_RETURN_VAL(!mem, NULL);
+
+    char *smem = mem + sizeof(struct sio_sockflow);
+    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, smem);
     union sio_socket_opt opt = {
         .ops.read = sio_socket_readable,
         .ops.write = sio_socket_writeable
     };
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
-    int ret = sio_server_accept(serv, sock);
-    if(ret == -1) {
-        sio_socket_destory(sock);
-        return ret;
-    }
+    int ret = sio_server_accept(servflow->serv, sock);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
+        free(mem));
 
     opt.nonblock = 1;
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
-    union sio_server_opt opts = { 0 };
-    sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);
-    struct sio_servflow *servflow = opts.private;
-
-    struct sio_sockflow *sockflow = malloc(sizeof(struct sio_sockflow));
-    memset(sockflow, 0, sizeof(struct sio_sockflow));
-    sockflow->sock = sock;
+    struct sio_sockflow *sockflow = (struct sio_sockflow *)mem;
     sockflow->servflow = servflow;
-
     opt.private = sockflow;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    if (servflow) {
+    return sockflow;
+}
+
+static int sio_server_newconn(struct sio_server *serv)
+{
+    union sio_server_opt opt = { 0 };
+    sio_server_getopt(serv, SIO_SERV_PRIVATE, &opt);
+    struct sio_servflow *servflow = opt.private;
+
+    struct sio_sockflow *sockflow = sio_sockflow_setup(servflow);
+    if (sockflow) {
         struct sio_servflow_owner *owner = &servflow->owner;
         if (owner->ops.flow_new) {
             owner->ops.flow_new(sockflow);
         }
     }
 
+    struct sio_socket *sock = (struct sio_socket *)((char *)sockflow + sizeof(struct sio_sockflow));
     sio_server_socket_mplex(serv, sock);
 
-    return ret;
+    return 0;
 }
 
 void *sio_servflow_thread_start_routine(void *arg)
@@ -538,12 +555,14 @@ int sio_sockflow_getopt(struct sio_sockflow *flow, enum sio_sockflow_optcmd cmd,
 
 int sio_sockflow_write(struct sio_sockflow *flow, char *buf, int len)
 {
-    return sio_socket_write(flow->sock, buf, len);
+    struct sio_socket *sock = (struct sio_socket *)((char *)flow + sizeof(struct sio_sockflow));
+    return sio_socket_write(sock, buf, len);
 }
 
 int sio_sockflow_close(struct sio_sockflow *flow)
 {
-    return 0;
+    struct sio_socket *sock = (struct sio_socket *)((char *)flow + sizeof(struct sio_sockflow));
+    return sio_socket_shutdown(sock, SIO_SOCK_SHUTRDWR);
 }
 
 int sio_servflow_destory(struct sio_servflow *flow)
