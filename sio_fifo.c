@@ -80,7 +80,7 @@ int sio_fifo_in(struct sio_fifo *fifo, const sio_fifo_ele *buf, unsigned int len
     l = sio_fifo_free_size(fifo);
     l = l < len ? l : len;
 
-    sio_fifo_copy_in(fifo, buf, len, fifo->in);
+    sio_fifo_copy_in(fifo, buf, l, fifo->in);
 
     fifo->in += l;
 
@@ -116,7 +116,7 @@ int sio_fifo_out(struct sio_fifo *fifo, sio_fifo_ele *buf, unsigned int len)
     l = fifo->in - fifo->out;
     l = l < len ? l : len;
 
-    sio_fifo_copy_out(fifo, buf, len, fifo->out);
+    sio_fifo_copy_out(fifo, buf, l, fifo->out);
 
     fifo->out += l;
 
