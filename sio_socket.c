@@ -85,15 +85,14 @@ struct sio_socket
 #endif
 
 #ifdef WIN32
-#define sio_socket_again() (sio_sock_errno == WSAEWOULDBLOCK)
+#define sio_socket_again(err) (err == WSAEWOULDBLOCK)
 #else
-#define sio_socket_again() (sio_sock_errno == EAGAIN || \
-    sio_sock_errno == EWOULDBLOCK)
+#define sio_socket_again(err) (err == EAGAIN || err == EWOULDBLOCK)
 #endif
 
 // socket nonblock recv errno break
 #define sio_socket_recv_errno_break()                   \
-    if (sio_socket_again()) {                           \
+    if (sio_socket_again(sio_sock_errno)) {             \
         break;                                          \
     }
 
@@ -500,7 +499,7 @@ int sio_socket_accept_has_pend_imp(struct sio_socket *sock)
 
     int fd = accept(sock->fd, NULL, NULL);
     if (fd == -1) {
-        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(), SIO_ERRNO_AGAIN);
+        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(sio_sock_errno), SIO_ERRNO_AGAIN);
         return -1;
     }
 
@@ -587,7 +586,7 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int maxlen)
 
     int ret = recv(sock->fd, buf, maxlen, 0);
     if (ret == -1) {
-        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(), SIO_ERRNO_AGAIN);
+        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(sio_sock_errno), SIO_ERRNO_AGAIN);
     }
 
     return ret;
