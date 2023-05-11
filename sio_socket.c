@@ -63,6 +63,22 @@ struct sio_socket
 };
 
 #ifdef WIN32
+__declspec(thread) int tls_accept_pend_fd = -1;
+__declspec(thread) int tls_sock_readerr = 0;
+#else
+__thread int tls_accept_pend_fd = -1;
+__thread int tls_sock_readerr = 0;
+#endif
+
+#define sio_socket_accept_pend_fd()     tls_accept_pend_fd
+#define sio_socket_accept_pend_fd_set(fd)   tls_accept_pend_fd = fd
+#define sio_socket_accept_pend_fd_clear()   tls_accept_pend_fd = -1
+
+#define sio_socket_readerr()     tls_sock_readerr
+#define sio_socket_readerr_set(err)   tls_sock_readerr = err
+#define sio_socket_readerr_clear()   tls_sock_readerr = 0
+
+#ifdef WIN32
 #define SIO_SOCK_SHUT_RD SD_RECEIVE
 #define SIO_SOCK_SHUT_WR SD_SEND
 #define SIO_SOCK_SHUT_RDWR SD_BOTH
@@ -480,16 +496,6 @@ int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
     return 0;
 }
 
-#ifdef WIN32
-__declspec(thread) int tls_accept_pend_fd = -1;
-#else
-__thread int tls_accept_pend_fd = -1;
-#endif
-
-#define sio_socket_accept_pend_fd()     tls_accept_pend_fd
-#define sio_socket_accept_pend_fd_set(fd)   tls_accept_pend_fd = fd
-#define sio_socket_accept_pend_fd_clear()   tls_accept_pend_fd = -1
-
 int sio_socket_accept_has_pend_imp(struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
@@ -586,7 +592,9 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int maxlen)
 
     int ret = recv(sock->fd, buf, maxlen, 0);
     if (ret == -1) {
-        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(sio_sock_errno), SIO_ERRNO_AGAIN);
+        int err = sio_sock_errno;
+        sio_socket_readerr_set(err);
+        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(err), SIO_ERRNO_AGAIN);
     }
 
     return ret;
