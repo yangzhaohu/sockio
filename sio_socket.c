@@ -1,19 +1,19 @@
 #include "sio_socket.h"
 #include <string.h>
 #include <stdlib.h>
-#ifdef LINUX
+#ifdef WIN32
+// #define WIN32_LEAN_AND_MEAN
+// #include <windows.h>
+#include <winsock2.h>
+#include <io.h>
+// #include <getopt.h>
+#else
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <errno.h>
-#elif defined(WIN32)
-// #define WIN32_LEAN_AND_MEAN
-// #include <windows.h>
-#include <winsock2.h>
-#include <io.h>
-// #include <getopt.h>
 #endif
 #include "sio_common.h"
 #include "sio_def.h"
@@ -78,17 +78,17 @@ struct sio_socket
 #define CLOSE(fd) close(fd)
 #endif
 
-#ifdef LINUX
-#define sio_sock_errno errno
-#else
+#ifdef WIN32
 #define sio_sock_errno WSAGetLastError()
+#else
+#define sio_sock_errno errno
 #endif
 
-#ifdef LINUX
+#ifdef WIN32
+#define sio_socket_again() (sio_sock_errno == WSAEWOULDBLOCK)
+#else
 #define sio_socket_again() (sio_sock_errno == EAGAIN || \
     sio_sock_errno == EWOULDBLOCK)
-#else
-#define sio_socket_again() (sio_sock_errno == WSAEWOULDBLOCK)
 #endif
 
 // socket nonblock recv errno break
