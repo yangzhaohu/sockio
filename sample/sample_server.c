@@ -15,22 +15,25 @@ char *g_resp = "HTTP/1.1 200 OK\r\n"
             "</body>"
             "</html>";
 
-static int socket_readable(struct sio_socket *sock, const char *data, int len)
+static int socket_readable(struct sio_socket *sock)
 {
-    if (len == 0) {
-        printf("client socket close\n");
-        return 0;
-    }
-
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
 
     return 0;
 }
 
-static int socket_writeable(struct sio_socket *sock, const char *data, int len)
+static int socket_writeable(struct sio_socket *sock)
 {
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
     sio_socket_write(sock, g_resp, strlen(g_resp));
+    return 0;
+}
+
+static int socket_close(struct sio_socket *sock)
+{
+    printf("client socket close\n");
+    sio_socket_destory(sock);
+
     return 0;
 }
 
@@ -38,8 +41,9 @@ static int server_newconn(struct sio_server *serv)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
     union sio_socket_opt opt = {
-        .ops.read = socket_readable,
-        .ops.write = socket_writeable
+        .ops.readable = socket_readable,
+        .ops.writeable = socket_writeable,
+        .ops.closeable = socket_close
     };
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 

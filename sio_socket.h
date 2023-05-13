@@ -27,8 +27,12 @@ struct sio_socket_addr
 
 struct sio_socket_ops
 {
-    int (*read)(struct sio_socket *sock, const char *data, int len);
-    int (*write)(struct sio_socket *sock, const char *data, int len);
+    int (*readable)(struct sio_socket *sock);
+    int (*writeable)(struct sio_socket *sock);
+    int (*acceptasync)(struct sio_socket *sock, struct sio_socket *newsock);
+    int (*readasync)(struct sio_socket *sock, const char *data, int len);
+    int (*writeasync)(struct sio_socket *sock, const char *data, int len);
+    int (*closeable)(struct sio_socket *sock);
 };
 
 enum sio_socket_optcmd

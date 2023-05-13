@@ -9,20 +9,21 @@ struct sio_mplex *g_mplex = NULL;
 
 struct sio_socket *g_sock = NULL;
 
-int socknew(struct sio_socket *serv, const char *buf, int len);
-int readable(struct sio_socket *sock, const char *buf, int len);
+int socknew(struct sio_socket *serv);
+int readable(struct sio_socket *socknew);
+int closed(struct sio_socket *sock);
 
 struct sio_socket_ops g_serv_ops = 
 {
-    .read = socknew
+    .readable = socknew
 };
 
 struct sio_socket_ops g_sock_ops = 
 {
-    .read = readable
+    .readable = readable
 };
 
-int socknew(struct sio_socket *serv, const char *buf, int len)
+int socknew(struct sio_socket *serv)
 {
     for (;;) {
         int ret = sio_socket_accept_has_pend(serv);
@@ -61,14 +62,12 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
     return 0;
 }
 
-int readable(struct sio_socket *sock, const char *buf, int len)
+int readable(struct sio_socket *sock)
 {
-    if (len == 0) {
-        printf("socket close\n");
-        sio_socket_destory(sock);
-        return 0;
-    }
-    printf("recv %d: %s\n", len, buf);
+    char data[512] = { 0 };
+    int len = sio_socket_read(sock, data, 512);
+    if (len > 0)
+        printf("recv %d: %s\n", len, data);
     
     char buff[10240] = { 0 };
     int cnt = 0;
@@ -82,6 +81,14 @@ int readable(struct sio_socket *sock, const char *buf, int len)
         cnt += sent;
         printf("send: %8d\n", cnt);
     }
+
+    return 0;
+}
+
+int closed(struct sio_socket *sock)
+{
+    printf("close\n");
+    sio_socket_destory(sock);
 
     return 0;
 }

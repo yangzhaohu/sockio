@@ -101,33 +101,44 @@ int sio_servflow_tkpool_getindex(struct sio_servflow_taskpool *tkpool)
     return tls_tkpool_index;
 }
 
-static int sio_socket_readable(struct sio_socket *sock, const char *data, int len)
+static int sio_socket_readable(struct sio_socket *sock)
 {
     union sio_socket_opt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_sockflow *sockflow = opt.private;
-    if (len == 0) {
-        free(sockflow);
-        return 0;
-    }
-
     struct sio_servflow *servflow = sockflow->servflow;
-    if (servflow) {
-        struct sio_servflow_owner *owner = &servflow->owner;
-        if (owner->ops.flow_data) {
-            owner->ops.flow_data(sockflow, data, len);
-        }
 
-        // struct sio_servflow_taskpool *tkpool = &servflow->tkpool;
-        // printf("tkpool: %d\n", sio_servflow_tkpool_getindex(tkpool));
+    struct sio_servflow_owner *owner = &servflow->owner;
+    SIO_COND_CHECK_RETURN_VAL(!owner->ops.flow_data, -1);
+
+    char data[512] = { 0 };
+    int len = sio_socket_read(sock, data, 512);
+    if (len > 0) {
+        owner->ops.flow_data(sockflow, data, len);
     }
 
+    // struct sio_servflow_taskpool *tkpool = &servflow->tkpool;
+    // printf("tkpool: %d\n", sio_servflow_tkpool_getindex(tkpool));
+
+    return len;
+}
+
+static int sio_socket_writeable(struct sio_socket *sock)
+{
     return 0;
 }
 
-static int sio_socket_writeable(struct sio_socket *sock, const char *data, int len)
+static int sio_socket_closeable(struct sio_socket *sock)
 {
+    union sio_socket_opt opt = { 0 };
+    sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
+
+    struct sio_sockflow *sockflow = opt.private;
+    if (sockflow) {
+        free(sockflow);
+    }
+
     return 0;
 }
 
@@ -152,8 +163,9 @@ struct sio_sockflow *sio_sockflow_setup(struct sio_servflow *servflow)
     char *smem = mem + sizeof(struct sio_sockflow);
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, smem);
     union sio_socket_opt opt = {
-        .ops.read = sio_socket_readable,
-        .ops.write = sio_socket_writeable
+        .ops.readable = sio_socket_readable,
+        .ops.writeable = sio_socket_writeable,
+        .ops.closeable = sio_socket_closeable
     };
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 

@@ -4,9 +4,10 @@
 #include "sio_mplex.h"
 #include "sio_mplex_thread.h"
 
-int socknew(struct sio_socket *serv, const char *buf, int len);
-int readable(struct sio_socket *sock, const char *buf, int len);
-int writeable(struct sio_socket *sock, const char *buf, int len);
+int socknew(struct sio_socket *serv);
+int readable(struct sio_socket *sock);
+int writeable(struct sio_socket *sock);
+int closed(struct sio_socket *sock);
 
 struct sio_mplex *g_mplex = NULL;
 
@@ -14,16 +15,17 @@ struct sio_socket *g_sock = NULL;
 
 struct sio_socket_ops g_serv_ops = 
 {
-    .read = socknew
+    .readable = socknew
 };
 
 struct sio_socket_ops g_sock_ops = 
 {
-    .read = readable,
-    .write = writeable
+    .readable = readable,
+    .writeable = writeable,
+    .closeable = closed
 };
 
-int socknew(struct sio_socket *serv, const char *buf, int len)
+int socknew(struct sio_socket *serv)
 {
     int ret = sio_socket_accept_has_pend(serv);
     if (ret == -1) {
@@ -58,15 +60,22 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
     return 0;
 }
 
-int readable(struct sio_socket *sock, const char *buf, int len)
+int readable(struct sio_socket *sock)
 {
-    if (len == 0) {
-        printf("close\n");
-        return 0;
-    }
-    printf("recv %d: %s\n", len, buf);
+    char data[512] = { 0 };
+    int len = sio_socket_read(sock, data, 512);
+    if (len > 0 )
+        printf("recv %d: %s\n", len, data);
 
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
+
+    return 0;
+}
+
+int closed(struct sio_socket *sock)
+{
+    printf("close\n");
+    sio_socket_destory(sock);
 
     return 0;
 }
@@ -84,7 +93,7 @@ char *g_resp = "HTTP/1.1 200 OK\r\n"
             "</body>"
             "</html>";
 
-int writeable(struct sio_socket *sock, const char *buf, int len)
+int writeable(struct sio_socket *sock)
 {
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
     sio_socket_write(sock, g_resp, strlen(g_resp));

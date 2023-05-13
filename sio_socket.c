@@ -106,12 +106,6 @@ __thread int tls_sock_readerr = 0;
 #define sio_socket_again(err) (err == EAGAIN || err == EWOULDBLOCK)
 #endif
 
-// socket nonblock recv errno break
-#define sio_socket_recv_errno_break()                   \
-    if (sio_socket_again(sio_sock_errno)) {             \
-        break;                                          \
-    }
-
 // shutdown and break loop
 #define sio_socket_shutdown_break(fd)               \
     shutdown(fd, SIO_SOCK_SHUTRD);                  \
@@ -151,17 +145,18 @@ __thread int tls_sock_readerr = 0;
 // server socket accept
 #define sio_socket_server_accept(sock, ops)         \
     if (ops) {                                      \
-        ops(sock, 0, 0);                            \
+        ops(sock);                                  \
     }
 
 // socket recv
+/*
 #define sio_socket_socket_recv(sock, ops)                                       \
     char __buf[SIO_SOCK_RECV_BUFFSIZE] = { 0 };                                 \
     int len;                                                                    \
     do {                                                                        \
         len = recv(sock->fd, __buf, SIO_SOCK_RECV_BUFFSIZE, 0);                 \
         if (len < 0) {                                                          \
-            sio_socket_recv_errno_break();                                      \
+            sio_socket_recv_errno_break(sio_sock_errno);                        \
             sio_socket_shutdown_break(sock->fd);                                \
         }                                                                       \
         else if (len == 0) {                                                    \
@@ -170,24 +165,37 @@ __thread int tls_sock_readerr = 0;
         }                                                                       \
         sio_socket_ops_call(ops, sock, __buf, len);                             \
     } while (attr->nonblock);
+*/
 
+#define sio_socket_socket_recv(sock)                                        \
+    do {                                                                    \
+        sio_socket_readerr_clear();                                         \
+        sio_socket_ops_call(ops->readable, sock);                           \
+        int err = sio_socket_readerr();                                     \
+        SIO_COND_CHECK_BREAK(sio_socket_again(err));                        \
+        if (err == SIO_ERRNO_CLOSE) {                                       \
+            sio_sock_mplex_event_del(sock);                                 \
+            ops->closeable(sock);                                           \
+            break;                                                          \
+        }                                                                   \
+    } while (attr->nonblock);
 
 // dispatch once
 #define sio_socket_event_dispatch_once(event)                                   \
     if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {                     \
         if (event->events & SIO_EVENTS_HUP) {                                   \
             sio_sock_mplex_event_del(sock);                                     \
-            sio_socket_ops_call_break(ops->read, sock, NULL, 0);                \
+            sio_socket_ops_call_break(ops->closeable, sock);                    \
             continue;                                                           \
         }                                                                       \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                               \
-            sio_socket_socket_recv(sock, ops->read);                            \
+            sio_socket_socket_recv(sock);                                       \
         } else {                                                                \
-            sio_socket_server_accept(sock, ops->read);                          \
+            sio_socket_server_accept(sock, ops->readable);                      \
         }                                                                       \
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_READ) {                                \
-        sio_socket_ops_call(ops->read,                                          \
+        sio_socket_ops_call(ops->readasync,                                     \
             sock, event->buf.ptr, event->buf.len);                              \
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {                              \
@@ -195,11 +203,11 @@ __thread int tls_sock_readerr = 0;
         SIO_CONTAINER_OF(event->buf.ptr,                                        \
             struct sio_socket,                                                  \
             extbuf);                                                            \
-        sio_socket_ops_call(ops->read,                                          \
-            sock, (const char *)__sock, 0);                                     \
+        sio_socket_ops_call(ops->acceptasync,                                   \
+            sock, __sock);                                                      \
     }                                                                           \
     if (event->events & SIO_EVENTS_OUT) {                                       \
-        sio_socket_ops_call(ops->write, sock, 0, 0);                            \
+        sio_socket_ops_call(ops->writeable, sock);                              \
     }
 
 
@@ -591,7 +599,10 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int maxlen)
     SIO_COND_CHECK_RETURN_VAL(!buf || maxlen == 0, -1);
 
     int ret = recv(sock->fd, buf, maxlen, 0);
-    if (ret == -1) {
+
+    if (ret == 0) {
+        sio_socket_readerr_set(SIO_ERRNO_CLOSE);
+    } else if (ret == -1) {
         int err = sio_sock_errno;
         sio_socket_readerr_set(err);
         SIO_COND_CHECK_RETURN_VAL(sio_socket_again(err), SIO_ERRNO_AGAIN);
