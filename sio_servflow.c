@@ -25,13 +25,6 @@ struct sio_servflow_owner
     struct sio_servflow_ops ops;
 };
 
-struct sio_servflow_sockpool
-{
-    unsigned char size;
-    unsigned char index;
-    struct sio_queue **sks;
-};
-
 struct sio_servflow_taskpool
 {
     unsigned char size;
@@ -46,7 +39,6 @@ struct sio_servflow
     struct sio_server *serv;
     struct sio_servflow_owner owner;
 
-    struct sio_servflow_sockpool skpool;
     struct sio_servflow_taskpool tkpool;
 };
 
@@ -135,6 +127,8 @@ static int sio_socket_closeable(struct sio_socket *sock)
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_sockflow *sockflow = opt.private;
+    sio_socket_close(sock);
+
     if (sockflow) {
         free(sockflow);
     }
@@ -238,61 +232,6 @@ struct sio_server *sio_servflow_create_server(enum sio_servflow_proto type, unsi
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 
     return serv;
-}
-
-/*
-* skpool init
-*/
-
-static inline
-int sio_servflow_skpool_queue_init(struct sio_servflow_sockpool *skpool, int size)
-{
-    skpool->sks = malloc(sizeof(struct sio_queue *) * size);
-    SIO_COND_CHECK_RETURN_VAL(skpool->sks == NULL, -1);
-
-    for (int i = 0; i < size; i++) {
-        skpool->sks[i] = sio_queue_create();
-    }
-
-    return 0;
-}
-
-static inline
-int sio_servflow_skpool_queue_uninit(struct sio_servflow_sockpool *skpool)
-{
-    for (int i = 0; i < skpool->size; i++) {
-        struct sio_queue *sk = skpool->sks[i];
-        SIO_COND_CHECK_CALLOPS(sk != NULL,
-            sio_queue_destory(sk),
-            skpool->sks[i] = NULL);
-    }
-
-    free(skpool->sks);
-    skpool->sks = NULL;
-
-    return 0;
-}
-
-static inline
-int sio_servflow_skpool_init(struct sio_servflow *flow, int size)
-{
-    struct sio_servflow_sockpool *skpool = &flow->skpool;
-    skpool->size = size;
-
-    int ret = sio_servflow_skpool_queue_init(skpool, size);
-    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
-
-    return 0;
-}
-
-static inline
-int sio_servflow_skpool_uninit(struct sio_servflow *flow)
-{
-    struct sio_servflow_sockpool *skpool = &flow->skpool;
-
-    sio_servflow_skpool_queue_uninit(skpool);
-
-    return 0;
 }
 
 /*
@@ -459,15 +398,9 @@ struct sio_servflow *sio_servflow_create_imp(enum sio_servflow_proto type, sio_t
 
     servflow->serv = serv;
 
-    int ret = sio_servflow_skpool_init(servflow, io);
+    int ret = sio_servflow_tkpool_init(servflow, flow);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         sio_server_destory(serv),
-        free(servflow));
-
-    ret = sio_servflow_tkpool_init(servflow, flow);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
-        sio_server_destory(serv),
-        sio_servflow_skpool_uninit(servflow),
         free(servflow));
 
     return servflow;
@@ -584,7 +517,6 @@ int sio_servflow_destory(struct sio_servflow *flow)
     int ret = sio_server_destory(flow->serv);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
-    sio_servflow_skpool_uninit(flow);
     sio_servflow_tkpool_uninit(flow);
 
     free(flow);
