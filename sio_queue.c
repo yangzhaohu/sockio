@@ -1,4 +1,5 @@
 #include "sio_queue.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "sio_common.h"
@@ -18,6 +19,7 @@ struct sio_queue *sio_queue_create()
     memset(queue, 0, sizeof(struct sio_queue));
 
     sio_list_init(&queue->head);
+    printf("head: %p, next: %p, prev: %p\n", &queue->head, queue->head.next, queue->head.prev);
 
     return queue;
 }
@@ -26,14 +28,22 @@ int sio_queue_push(struct sio_queue *queue, struct sio_list_head *entry)
 {
     SIO_COND_CHECK_RETURN_VAL(!queue, -1);
 
-    return -1;
+    sio_list_add(entry, &queue->head);
+
+    return 0;
 }
 
 struct sio_list_head *sio_queue_pop(struct sio_queue *queue)
 {
     SIO_COND_CHECK_RETURN_VAL(!queue, NULL);
+    struct sio_list_head *node = queue->head.next;
+    if (node != &queue->head) {
+        sio_list_del(node);
+    } else {
+        node = NULL;
+    }
 
-    return NULL;
+    return node;
 }
 
 int sio_queue_destory(struct sio_queue *queue)
