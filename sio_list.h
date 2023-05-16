@@ -28,6 +28,7 @@ static inline
 void sio_list_del(sio_list_node *node)
 {
     node->next->prev = node->prev;
+    node->prev->next = node->next;
 }
 
 #endif
