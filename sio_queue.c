@@ -1,5 +1,4 @@
 #include "sio_queue.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "sio_common.h"
@@ -19,7 +18,6 @@ struct sio_queue *sio_queue_create()
     memset(queue, 0, sizeof(struct sio_queue));
 
     sio_list_init(&queue->head);
-    printf("head: %p, next: %p, prev: %p\n", &queue->head, queue->head.next, queue->head.prev);
 
     return queue;
 }

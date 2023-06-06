@@ -2,17 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "sio_common.h"
 #include "sio_server.h"
 #include "sio_thread.h"
-#include "sio_queue.h"
-#include "sio_mutex.h"
+#include "sio_taskfifo.h"
 #include "sio_atomic.h"
-
-#define SIO_SERVERS_MAX_THREADS 255
-
-#define SIO_SERVER_THREADS_RATIO 16
-
 
 struct sio_sockflow
 {
@@ -20,18 +15,28 @@ struct sio_sockflow
     void *pri;
 };
 
+struct sio_sockflow_data
+{
+    struct sio_sockflow *sockflow;
+    char data[512];
+    int len;
+};
+
 struct sio_servflow_owner
 {
     struct sio_servflow_ops ops;
 };
 
-struct sio_servflow_taskpool
+struct sio_servflow_mlb
 {
-    unsigned char size;
-    int index;
-    struct sio_thread **threads;
-    struct sio_queue **tks;
-    sio_mutex *mtx;
+    unsigned char index;
+    unsigned char flow;
+};
+
+struct sio_servflow_taskflow
+{
+    struct sio_taskfifo *tf;
+    struct sio_servflow_mlb mlb;
 };
 
 struct sio_servflow
@@ -39,59 +44,24 @@ struct sio_servflow
     struct sio_server *serv;
     struct sio_servflow_owner owner;
 
-    struct sio_servflow_taskpool tkpool;
+    struct sio_servflow_taskflow tflow;
 };
 
+// #ifdef WIN32
+// __declspec(thread) int tls_tkpool_index = -1;
+// #else
+// __thread int tls_tkpool_index = -1;
+// #endif
 
-#define SIO_SERVERS_THREADS_CREATE(thread, ops, count, ret) \
-    do { \
-        for (int i = 0; i < count; i++) { \
-            thread[i] = ops; \
-            if (thread[i] == NULL) { \
-                ret = -1; \
-                break; \
-            } \
-        } \
-    } while (0);
+// static inline
+// int sio_servflow_tkpool_getindex(struct sio_servflow_taskpool *tkpool)
+// {
+//     if (tls_tkpool_index == -1) {
+//         tls_tkpool_index = sio_int_fetch_and_add(&tkpool->index, 1);
+//     }
 
-#define SIO_SERVERS_THREADS_START(thread, count, ret) \
-    do { \
-        for (int i = 0; i < count; i++) { \
-            if (thread[i] != NULL) { \
-                ret = sio_thread_start(thread[i]); \
-                if (ret == -1) { \
-                    break; \
-                } \
-            } \
-        } \
-    } while (0);
-
-#define SIO_SERVERS_THREADS_DESTORY(thread, count) \
-    do { \
-        for (int i = 0; i < count; i++) { \
-            if (thread[i]) { \
-                sio_thread_destory(thread[i]); \
-                thread[i] = NULL; \
-            } \
-        } \
-    } while (0);
-
-
-#ifdef WIN32
-__declspec(thread) int tls_tkpool_index = -1;
-#else
-__thread int tls_tkpool_index = -1;
-#endif
-
-static inline
-int sio_servflow_tkpool_getindex(struct sio_servflow_taskpool *tkpool)
-{
-    if (tls_tkpool_index == -1) {
-        tls_tkpool_index = sio_int_fetch_and_add(&tkpool->index, 1);
-    }
-
-    return tls_tkpool_index;
-}
+//     return tls_tkpool_index;
+// }
 
 static int sio_socket_readable(struct sio_socket *sock)
 {
@@ -104,16 +74,34 @@ static int sio_socket_readable(struct sio_socket *sock)
     struct sio_servflow_owner *owner = &servflow->owner;
     SIO_COND_CHECK_RETURN_VAL(!owner->ops.flow_data, -1);
 
-    char data[512] = { 0 };
-    int len = sio_socket_read(sock, data, 512);
+    // char data[512] = { 0 };
+    struct sio_sockflow_data *data = malloc(sizeof(struct sio_sockflow_data));
+    memset(data, 0, sizeof(struct sio_sockflow_data));
+    int len = sio_socket_read(sock, data->data, 512);
     if (len > 0) {
-        owner->ops.flow_data(sockflow, data, len);
+        data->sockflow = sockflow;
+        data->len = len;
+        struct sio_taskfifo *tf = servflow->tflow.tf;
+        sio_taskfifo_in(tf, 0, &data, 1);
+    } else {
+        free(data);
     }
 
-    // struct sio_servflow_taskpool *tkpool = &servflow->tkpool;
-    // printf("tkpool: %d\n", sio_servflow_tkpool_getindex(tkpool));
-
     return len;
+}
+
+static void *sio_sockflow_dataproc(void *handle, void *data)
+{
+    struct sio_servflow *servflow = handle;
+
+    struct sio_sockflow_data *skdata = (struct sio_sockflow_data *)data;
+    struct sio_servflow_owner *owner = &servflow->owner;
+    if (owner->ops.flow_data) {
+        owner->ops.flow_data(skdata->sockflow, skdata->data, skdata->len);
+    }
+    free(skdata);
+
+    return NULL;
 }
 
 static int sio_socket_writeable(struct sio_socket *sock)
@@ -198,11 +186,6 @@ static int sio_server_newconn(struct sio_server *serv)
     return 0;
 }
 
-void *sio_servflow_thread_start_routine(void *arg)
-{
-    return NULL;
-}
-
 static inline
 enum sio_socket_proto sio_servflow_sockproto(enum sio_servflow_proto type)
 {
@@ -220,7 +203,7 @@ enum sio_socket_proto sio_servflow_sockproto(enum sio_servflow_proto type)
 }
 
 static inline
-struct sio_server *sio_servflow_create_server(enum sio_servflow_proto type, unsigned char threads)
+struct sio_server *sio_servflow_server_create(enum sio_servflow_proto type, unsigned char threads)
 {
     enum sio_socket_proto proto = sio_servflow_sockproto(type);
     struct sio_server *serv = sio_server_create2(proto, threads);
@@ -234,147 +217,23 @@ struct sio_server *sio_servflow_create_server(enum sio_servflow_proto type, unsi
     return serv;
 }
 
-/*
-* tkpool init
-*/
-
 static inline
-int sio_servflow_tkpool_thread_create(struct sio_servflow_taskpool *tkpool, int size)
+int sio_taskflow_create(struct sio_servflow *flow, unsigned short size)
 {
-    struct sio_thread **threads = tkpool->threads;
-    struct sio_servflow *flow = SIO_CONTAINER_OF(tkpool, struct sio_servflow, tkpool);
+    struct sio_servflow_taskflow *tflow = &flow->tflow;
 
-    int ret = 0;
-    SIO_SERVERS_THREADS_CREATE(threads, sio_thread_create(sio_servflow_thread_start_routine, flow), size, ret);
-    if (ret == -1) {
-        SIO_SERVERS_THREADS_DESTORY(threads, size);
-        return -1;
-    }
-
-    SIO_SERVERS_THREADS_START(threads, size, ret);
-    if (ret == -1) {
-        SIO_SERVERS_THREADS_DESTORY(threads, size);
-        return -1;
-    }
+    tflow->tf = sio_taskfifo_create(size, sio_sockflow_dataproc, flow, 1024);
+    SIO_COND_CHECK_RETURN_VAL(tflow->tf == NULL, -1);
 
     return 0;
 }
 
 static inline
-int sio_servflow_tkpool_thread_destory(struct sio_servflow_taskpool *tkpool, int size)
+int sio_taskflow_destory(struct sio_servflow *flow)
 {
-    struct sio_thread **threads = tkpool->threads;
-    SIO_SERVERS_THREADS_DESTORY(threads, size);
+    struct sio_servflow_taskflow *tflow = &flow->tflow;
 
-    return 0;
-}
-
-static inline
-int sio_servflow_tkpool_thread_init(struct sio_servflow_taskpool *tkpool, int size)
-{
-    tkpool->threads = malloc(sizeof(struct sio_thread *) * size);
-    SIO_COND_CHECK_RETURN_VAL(tkpool->threads == NULL, -1);
-
-    int ret = sio_servflow_tkpool_thread_create(tkpool, size);
-    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
-
-    return 0;
-}
-
-static inline
-int sio_servflow_tkpool_thread_uninit(struct sio_servflow_taskpool *tkpool)
-{
-    sio_servflow_tkpool_thread_destory(tkpool, tkpool->size);
-    free(tkpool->threads);
-    tkpool->threads = NULL;
-
-    return 0;
-}
-
-static inline
-int sio_servflow_tkpool_queue_init(struct sio_servflow_taskpool *tkpool, int size)
-{
-    tkpool->tks = malloc(sizeof(struct sio_queue *) * size);
-    SIO_COND_CHECK_RETURN_VAL(tkpool->tks == NULL, -1);
-
-    for (int i = 0; i < size; i++) {
-        tkpool->tks[i] = sio_queue_create();
-    }
-
-    return 0;
-}
-
-static inline
-int sio_servflow_tkpool_queue_uninit(struct sio_servflow_taskpool *tkpool)
-{
-    for (int i = 0; i < tkpool->size; i++) {
-        struct sio_queue *tk = tkpool->tks[i];
-        SIO_COND_CHECK_CALLOPS(tk != NULL, 
-            sio_queue_destory(tk),
-            tkpool->tks[i] = NULL);
-    }
-
-    free(tkpool->tks);
-    tkpool->tks = NULL;
-
-    return 0;
-}
-
-static inline
-int sio_servflow_tkpool_mutex_init(struct sio_servflow_taskpool *tkpool)
-{
-    int size = tkpool->size;
-    tkpool->mtx = malloc(sizeof(sio_mutex) * size);
-    SIO_COND_CHECK_RETURN_VAL(tkpool->mtx == NULL, -1);
-
-    for (int i = 0; i < size; i++) {
-        sio_mutex_init(&tkpool->mtx[i]);
-    }
-
-    return 0;
-}
-
-static inline
-int sio_servflow_tkpool_mutex_uninit(struct sio_servflow_taskpool *tkpool)
-{
-    for (int i = 0; i < tkpool->size; i++) {
-        sio_mutex *mtx = &tkpool->mtx[i];
-        SIO_COND_CHECK_CALLOPS(mtx != NULL,
-            sio_mutex_destory(mtx));
-    }
-
-    free(tkpool->mtx);
-    tkpool->mtx = NULL;
-
-    return 0;
-}
-
-static inline
-int sio_servflow_tkpool_init(struct sio_servflow *flow, int size)
-{
-    struct sio_servflow_taskpool *tkpool = &flow->tkpool;
-    tkpool->size = size;
-
-    int ret = sio_servflow_tkpool_thread_init(tkpool, size);
-    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
-
-    ret = sio_servflow_tkpool_queue_init(tkpool, size);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        sio_servflow_tkpool_thread_uninit(tkpool));
-
-    sio_servflow_tkpool_mutex_init(tkpool);
-
-    return 0;
-}
-
-static inline
-int sio_servflow_tkpool_uninit(struct sio_servflow *flow)
-{
-    struct sio_servflow_taskpool *tkpool = &flow->tkpool;
-
-    sio_servflow_tkpool_thread_uninit(tkpool);
-    sio_servflow_tkpool_queue_uninit(tkpool);
-    sio_servflow_tkpool_mutex_uninit(tkpool);
+    sio_taskfifo_destory(tflow->tf);
 
     return 0;
 }
@@ -387,7 +246,7 @@ struct sio_servflow *sio_servflow_create_imp(enum sio_servflow_proto type, sio_t
 
     memset(servflow, 0, sizeof(struct sio_servflow));
 
-    struct sio_server *serv = sio_servflow_create_server(type, io);
+    struct sio_server *serv = sio_servflow_server_create(type, io);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!serv, NULL,
         free(servflow));
 
@@ -398,7 +257,7 @@ struct sio_servflow *sio_servflow_create_imp(enum sio_servflow_proto type, sio_t
 
     servflow->serv = serv;
 
-    int ret = sio_servflow_tkpool_init(servflow, flow);
+    int ret = sio_taskflow_create(servflow, flow);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         sio_server_destory(serv),
         free(servflow));
@@ -517,7 +376,7 @@ int sio_servflow_destory(struct sio_servflow *flow)
     int ret = sio_server_destory(flow->serv);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
-    sio_servflow_tkpool_uninit(flow);
+    sio_taskflow_destory(flow);
 
     free(flow);
 

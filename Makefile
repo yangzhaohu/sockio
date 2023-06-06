@@ -25,7 +25,8 @@ SRCS := sio_mplex.c \
 		sio_queue.c \
 		sio_mempool.c \
 		sio_fifo.c \
-		sio_block.c
+		sio_block.c \
+		sio_taskfifo.c
 
 .PHONY: incre all clean help
 
