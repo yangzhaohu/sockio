@@ -170,6 +170,9 @@ __thread int tls_sock_readerr = 0;
 #define sio_socket_socket_recv(sock)                                        \
     do {                                                                    \
         sio_socket_readerr_clear();                                         \
+        if (!ops->readable) {                                               \
+            break;                                                          \
+        }                                                                   \
         sio_socket_ops_call(ops->readable, sock);                           \
         int err = sio_socket_readerr();                                     \
         SIO_COND_CHECK_BREAK(sio_socket_again(err));                        \
