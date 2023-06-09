@@ -7,6 +7,7 @@
 #include "sio_server.h"
 #include "sio_thread.h"
 #include "sio_taskfifo.h"
+#include "sio_elepool.h"
 #include "sio_atomic.h"
 
 struct sio_sockflow
@@ -39,29 +40,36 @@ struct sio_servflow_taskflow
     struct sio_servflow_mlb mlb;
 };
 
+struct sio_servflow_sockpool
+{
+    int pools;
+    int inxstore;
+    struct sio_elepool **elepool;
+};
+
 struct sio_servflow
 {
     struct sio_server *serv;
     struct sio_servflow_owner owner;
-
+    struct sio_servflow_sockpool spool;
     struct sio_servflow_taskflow tflow;
 };
 
-// #ifdef WIN32
-// __declspec(thread) int tls_tkpool_index = -1;
-// #else
-// __thread int tls_tkpool_index = -1;
-// #endif
+#ifdef WIN32
+__declspec(thread) int tls_sockpool_index = -1;
+#else
+__thread int tls_sockpool_index = -1;
+#endif
 
-// static inline
-// int sio_servflow_tkpool_getindex(struct sio_servflow_taskpool *tkpool)
-// {
-//     if (tls_tkpool_index == -1) {
-//         tls_tkpool_index = sio_int_fetch_and_add(&tkpool->index, 1);
-//     }
+static inline
+int sio_servflow_sockpool_index(struct sio_servflow_sockpool *spool)
+{
+    if (tls_sockpool_index == -1) {
+        tls_sockpool_index = sio_int_fetch_and_add(&spool->inxstore, 1);
+    }
 
-//     return tls_tkpool_index;
-// }
+    return tls_sockpool_index;
+}
 
 static int sio_socket_readable(struct sio_socket *sock)
 {
@@ -74,18 +82,24 @@ static int sio_socket_readable(struct sio_socket *sock)
     struct sio_servflow_owner *owner = &servflow->owner;
     SIO_COND_CHECK_RETURN_VAL(!owner->ops.flow_data, -1);
 
-    // char data[512] = { 0 };
-    struct sio_sockflow_data *data = malloc(sizeof(struct sio_sockflow_data));
-    memset(data, 0, sizeof(struct sio_sockflow_data));
-    int len = sio_socket_read(sock, data->data, 512);
-    if (len > 0) {
-        data->sockflow = sockflow;
-        data->len = len;
-        struct sio_taskfifo *tf = servflow->tflow.tf;
-        sio_taskfifo_in(tf, 0, &data, 1);
-    } else {
-        free(data);
+    char data[512] = { 0 };
+    int len = sio_socket_read(sock, data, 512);
+    if (len > 0 && owner->ops.flow_data) {
+        owner->ops.flow_data(sockflow, data, len);
     }
+
+    // work fifo
+    // struct sio_sockflow_data *data = malloc(sizeof(struct sio_sockflow_data));
+    // memset(data, 0, sizeof(struct sio_sockflow_data));
+    // int len = sio_socket_read(sock, data->data, 512);
+    // if (len > 0) {
+    //     data->sockflow = sockflow;
+    //     data->len = len;
+    //     struct sio_taskfifo *tf = servflow->tflow.tf;
+    //     sio_taskfifo_in(tf, 0, &data, 1);
+    // } else {
+    //     free(data);
+    // }
 
     return len;
 }
@@ -109,41 +123,36 @@ static int sio_socket_writeable(struct sio_socket *sock)
     return 0;
 }
 
+static inline
+int sio_sockflow_lose(struct sio_servflow_sockpool *spool, struct sio_sockflow *sockflow)
+{
+    int index = sio_servflow_sockpool_index(spool);
+    int ret = sio_elepool_lose(spool->elepool[index], sockflow);
+
+    return ret;
+}
+
 static int sio_socket_closeable(struct sio_socket *sock)
 {
+    sio_socket_close(sock);
+
     union sio_socket_opt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_sockflow *sockflow = opt.private;
-    sio_socket_close(sock);
+    struct sio_servflow *servflow = sockflow->servflow;
+    struct sio_servflow_sockpool *spool = &servflow->spool;
 
-    if (sockflow) {
-        free(sockflow);
-    }
+    int ret = sio_sockflow_lose(spool, sockflow);
 
-    return 0;
+    return ret;
 }
 
 static inline
-void *sio_sockflow_sock_mem()
+void *sio_sockflow_socket(void *memptr)
 {
-    int size = sizeof(struct sio_sockflow) + sio_socket_struct_size();
-    void *mem = malloc(size);
-    SIO_COND_CHECK_RETURN_VAL(!mem, NULL);
-
-    memset(mem, 0, size);
-
-    return mem;
-}
-
-static inline
-struct sio_sockflow *sio_sockflow_setup(struct sio_servflow *servflow)
-{
-    void *mem = sio_sockflow_sock_mem();
-    SIO_COND_CHECK_RETURN_VAL(!mem, NULL);
-
-    char *smem = mem + sizeof(struct sio_sockflow);
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, smem);
+    char *mem = memptr + sizeof(struct sio_sockflow);
+    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, mem);
     union sio_socket_opt opt = {
         .ops.readable = sio_socket_readable,
         .ops.writeable = sio_socket_writeable,
@@ -151,19 +160,44 @@ struct sio_sockflow *sio_sockflow_setup(struct sio_servflow *servflow)
     };
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
-    int ret = sio_server_accept(servflow->serv, sock);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
-        free(mem));
+    return memptr;
+}
 
+static inline
+void sio_sockflow_desocket(void *memptr)
+{
+    struct sio_socket *sock = memptr + sizeof(struct sio_sockflow);
+    sio_socket_close(sock);
+}
+
+static inline
+struct sio_sockflow *sio_sockflow_get(struct sio_servflow_sockpool *spool)
+{
+    int index = sio_servflow_sockpool_index(spool);
+    struct sio_sockflow *sockflow = sio_elepool_get(spool->elepool[index]);
+
+    return sockflow;
+}
+
+#define SIO_SOCKFLOW_SOCKET_PTR(sockflow) \
+    (void *)sockflow + sizeof(struct sio_sockflow);
+
+static inline
+int sio_sockflow_accept(struct sio_servflow *servflow, struct sio_sockflow *sockflow)
+{
+    struct sio_socket *sock = SIO_SOCKFLOW_SOCKET_PTR(sockflow);
+    int ret = sio_server_accept(servflow->serv, sock);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, ret);
+
+    union sio_socket_opt opt;
     opt.nonblock = 1;
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_sockflow *sockflow = (struct sio_sockflow *)mem;
     sockflow->servflow = servflow;
     opt.private = sockflow;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    return sockflow;
+    return 0;
 }
 
 static int sio_server_newconn(struct sio_server *serv)
@@ -171,16 +205,21 @@ static int sio_server_newconn(struct sio_server *serv)
     union sio_server_opt opt = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opt);
     struct sio_servflow *servflow = opt.private;
+    struct sio_servflow_sockpool *spool = &servflow->spool;
 
-    struct sio_sockflow *sockflow = sio_sockflow_setup(servflow);
-    if (sockflow) {
-        struct sio_servflow_owner *owner = &servflow->owner;
-        if (owner->ops.flow_new) {
-            owner->ops.flow_new(sockflow);
-        }
+    struct sio_sockflow *sockflow = sio_sockflow_get(spool);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(sockflow == NULL, -1,
+        printf("sio_sockflow_get failed\n"));
+
+    int ret = sio_sockflow_accept(servflow, sockflow);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    struct sio_servflow_owner *owner = &servflow->owner;
+    if (owner->ops.flow_new) {
+        owner->ops.flow_new(sockflow);
     }
 
-    struct sio_socket *sock = (struct sio_socket *)((char *)sockflow + sizeof(struct sio_sockflow));
+    struct sio_socket *sock = SIO_SOCKFLOW_SOCKET_PTR(sockflow);
     sio_server_socket_mplex(serv, sock);
 
     return 0;
@@ -229,6 +268,34 @@ int sio_taskflow_create(struct sio_servflow *flow, unsigned short size)
 }
 
 static inline
+int sio_sockpool_create(struct sio_servflow *flow, unsigned short size)
+{
+    struct sio_servflow_sockpool *spool = &flow->spool;
+    spool->elepool = malloc(sizeof(struct sio_elepool *));
+    memset(spool->elepool, 0, sizeof(struct sio_elepool *));
+    int elesize = sizeof(struct sio_sockflow) + sio_socket_struct_size();
+    for (int i = 0; i < size; i++) {
+        spool->elepool[i] = sio_elepool_create(sio_sockflow_socket, sio_sockflow_desocket, elesize);
+    }
+    spool->pools = size;
+
+    return 0;
+}
+
+static inline
+int sio_sockpool_destory(struct sio_servflow *flow)
+{
+    struct sio_servflow_sockpool *spool = &flow->spool;
+    int size = spool->pools;
+    for (int i = 0; i < size; i++) {
+        sio_elepool_destroy(spool->elepool[i]);
+    }
+    free(spool->elepool);
+
+    return 0;
+}
+
+static inline
 int sio_taskflow_destory(struct sio_servflow *flow)
 {
     struct sio_servflow_taskflow *tflow = &flow->tflow;
@@ -257,7 +324,12 @@ struct sio_servflow *sio_servflow_create_imp(enum sio_servflow_proto type, sio_t
 
     servflow->serv = serv;
 
-    int ret = sio_taskflow_create(servflow, flow);
+    int ret = sio_sockpool_create(servflow, io);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
+        sio_server_destory(serv),
+        free(servflow));
+
+    ret = sio_taskflow_create(servflow, flow);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         sio_server_destory(serv),
         free(servflow));
@@ -377,6 +449,7 @@ int sio_servflow_destory(struct sio_servflow *flow)
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
     sio_taskflow_destory(flow);
+    sio_sockpool_destory(flow);
 
     free(flow);
 
