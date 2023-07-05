@@ -6,7 +6,7 @@ OBJ_OUTPUT := out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS :=
-INCLUDES :=
+INCLUDES := -I3dparty -I.
 LIBS := 
 
 SRCS := sio_mplex.c \
@@ -27,7 +27,9 @@ SRCS := sio_mplex.c \
 		sio_fifo.c \
 		sio_block.c \
 		sio_taskfifo.c \
-		sio_elepool.c
+		sio_elepool.c \
+		proto/sio_http.c \
+		3dparty/http_parser/http_parser.c
 
 .PHONY: incre all clean help
 
