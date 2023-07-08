@@ -29,7 +29,9 @@ SRCS := sio_mplex.c \
 		sio_taskfifo.c \
 		sio_elepool.c \
 		proto/sio_http.c \
-		3dparty/http_parser/http_parser.c
+		3dparty/http_parser/http_parser.c \
+		moudle/sio_servmod.c \
+		moudle/sio_httpmod.c
 
 .PHONY: incre all clean help
 
