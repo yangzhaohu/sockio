@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+int sio_httpmod_name(const char **name);
 int sio_httpmod_type();
 int sio_httpmod_version(const char **version);
 

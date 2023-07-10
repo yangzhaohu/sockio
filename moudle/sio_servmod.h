@@ -5,13 +5,6 @@
 
 struct sio_servmod;
 
-enum sio_servmod_type
-{
-    SIO_SERVMOD_RAW = 1,
-    SIO_SERVMOD_HTTP,
-    SIO_SERVMOD_BUTT
-};
-
 enum sio_servmod_optcmd
 {
     SIO_SERVMOD_ADDR
@@ -32,7 +25,7 @@ union sio_servmod_opt
 extern "C" {
 #endif
 
-struct sio_servmod *sio_servmod_create(enum sio_servmod_type type);
+struct sio_servmod *sio_servmod_create(enum sio_submod_type type);
 
 int sio_servmod_setopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd, union sio_servmod_opt *opt);
 

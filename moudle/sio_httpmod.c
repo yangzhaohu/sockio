@@ -10,9 +10,15 @@ struct sio_httpmod
     struct sio_httpprot *httpprot;
 };
 
+int sio_httpmod_name(const char **name)
+{
+    *name = "sio_http_core_module";
+    return 0;
+}
+
 int sio_httpmod_type()
 {
-    return 1;
+    return SIO_SUBMOD_HTTP;
 }
 
 int sio_httpmod_version(const char **version)

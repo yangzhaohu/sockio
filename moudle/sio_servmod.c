@@ -20,8 +20,9 @@ struct sio_servmod
     union sio_servmod_opt opt;
 };
 
-struct sio_mod_ins g_global_mod[SIO_SERVMOD_BUTT] = {
-    [SIO_SERVMOD_HTTP] = {
+struct sio_mod_ins g_global_mod[SIO_SUBMOD_BUTT] = {
+    [SIO_SUBMOD_HTTP] = {
+        .mod_name = sio_httpmod_name,
         .mod_version = sio_httpmod_version,
         .mod_type = sio_httpmod_type,
         .install = sio_httpmod_create,
@@ -111,7 +112,7 @@ struct sio_server *sio_servmod_createserv()
     return serv;
 }
 
-struct sio_servmod *sio_servmod_create(enum sio_servmod_type type)
+struct sio_servmod *sio_servmod_create(enum sio_submod_type type)
 {
     struct sio_servmod *servmod = malloc(sizeof(struct sio_servmod));
     SIO_COND_CHECK_RETURN_VAL(!servmod, NULL);
