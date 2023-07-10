@@ -1,6 +1,8 @@
 #ifndef SIO_SERVMOD_H_
 #define SIO_SERVMOD_H_
 
+#include "sio_submod.h"
+
 struct sio_servmod;
 
 enum sio_servmod_type
@@ -10,14 +12,20 @@ enum sio_servmod_type
     SIO_SERVMOD_BUTT
 };
 
-struct sio_mod_ins
+enum sio_servmod_optcmd
 {
-    int (*mod_version)(const char **version);
-    int (*mod_type)(void);
+    SIO_SERVMOD_ADDR
+};
 
-    int (*install)(void **mod);
-    int (*stream_in)(void *mod, const char *data, int len);
-    int (*unstall)(void *mod);
+struct sio_servmod_addr
+{
+    char addr[32];
+    int port;
+};
+
+union sio_servmod_opt
+{
+    struct sio_servmod_addr addr;
 };
 
 #ifdef __cplusplus
@@ -25,6 +33,12 @@ extern "C" {
 #endif
 
 struct sio_servmod *sio_servmod_create(enum sio_servmod_type type);
+
+int sio_servmod_setopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd, union sio_servmod_opt *opt);
+
+int sio_servmod_getopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd, union sio_servmod_opt *opt);
+
+int sio_servmod_dowork(struct sio_servmod *servmod);
 
 int sio_servmod_loadmod(struct sio_servmod *servmod, struct sio_mod_ins *ops);
 
