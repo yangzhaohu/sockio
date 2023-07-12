@@ -31,7 +31,7 @@ enum sio_httpprot_optcmd
 
 struct sio_httpprot_ops
 {
-    int (*prot_data)(void *handler, enum sio_httpprot_valtype valtype, const char *data, int len);
+    int (*prot_data)(void *handler, enum sio_httpprot_valtype type, const char *data, int len);
 };
 
 union sio_httpprot_opt

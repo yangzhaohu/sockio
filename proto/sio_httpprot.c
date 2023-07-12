@@ -70,7 +70,10 @@ struct sio_httpprot
         struct sio_httpprot *httpprot = (struct sio_httpprot *)parser; \
         struct sio_httpprot_owner *owner = &httpprot->owner; \
         if (owner->ops.prot_data != NULL) { \
-            owner->ops.prot_data(owner->private, type, at, len); \
+            int ret = owner->ops.prot_data(owner->private, type, at, len); \
+            if (ret == -1) { \
+                http_parser_pause(parser, 1); \
+            } \
         } \
     } while (0);
     
@@ -228,9 +231,12 @@ int sio_httpprot_setopt(struct sio_httpprot *httpprot, enum sio_httpprot_optcmd 
 int sio_httpprot_process(struct sio_httpprot *httpprot, const char *data, unsigned int len)
 {
     SIO_COND_CHECK_RETURN_VAL(!httpprot, -1);
-    http_parser_execute(&httpprot->parser, &g_http_parser_cb, data, len);
 
-    return 0;
+    int ret = http_parser_execute(&httpprot->parser, &g_http_parser_cb, data, len);
+    if (ret == 0 || httpprot->parser.http_errno != 0) {
+        printf("ret: %d, err: %d\n", ret, httpprot->parser.http_errno);
+    }
+    return ret;
 }
 
 int sio_httpprot_destory(struct sio_httpprot *httpprot)

@@ -3,24 +3,23 @@
 #include <stdlib.h>
 #include "sio_server.h"
 #include "sio_common.h"
-#include "sio_httpmod.h"
+#include "moudle/sio_httpmod.h"
 #include "sio_log.h"
 
-struct sio_servmod_mod
+struct sio_conn
 {
-    void *mod;
-    struct sio_mod_ins *ins;
+    void *private;
 };
 
 struct sio_servmod
 {
     struct sio_server *serv;
-    struct sio_servmod_mod mmod;
+    struct sio_mod *mod;
 
     union sio_servmod_opt opt;
 };
 
-struct sio_mod_ins g_global_mod[SIO_SUBMOD_BUTT] = {
+struct sio_mod g_global_mod[SIO_SUBMOD_BUTT] = {
     [SIO_SUBMOD_HTTP] = {
         .mod_name = sio_httpmod_name,
         .mod_version = sio_httpmod_version,
@@ -28,9 +27,14 @@ struct sio_mod_ins g_global_mod[SIO_SUBMOD_BUTT] = {
         .install = sio_httpmod_create,
         .mod_hook = sio_httpmod_hookmod,
         .unstall = sio_httpmod_destory,
+        .stream_conn = sio_httpmod_streamconn,
         .stream_in = sio_httpmod_streamin,
+        .stream_close = sio_httpmod_streamclose
     }
  };
+
+ #define SIO_CONN_SOCK_MEMPTR(mem) ((void *)mem +  sizeof(struct sio_conn))
+ #define SIO_SOCK_CONN_MEMPTR(mem) ((void *)mem -  sizeof(struct sio_conn))
 
 static inline
 int sio_socket_readable(struct sio_socket *sock)
@@ -40,11 +44,12 @@ int sio_socket_readable(struct sio_socket *sock)
 
     struct sio_servmod *servmod = opt.private;
 
-    struct sio_servmod_mod *mmod = &servmod->mmod;
+    struct sio_mod *mod = servmod->mod;
     char data[512] = { 0 };
     int len = sio_socket_read(sock, data, 512);
-    if (len > 0) {
-        mmod->ins->stream_in(mmod->mod, sock, data, len);
+    if (len > 0 && mod->stream_in) {
+        sio_conn_t conn = SIO_SOCK_CONN_MEMPTR(sock);
+        mod->stream_in(conn, data, len);
     }
 
     return 0;
@@ -59,13 +64,28 @@ int sio_socket_writeable(struct sio_socket *sock)
 static inline
 int sio_socket_closeable(struct sio_socket *sock)
 {
+    union sio_socket_opt opt = { 0 };
+    sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
+
+    struct sio_servmod *servmod = opt.private;
+    struct sio_mod *mod = servmod->mod;
+    sio_conn_t conn = SIO_SOCK_CONN_MEMPTR(sock);
+
+    if (mod->stream_close) {
+        mod->stream_close(conn);
+    }
+    
+    sio_socket_close(sock);
+    free(conn);
+
     return 0;
 }
 
 static inline
 struct sio_socket *sio_servmod_socket()
 {
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
+    char *mem = malloc(sizeof(struct sio_conn) + sio_socket_struct_size());
+    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, SIO_CONN_SOCK_MEMPTR(mem));
     union sio_socket_opt opt = {
         .ops.readable = sio_socket_readable,
         .ops.writeable = sio_socket_writeable,
@@ -80,19 +100,27 @@ struct sio_socket *sio_servmod_socket()
 }
 
 static inline
-int sio_servset_newconn(struct sio_server *serv)
+int sio_servmod_newconn(struct sio_server *serv)
 {
     struct sio_socket *sock = sio_servmod_socket();
 
     union sio_server_opt opts = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);
 
+    struct sio_servmod *servmod = opts.private;
+    struct sio_mod *mod = servmod->mod;
+
     union sio_socket_opt opt = {
-        .private = opts.private
+        .private = servmod
     };
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    sio_server_accept(serv, sock);
+    int ret = sio_server_accept(serv, sock);
+    if (ret == 0 && mod && mod->stream_conn) {
+        sio_conn_t conn = SIO_SOCK_CONN_MEMPTR(sock);
+        mod->stream_conn(conn);
+    }
+
     sio_server_socket_mplex(serv, sock);
 
     return 0;
@@ -105,7 +133,7 @@ struct sio_server *sio_servmod_createserv()
     SIO_COND_CHECK_RETURN_VAL(!serv, NULL);
 
     union sio_server_opt ops = {
-        .ops.accept = sio_servset_newconn
+        .ops.accept = sio_servmod_newconn
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 
@@ -131,11 +159,11 @@ struct sio_servmod *sio_servmod_create(enum sio_submod_type type)
     servmod->serv = serv;
 
     // module init
-    struct sio_servmod_mod *mmod = &servmod->mmod;
-    mmod->ins = &g_global_mod[type];
-    void *mod = NULL;
-    mmod->ins->install(&mod);
-    mmod->mod = mod;
+    servmod->mod = &g_global_mod[type];
+    int ret = servmod->mod->install();
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, NULL,
+        sio_server_destory(serv),
+        free(servmod));
     
     return servmod;
 }
@@ -197,7 +225,7 @@ int sio_servmod_dowork(struct sio_servmod *servmod)
     return ret;
 }
 
-int sio_servmod_loadmod(struct sio_servmod *servmod, struct sio_mod_ins *ops)
+int sio_servmod_loadmod(struct sio_servmod *servmod, struct sio_mod *ops)
 {
     return 0;
 }
@@ -209,9 +237,52 @@ int sio_servmod_destory(struct sio_servmod *servmod)
     struct sio_server *serv = servmod->serv;
     sio_server_destory(serv);
 
-    struct sio_servmod_mod *mmod = &servmod->mmod;
-    mmod->ins->unstall(mmod->mod);
-    mmod->mod = NULL;
+    struct sio_mod *mod = servmod->mod;
+    mod->unstall();
 
     return 0;
+}
+
+int sio_conn_setopt(sio_conn_t conn, enum sio_conn_optcmd cmd, union sio_conn_opt *opt)
+{
+    int ret = 0;
+    switch (cmd) {
+    case SIO_CONN_PRIVATE:
+        conn->private = opt->private;
+        break;
+
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
+}
+
+int sio_conn_getopt(sio_conn_t conn, enum sio_conn_optcmd cmd, union sio_conn_opt *opt)
+{
+    int ret = 0;
+    switch (cmd) {
+    case SIO_CONN_PRIVATE:
+        opt->private = conn->private;
+        break;
+
+    default:
+        ret = -1;
+        break;
+    }
+
+    return ret;
+}
+
+int sio_conn_write(sio_conn_t conn, char *buf, int len)
+{
+    struct sio_socket *sock = SIO_CONN_SOCK_MEMPTR(conn);
+    return sio_socket_write(sock, buf, len);
+}
+
+int sio_conn_close(sio_conn_t conn)
+{
+    struct sio_socket *sock = SIO_CONN_SOCK_MEMPTR(conn);
+    return sio_socket_close(sock);
 }

@@ -5,9 +5,41 @@
 #include "proto/sio_httpprot.h"
 #include "sio_log.h"
 
-struct sio_httpmod
+typedef struct
 {
+    const char *data;
+    int length;
+}sio_str_t;
+
+enum sio_httpds_index
+{
+    SIO_HTTPDS_URL,
+    SIO_HTTPDS_KEEPALIVE,
+    SIO_HTTPDS_BUTT
+};
+
+struct sio_httpds
+{
+    sio_str_t dsstr;
+    int dsint;
+};
+
+struct sio_http_buffer
+{
+    char *buf;
+    char *pos;
+    char *last;
+    char *end;
+};
+
+struct sio_http_conn
+{
+    void *conn;
+    struct sio_http_buffer buf;
     struct sio_httpprot *httpprot;
+    struct sio_httpds ds[SIO_HTTPDS_BUTT];
+
+    unsigned int complete:1; // packet complete
 };
 
 int sio_httpmod_name(const char **name)
@@ -27,51 +59,149 @@ int sio_httpmod_version(const char **version)
     return 0;
 }
 
-int sio_httpmod_protodata(void *handler, enum sio_httpprot_valtype valtype, const char *data, int len)
+static char *g_resp =
+            "HTTP/1.1 200 OK\r\n"
+            "Connection: keep-alive\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 125\r\n\r\n"
+            "<html>"
+            "<head><title>Hello</title></head>"
+            "<body>"
+            "<center><h1>Hello, Client</h1></center>"
+            "<hr><center>SOCKIO</center>"
+            "</body>"
+            "</html>";
+
+int sio_httpmod_protodata(void *handler, enum sio_httpprot_valtype type, const char *data, int len)
 {
-    SIO_LOGE("%.*s\n", (int)len, data);
-    return 0;
+    // SIO_LOGE("type: %d, %.*s\n", type, (int)len, data);
+
+    struct sio_http_conn *httpconn = handler;
+    struct sio_httpds *ds = httpconn->ds;
+
+    if (type == SIO_HTTPPROTO_VALTYPE_URL) {
+        if (len > 4096) {
+            sio_conn_write(httpconn->conn, g_resp, strlen(g_resp));
+            sio_conn_close(httpconn->conn);
+            printf("url too large\n");
+            return -1;
+        }
+        ds[SIO_HTTPPROTO_VALTYPE_URL].dsstr.data = data;
+        ds[SIO_HTTPPROTO_VALTYPE_URL].dsstr.length = len;
+    }
+
+    if (type == SIO_HTTPPROTO_VALTYPE_COMPLETE) {
+        httpconn->complete = 1;
+        sio_conn_write(httpconn->conn, g_resp, strlen(g_resp));
+    }
+
+    return len;
 }
 
-int sio_httpmod_create(void **mod)
+static inline
+struct sio_http_conn *sio_httpmod_httpconn_create(sio_conn_t conn)
 {
-    struct sio_httpmod *httpmod = malloc(sizeof(struct sio_httpmod));
-    SIO_COND_CHECK_RETURN_VAL(!httpmod, -1)
+    struct sio_http_conn *httpconn = malloc(sizeof(struct sio_http_conn));
+    SIO_COND_CHECK_RETURN_VAL(!httpconn, NULL);
 
+    memset(httpconn, 0, sizeof(struct sio_http_conn));
+
+    // string
+    struct sio_http_buffer *buf = &httpconn->buf;
+    char *mem = malloc(40960);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!mem, NULL,
+        free(httpconn));
+
+    memset(mem, 0, 40960);
+    buf->buf = mem;
+    buf->pos = mem;
+    buf->last = mem;
+    buf->end = mem + 40960;
+
+    // httpprot
     struct sio_httpprot *httpprot = sio_httpprot_create(SIO_HTTP_REQUEST);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!httpprot, -1,
-        free(httpmod));
-    
-    union sio_httpprot_opt opt = {
-        .private = httpmod
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!httpprot, NULL,
+        free(mem),
+        free(httpconn));
+    union sio_httpprot_opt hopt = {
+        .private = httpconn
     };
-    sio_httpprot_setopt(httpprot, SIO_HTTPPROT_PRIVATE, &opt);
+    sio_httpprot_setopt(httpprot, SIO_HTTPPROT_PRIVATE, &hopt);
+    hopt.ops.prot_data = sio_httpmod_protodata;
+    sio_httpprot_setopt(httpprot, SIO_HTTPPROT_OPS, &hopt);
+    httpconn->httpprot = httpprot;
 
-    opt.ops.prot_data = sio_httpmod_protodata;
-    sio_httpprot_setopt(httpprot, SIO_HTTPPROT_OPS, &opt);
+    // conn with httpconn
+    union sio_conn_opt opt = { .private = httpconn };
+    sio_conn_setopt(conn, SIO_CONN_PRIVATE, &opt);
+    httpconn->conn = conn;
+
+    return httpconn;
+}
+
+static inline
+void sio_httpmod_httpconn_destory(struct sio_http_conn *httpconn)
+{
+    free(httpconn->buf.buf);
+    free(httpconn);
+}
+
+int sio_httpmod_create(void)
+{
+    return 0;
+}
+
+int sio_httpmod_streamconn(sio_conn_t conn)
+{
+    sio_httpmod_httpconn_create(conn);
+    return 0;
+}
+
+int sio_httpmod_streamin(sio_conn_t conn, const char *data, int len)
+{
+    union sio_conn_opt opt = { 0 };
+    sio_conn_getopt(conn, SIO_CONN_PRIVATE, &opt);
+
+    struct sio_http_conn *httpconn = opt.private;
+    struct sio_httpprot *httpprot = httpconn->httpprot;
+    struct sio_http_buffer *buf = &httpconn->buf;
+
+    int l = buf->end - buf->last;
+    l = l > len ? len : l;
+    memcpy(buf->last, data, l);
+    buf->last += l;
+
+    l = buf->last - buf->pos;
+    l = sio_httpprot_process(httpprot, buf->pos, l);
+
+    if (httpconn->complete == 1) {
+        buf->last = buf->pos = buf->buf; // reset
+        httpconn->complete = 0;
+    } else {
+        buf->pos += l;
+    }
     
-    httpmod->httpprot = httpprot;
+    return 0;
+}
 
-    *mod = httpmod;
+int sio_httpmod_streamclose(sio_conn_t conn)
+{
+    union sio_conn_opt opt = { 0 };
+    sio_conn_getopt(conn, SIO_CONN_PRIVATE, &opt);
+
+    struct sio_http_conn *httpconn = opt.private;
+
+    sio_httpmod_httpconn_destory(httpconn);
 
     return 0;
 }
 
-int sio_httpmod_streamin(void *mod, sio_conn_t conn, const char *data, int len)
-{
-    struct sio_httpprot *httpprot = ((struct sio_httpmod *)mod)->httpprot;
-    sio_httpprot_process(httpprot, data, len);
-    return 0;
-}
-
-int sio_httpmod_hookmod(void *mod, struct sio_mod_ins *ins)
+int sio_httpmod_hookmod(const char *modname, struct sio_mod *mode)
 {
     return 0;
 }
 
-int sio_httpmod_destory(void *mod)
+int sio_httpmod_destory(void)
 {
-    free(mod);
-
     return 0;
 }

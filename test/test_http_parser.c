@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "proto/sio_http.h"
+#include "proto/sio_httpprot.h"
 
 const char *g_body = "HTTP/1.1 200 OK\r\n"
          "Date: Tue, 04 Aug 2009 07:59:32 GMT\r\n"
@@ -35,19 +35,36 @@ const char *g_body2 = "charset=utf-8\r\nConnection: close\r\n"
          "    </SOAP-ENV:Fault>\n"
          "  </SOAP-ENV:Body>\n"
          "</SOAP-ENV:Envelope>";
+
+static char *g_resp =
+            "HTTP/1.1 200 OK\r\n"
+            "Connection: keep-alive\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 125\r\n\r\n"
+            "<html>";
+
+static char *g_resp2 = "<head><title>Hello</title></head>"
+            "<body>"
+            "<center><h1>Hello, Client</h1></center>"
+            "<hr><center>SOCKIO</center>"
+            "</body>"
+            "</html>";
          
 int main()
 {
-    struct sio_http *http = sio_http_create(SIO_HTTP_RESPONSE);
-    sio_http_append_data(http, g_body, strlen(g_body));
+    struct sio_httpprot *http = sio_httpprot_create(SIO_HTTP_RESPONSE);
+    int ret = sio_httpprot_process(http, g_resp, strlen(g_resp));
+    printf("g_resp len: %d, ret: %d\n", (int)strlen(g_resp), ret);
+    ret = sio_httpprot_process(http, g_resp2, strlen(g_resp2));
+    printf("g_resp2 len: %d, ret: %d\n", (int)strlen(g_resp2), ret);
 
     getc(stdin);
 
     printf("-----------------------\r\n\r\n");
-    struct sio_http *http2 = sio_http_create(SIO_HTTP_RESPONSE);
-    sio_http_append_data(http2, g_body1, strlen(g_body1));
+    struct sio_httpprot *http2 = sio_httpprot_create(SIO_HTTP_RESPONSE);
+    sio_httpprot_process(http2, g_body1, strlen(g_body1));
     getc(stdin);
-    sio_http_append_data(http2, g_body2, strlen(g_body2));
+    sio_httpprot_process(http2, g_body2, strlen(g_body2));
     getc(stdin);
 
     return 0;
