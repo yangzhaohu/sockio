@@ -154,6 +154,16 @@ int sio_httpmod_create(void)
     return 0;
 }
 
+int sio_httpmod_setlocat(const char **locations, int size)
+{
+    return 0;
+}
+
+int sio_httpmod_hookmod(const char *modname, struct sio_submod *mode)
+{
+    return 0;
+}
+
 int sio_httpmod_streamconn(sio_conn_t conn)
 {
     sio_httpmod_httpconn_create(conn);
@@ -196,11 +206,6 @@ int sio_httpmod_streamclose(sio_conn_t conn)
 
     sio_httpmod_httpconn_destory(httpconn);
 
-    return 0;
-}
-
-int sio_httpmod_hookmod(const char *modname, struct sio_submod *mode)
-{
     return 0;
 }
 

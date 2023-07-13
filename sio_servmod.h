@@ -31,9 +31,11 @@ int sio_servmod_setopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd,
 
 int sio_servmod_getopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd, union sio_servmod_opt *opt);
 
+int sio_servmod_setlocat(struct sio_servmod *servmod, const char **locations, int size);
+
 int sio_servmod_dowork(struct sio_servmod *servmod);
 
-int sio_servmod_inssubmod(struct sio_servmod *servmod, const char *modname, struct sio_submod *mod);
+int sio_servmod_insmod(struct sio_servmod *servmod, const char *modname, struct sio_submod *mod);
 
 int sio_servmod_destory(struct sio_servmod *servmod);
 

@@ -13,13 +13,15 @@ int sio_httpmod_version(const char **version);
 
 int sio_httpmod_create(void);
 
+int sio_httpmod_setlocat(const char **locations, int size);
+
+int sio_httpmod_hookmod(const char *modname, struct sio_submod *mod);
+
 int sio_httpmod_streamconn(sio_conn_t conn);
 
 int sio_httpmod_streamin(sio_conn_t conn, const char *data, int len);
 
 int sio_httpmod_streamclose(sio_conn_t conn);
-
-int sio_httpmod_hookmod(const char *modname, struct sio_submod *mod);
 
 int sio_httpmod_destory(void);
 

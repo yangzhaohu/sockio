@@ -28,6 +28,7 @@ struct sio_submod
     int (*mod_type)(void);
 
     int (*install)(void);
+    int (*getlocat)(const char **locations, int size);
     int (*mod_hook)(const char *modname, struct sio_submod *mod);
     int (*unstall)(void);
 

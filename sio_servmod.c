@@ -32,6 +32,7 @@ struct sio_mod g_global_mod[SIO_SUBMOD_BUTT] = {
             .stream_conn = sio_httpmod_streamconn,
             .stream_close = sio_httpmod_streamclose,
         },
+        .setlocat = sio_httpmod_setlocat,
         .stream_in = sio_httpmod_streamin
     }
  };
@@ -219,6 +220,20 @@ int sio_servmod_setopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd,
 int sio_servmod_getopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd, union sio_servmod_opt *opt)
 {
     return -1;
+}
+
+int sio_servmod_setlocat(struct sio_servmod *servmod, const char **locations, int size)
+{
+    SIO_COND_CHECK_RETURN_VAL(!servmod, -1);
+
+    struct sio_mod *mod = servmod->mod;
+
+    int ret = -1;
+    if (mod->setlocat) {
+        ret = mod->setlocat(locations, size);
+    }
+
+    return ret;
 }
 
 int sio_servmod_dowork(struct sio_servmod *servmod)
