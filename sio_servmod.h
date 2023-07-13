@@ -33,7 +33,7 @@ int sio_servmod_getopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd,
 
 int sio_servmod_dowork(struct sio_servmod *servmod);
 
-int sio_servmod_loadmod(struct sio_servmod *servmod, struct sio_mod *ops);
+int sio_servmod_inssubmod(struct sio_servmod *servmod, const char *modname, struct sio_submod *mod);
 
 int sio_servmod_destory(struct sio_servmod *servmod);
 

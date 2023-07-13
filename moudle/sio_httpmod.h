@@ -19,7 +19,7 @@ int sio_httpmod_streamin(sio_conn_t conn, const char *data, int len);
 
 int sio_httpmod_streamclose(sio_conn_t conn);
 
-int sio_httpmod_hookmod(const char *modname, struct sio_mod *mod);
+int sio_httpmod_hookmod(const char *modname, struct sio_submod *mod);
 
 int sio_httpmod_destory(void);
 

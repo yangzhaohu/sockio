@@ -15,6 +15,7 @@ enum sio_httpds_index
 {
     SIO_HTTPDS_URL,
     SIO_HTTPDS_KEEPALIVE,
+    SIO_HTTPDS_PACKET,
     SIO_HTTPDS_BUTT
 };
 
@@ -142,6 +143,8 @@ struct sio_http_conn *sio_httpmod_httpconn_create(sio_conn_t conn)
 static inline
 void sio_httpmod_httpconn_destory(struct sio_http_conn *httpconn)
 {
+    sio_httpprot_destory(httpconn->httpprot);
+    
     free(httpconn->buf.buf);
     free(httpconn);
 }
@@ -196,7 +199,7 @@ int sio_httpmod_streamclose(sio_conn_t conn)
     return 0;
 }
 
-int sio_httpmod_hookmod(const char *modname, struct sio_mod *mode)
+int sio_httpmod_hookmod(const char *modname, struct sio_submod *mode)
 {
     return 0;
 }

@@ -21,24 +21,20 @@ union sio_conn_opt
     void *private;
 };
 
-struct sio_mod
+struct sio_submod
 {
     int (*mod_name)(const char **name);
     int (*mod_version)(const char **version);
     int (*mod_type)(void);
 
     int (*install)(void);
-    int (*mod_hook)(const char *modname, struct sio_mod *mod);
+    int (*mod_hook)(const char *modname, struct sio_submod *mod);
     int (*unstall)(void);
 
     int (*stream_conn)(sio_conn_t conn);
-    int (*stream_in)(sio_conn_t conn, const char *data, int len);
     int (*stream_close)(sio_conn_t conn);
-};
 
-struct sio_mod_ops
-{
-    int a;
+    int (*stream_seg)(sio_conn_t conn, int type, const char *data, int len);
 };
 
 #ifdef __cplusplus

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "sio_server.h"
 #include "sio_common.h"
+#include "sio_mod.h"
 #include "moudle/sio_httpmod.h"
 #include "sio_log.h"
 
@@ -21,20 +22,22 @@ struct sio_servmod
 
 struct sio_mod g_global_mod[SIO_SUBMOD_BUTT] = {
     [SIO_SUBMOD_HTTP] = {
-        .mod_name = sio_httpmod_name,
-        .mod_version = sio_httpmod_version,
-        .mod_type = sio_httpmod_type,
-        .install = sio_httpmod_create,
-        .mod_hook = sio_httpmod_hookmod,
-        .unstall = sio_httpmod_destory,
-        .stream_conn = sio_httpmod_streamconn,
-        .stream_in = sio_httpmod_streamin,
-        .stream_close = sio_httpmod_streamclose
+        .submod = {
+            .mod_name = sio_httpmod_name,
+            .mod_version = sio_httpmod_version,
+            .mod_type = sio_httpmod_type,
+            .install = sio_httpmod_create,
+            .mod_hook = sio_httpmod_hookmod,
+            .unstall = sio_httpmod_destory,
+            .stream_conn = sio_httpmod_streamconn,
+            .stream_close = sio_httpmod_streamclose,
+        },
+        .stream_in = sio_httpmod_streamin
     }
  };
 
- #define SIO_CONN_SOCK_MEMPTR(mem) ((void *)mem +  sizeof(struct sio_conn))
- #define SIO_SOCK_CONN_MEMPTR(mem) ((void *)mem -  sizeof(struct sio_conn))
+ #define SIO_CONN_SOCK_MEMPTR(mem) ((void *)mem + sizeof(struct sio_conn))
+ #define SIO_SOCK_CONN_MEMPTR(mem) ((void *)mem - sizeof(struct sio_conn))
 
 static inline
 int sio_socket_readable(struct sio_socket *sock)
@@ -45,6 +48,7 @@ int sio_socket_readable(struct sio_socket *sock)
     struct sio_servmod *servmod = opt.private;
 
     struct sio_mod *mod = servmod->mod;
+
     char data[512] = { 0 };
     int len = sio_socket_read(sock, data, 512);
     if (len > 0 && mod->stream_in) {
@@ -69,10 +73,12 @@ int sio_socket_closeable(struct sio_socket *sock)
 
     struct sio_servmod *servmod = opt.private;
     struct sio_mod *mod = servmod->mod;
+    struct sio_submod *submod = &mod->submod;
+
     sio_conn_t conn = SIO_SOCK_CONN_MEMPTR(sock);
 
-    if (mod->stream_close) {
-        mod->stream_close(conn);
+    if (submod->stream_close) {
+        submod->stream_close(conn);
     }
     
     sio_socket_close(sock);
@@ -109,6 +115,7 @@ int sio_servmod_newconn(struct sio_server *serv)
 
     struct sio_servmod *servmod = opts.private;
     struct sio_mod *mod = servmod->mod;
+    struct sio_submod *submod = &mod->submod;
 
     union sio_socket_opt opt = {
         .private = servmod
@@ -116,9 +123,9 @@ int sio_servmod_newconn(struct sio_server *serv)
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     int ret = sio_server_accept(serv, sock);
-    if (ret == 0 && mod && mod->stream_conn) {
+    if (ret == 0 && submod->stream_conn) {
         sio_conn_t conn = SIO_SOCK_CONN_MEMPTR(sock);
-        mod->stream_conn(conn);
+        submod->stream_conn(conn);
     }
 
     sio_server_socket_mplex(serv, sock);
@@ -160,10 +167,17 @@ struct sio_servmod *sio_servmod_create(enum sio_submod_type type)
 
     // module init
     servmod->mod = &g_global_mod[type];
-    int ret = servmod->mod->install();
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, NULL,
-        sio_server_destory(serv),
-        free(servmod));
+    struct sio_submod *submod = &servmod->mod->submod;
+    if (submod->install) {
+        int ret = submod->install();
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, NULL,
+            sio_server_destory(serv),
+            free(servmod));
+    } else {
+        sio_server_destory(serv);
+        free(servmod);
+        servmod = NULL;
+    }
     
     return servmod;
 }
@@ -225,7 +239,7 @@ int sio_servmod_dowork(struct sio_servmod *servmod)
     return ret;
 }
 
-int sio_servmod_loadmod(struct sio_servmod *servmod, struct sio_mod *ops)
+int sio_servmod_insmod(struct sio_servmod *servmod, const char *modname, struct sio_submod *mod)
 {
     return 0;
 }
@@ -238,7 +252,10 @@ int sio_servmod_destory(struct sio_servmod *servmod)
     sio_server_destory(serv);
 
     struct sio_mod *mod = servmod->mod;
-    mod->unstall();
+    struct sio_submod *submod = &mod->submod;
+    if (submod->unstall) {
+        submod->unstall();
+    }
 
     return 0;
 }

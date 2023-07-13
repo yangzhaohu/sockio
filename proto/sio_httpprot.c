@@ -5,51 +5,6 @@
 #include "http_parser/http_parser.h"
 #include "sio_log.h"
 
-typedef struct
-{
-    int len;
-    const char *data;
-}sio_str_t;
-
-struct sio_header_buffer
-{
-    char *buf;
-    char *cur;
-    unsigned int length;
-};
-
-struct sio_body_buffer
-{
-    char *buf;
-    char *cur;
-    unsigned int length;
-};
-
-struct sio_http_headers
-{
-    sio_str_t status;
-    sio_str_t uri;
-};
-
-struct sio_http_body
-{
-    sio_str_t data;
-};
-
-struct sio_http_stat
-{
-    unsigned int methond;
-    unsigned int keepalive;
-};
-
-struct sio_http_conn
-{
-    struct sio_http_headers header;
-    struct sio_http_body body;
-
-    struct sio_http_stat stat;
-};
-
 struct sio_httpprot_owner
 {
     void *private;
@@ -60,9 +15,6 @@ struct sio_httpprot
 {
     http_parser parser;
     struct sio_httpprot_owner owner;
-    struct sio_http_conn conn;
-    struct sio_header_buffer headbuf;
-    struct sio_body_buffer bodybuf;
 };
 
 #define sio_httpprot_callcb(type, at, len) \
@@ -178,29 +130,6 @@ struct sio_httpprot *sio_httpprot_create(enum sio_httpprot_type type)
         hp_type = HTTP_RESPONSE;
     }
     http_parser_init(&httpprot->parser, hp_type);
-
-#define SIO_HTTP_HEAD_BUFFER_SIZE 4096 * 4
-    char *head_buf = malloc(SIO_HTTP_HEAD_BUFFER_SIZE);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!head_buf, NULL,
-        free(httpprot));
-
-    memset(head_buf, 0, SIO_HTTP_HEAD_BUFFER_SIZE);
-
-    httpprot->headbuf.buf = head_buf;
-    httpprot->headbuf.cur = head_buf;
-    httpprot->headbuf.length = SIO_HTTP_HEAD_BUFFER_SIZE;
-
-#define SIO_HTTP_BODY_BUFFER_SIZE 4096 * 4
-    char *body_buf = malloc(SIO_HTTP_BODY_BUFFER_SIZE);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!body_buf, NULL,
-        free(head_buf),
-        free(httpprot));
-
-    memset(body_buf, 0, SIO_HTTP_BODY_BUFFER_SIZE);
-
-    httpprot->bodybuf.buf = body_buf;
-    httpprot->bodybuf.cur = body_buf;
-    httpprot->bodybuf.length = SIO_HTTP_BODY_BUFFER_SIZE;
 
     return httpprot;
 }
