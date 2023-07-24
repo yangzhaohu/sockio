@@ -92,7 +92,7 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr);
 int sio_socket_read(struct sio_socket *sock, char *buf, int maxlen);
 int sio_socket_async_read(struct sio_socket *sock, char *buf, int maxlen);
 
-int sio_socket_write(struct sio_socket *sock, char *buf, int len);
+int sio_socket_write(struct sio_socket *sock, const char *buf, int len);
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len);
 
 int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);

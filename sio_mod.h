@@ -7,7 +7,7 @@ struct sio_mod
 {
     struct sio_submod submod;
     
-    int (*setlocat)(const char **locations, int size);
+    int (*setlocat)(const struct sio_locate *locations, int size);
     int (*stream_in)(sio_conn_t conn, const char *data, int len);
 };
 

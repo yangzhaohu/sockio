@@ -7,7 +7,7 @@ $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS :=
 INCLUDES := -I3dparty -I.
-LIBS := 
+LIBS := -ldl
 
 SRCS := sio_mplex.c \
 		sio_select.c \
@@ -29,9 +29,11 @@ SRCS := sio_mplex.c \
 		sio_taskfifo.c \
 		sio_elepool.c \
 		sio_servmod.c \
-		moudle/sio_httpmod.c \
+		moudle/http/sio_httpmod.c \
+		moudle/http/sio_httpmod_html.c \
 		proto/sio_httpprot.c \
-		3dparty/http_parser/http_parser.c
+		3dparty/http_parser/http_parser.c \
+		utils/sio_dlopen.c
 
 .PHONY: incre all clean help
 

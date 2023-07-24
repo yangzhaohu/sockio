@@ -4,7 +4,7 @@
 #include "sio_server.h"
 #include "sio_common.h"
 #include "sio_mod.h"
-#include "moudle/sio_httpmod.h"
+#include "moudle/http/sio_httpmod.h"
 #include "sio_log.h"
 
 struct sio_conn
@@ -222,7 +222,7 @@ int sio_servmod_getopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd,
     return -1;
 }
 
-int sio_servmod_setlocat(struct sio_servmod *servmod, const char **locations, int size)
+int sio_servmod_setlocat(struct sio_servmod *servmod, const struct sio_locate *locations, int size)
 {
     SIO_COND_CHECK_RETURN_VAL(!servmod, -1);
 
@@ -307,7 +307,7 @@ int sio_conn_getopt(sio_conn_t conn, enum sio_conn_optcmd cmd, union sio_conn_op
     return ret;
 }
 
-int sio_conn_write(sio_conn_t conn, char *buf, int len)
+int sio_conn_write(sio_conn_t conn, const char *buf, int len)
 {
     struct sio_socket *sock = SIO_CONN_SOCK_MEMPTR(conn);
     return sio_socket_write(sock, buf, len);
@@ -316,5 +316,5 @@ int sio_conn_write(sio_conn_t conn, char *buf, int len)
 int sio_conn_close(sio_conn_t conn)
 {
     struct sio_socket *sock = SIO_CONN_SOCK_MEMPTR(conn);
-    return sio_socket_close(sock);
+    return sio_socket_shutdown(sock, SIO_SOCK_SHUTWR);
 }

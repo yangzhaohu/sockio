@@ -188,7 +188,7 @@ __thread int tls_sock_readerr = 0;
     if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {                     \
         if (event->events & SIO_EVENTS_HUP) {                                   \
             sio_sock_mplex_event_del(sock);                                     \
-            sio_socket_ops_call_break(ops->closeable, sock);                    \
+            sio_socket_ops_call(ops->closeable, sock);                          \
             continue;                                                           \
         }                                                                       \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET) {                               \
@@ -544,6 +544,7 @@ int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock)
     attr->mean = SIO_SOCK_MEAN_SOCKET;
 
     newsock->fd = sio_socket_accept_pend_fd();
+
     sio_socket_accept_pend_fd_clear();
 
     return 0;
@@ -628,7 +629,7 @@ int sio_socket_async_read(struct sio_socket *sock, char *buf, int maxlen)
     return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
-int sio_socket_write(struct sio_socket *sock, char *buf, int len)
+int sio_socket_write(struct sio_socket *sock, const char *buf, int len)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);

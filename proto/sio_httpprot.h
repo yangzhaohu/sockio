@@ -1,6 +1,8 @@
 #ifndef SIO_HTTPPROT_H_
 #define SIO_HTTPPROT_H_
 
+#include "sio_def.h"
+
 struct sio_httpprot;
 
 enum sio_httpprot_type
@@ -9,18 +11,20 @@ enum sio_httpprot_type
     SIO_HTTP_RESPONSE
 };
 
-enum sio_httpprot_valtype
+enum sio_httpprot_stat
 {
-    SIO_HTTPPROTO_VALTYPE_BEGIN,
-    SIO_HTTPPROTO_VALTYPE_URL,
-    SIO_HTTPPROTO_VALTYPE_STATUS,
-    SIO_HTTPPROTO_VALTYPE_HEADFIELD,
-    SIO_HTTPPROTO_VALTYPE_HEADVALUE,
-    SIO_HTTPPROTO_VALTYPE_HEADCOMPLETE,
-    SIO_HTTPPROTO_VALTYPE_CHUNKHEAD,
-    SIO_HTTPPROTO_VALTYPE_CHUNKCOMPLETE,
-    SIO_HTTPPROTO_VALTYPE_BODY,
-    SIO_HTTPPROTO_VALTYPE_COMPLETE,
+    SIO_HTTPPROTO_STAT_BEGIN,
+    SIO_HTTPPROTO_STAT_HEADCOMPLETE,
+    SIO_HTTPPROTO_STAT_CHUNKCOMPLETE,
+    SIO_HTTPPROTO_STAT_COMPLETE
+};
+
+enum sio_httpprot_data
+{
+    SIO_HTTPPROTO_DATA_URL,
+    SIO_HTTPPROTO_DATA_STATUS,
+    SIO_HTTPPROTO_DATA_CHUNKHEAD,
+    SIO_HTTPPROTO_DATA_BODY
 };
 
 enum sio_httpprot_optcmd
@@ -31,7 +35,10 @@ enum sio_httpprot_optcmd
 
 struct sio_httpprot_ops
 {
-    int (*prot_data)(void *handler, enum sio_httpprot_valtype type, const char *data, int len);
+    int (*prot_stat)(void *handler, enum sio_httpprot_stat type);
+    int (*prot_field)(void *handler, const sio_str_t *field, const sio_str_t *val);
+    int (*prot_data)(void *handler, enum sio_httpprot_data type,
+                const sio_str_t *data);
 };
 
 union sio_httpprot_opt

@@ -31,4 +31,7 @@ void sio_list_del(sio_list_node *node)
     node->prev->next = node->next;
 }
 
+#define sio_list_foreach(pos, head) \
+	for (pos = (head)->next; pos != (head); pos = pos->next)
+
 #endif

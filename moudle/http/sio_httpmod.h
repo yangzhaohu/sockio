@@ -13,7 +13,7 @@ int sio_httpmod_version(const char **version);
 
 int sio_httpmod_create(void);
 
-int sio_httpmod_setlocat(const char **locations, int size);
+int sio_httpmod_setlocat(const struct sio_locate *locations, int size);
 
 int sio_httpmod_hookmod(const char *modname, struct sio_submod *mod);
 

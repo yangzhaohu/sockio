@@ -9,4 +9,10 @@ typedef SOCKET sio_socket_t;
 typedef int sio_socket_t;
 #endif
 
+typedef struct
+{
+    const char *data;
+    int length;
+}sio_str_t;
+
 #endif

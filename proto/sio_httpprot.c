@@ -1,6 +1,7 @@
 #include "sio_httpprot.h"
 #include <stdlib.h>
 #include <string.h>
+#include "sio_def.h"
 #include "sio_common.h"
 #include "http_parser/http_parser.h"
 #include "sio_log.h"
@@ -14,15 +15,16 @@ struct sio_httpprot_owner
 struct sio_httpprot
 {
     http_parser parser;
+    sio_str_t field;
     struct sio_httpprot_owner owner;
 };
 
-#define sio_httpprot_callcb(type, at, len) \
+#define sio_httpprot_callcb(func, type, ...) \
     do { \
         struct sio_httpprot *httpprot = (struct sio_httpprot *)parser; \
         struct sio_httpprot_owner *owner = &httpprot->owner; \
-        if (owner->ops.prot_data != NULL) { \
-            int ret = owner->ops.prot_data(owner->private, type, at, len); \
+        if (owner->ops.func != NULL) { \
+            int ret = owner->ops.func(owner->private, type, ##__VA_ARGS__); \
             if (ret == -1) { \
                 http_parser_pause(parser, 1); \
             } \
@@ -33,75 +35,91 @@ struct sio_httpprot
 static inline
 int http_packet_begin(http_parser *parser)
 {
-    static char data[1] = { 0 };
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_BEGIN, data, 0);
+    sio_httpprot_callcb(prot_stat, SIO_HTTPPROTO_STAT_BEGIN);
+
     return 0;
 }
 
 static inline
 int http_packet_complete(http_parser *parser)
 {
-    static char data[1] = { 0 };
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_COMPLETE, data, 0);
+    sio_httpprot_callcb(prot_stat, SIO_HTTPPROTO_STAT_COMPLETE);
+
     return 0;
 }
 
 static inline
 int http_packet_url(http_parser *parser, const char *at, size_t len)
 {
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_URL, at, len);
+    sio_str_t url = {at, len};
+    sio_httpprot_callcb(prot_data, SIO_HTTPPROTO_DATA_URL, &url);
+
     return 0;
 }
 
 static inline
 int http_packet_status(http_parser *parser, const char *at, size_t len)
 {
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_STATUS, at, len);
+    sio_str_t status = {at, len};
+    sio_httpprot_callcb(prot_data, SIO_HTTPPROTO_DATA_STATUS, &status);
+
     return 0;
 }
 
 static inline
 int http_packet_head_field(http_parser *parser, const char *at, size_t len)
 {
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_HEADFIELD, at, len);
+    struct sio_httpprot *httpprot = (struct sio_httpprot *)parser;
+    sio_str_t *field = &httpprot->field;
+    field->data = at;
+    field->length = len;
+
     return 0;
 }
 
 static inline
 int http_packet_head_field_value(http_parser *parser, const char *at, size_t len)
 {
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_HEADVALUE, at, len);
+    sio_str_t val = {at, len};
+    struct sio_httpprot *httpprot = (struct sio_httpprot *)parser;
+    sio_str_t *field = &httpprot->field;
+
+    sio_httpprot_callcb(prot_field, field, &val);
+
     return 0;
 }
 
 static inline
 int http_packet_header_complete(http_parser *parser)
 {
-    static char data[1] = { 0 };
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_HEADCOMPLETE, data, 0);
+    sio_httpprot_callcb(prot_stat, SIO_HTTPPROTO_STAT_HEADCOMPLETE);
+
     return 0;
 }
 
 static inline
 int http_packet_chunk_header(http_parser *parser)
 {
-    static char data[1] = { 0 };
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_CHUNKHEAD, data, 0);
+    static sio_str_t none = { 0 };
+    sio_httpprot_callcb(prot_data, SIO_HTTPPROTO_DATA_CHUNKHEAD, &none);
+
     return 0;
 }
 
 static inline
 int http_packet_chunk_complete(http_parser *parser)
 {
-    static char data[1] = { 0 };
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_CHUNKCOMPLETE, data, 0);
+    sio_httpprot_callcb(prot_stat, SIO_HTTPPROTO_STAT_CHUNKCOMPLETE);
+
     return 0;
 }
 
 static inline
 int http_packet_body(http_parser *parser, const char *at, size_t len)
 {
-    sio_httpprot_callcb(SIO_HTTPPROTO_VALTYPE_BODY, at, len);
+    sio_str_t body = {at, len};
+
+    sio_httpprot_callcb(prot_data, SIO_HTTPPROTO_DATA_BODY, &body);
     return 0;
 }
 
