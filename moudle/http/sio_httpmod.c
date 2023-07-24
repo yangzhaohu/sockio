@@ -114,23 +114,6 @@ int sio_httpmod_conn_keep(struct sio_http_conn *httpconn)
 
 int sio_httpmod_protostat(void *handler, enum sio_httpprot_stat type)
 {
-    struct sio_http_conn *httpconn = handler;
-    struct sio_httpds *ds = httpconn->ds;
-
-    if (type == SIO_HTTPPROTO_STAT_COMPLETE) {
-        httpconn->complete = 1;
-        const char *url = ds[SIO_HTTPDS_URL].dsstr.data;
-        if (strncmp(url, "/", strlen("/")) == 0) {
-            char name[512] = { 0 };
-            sprintf(name, "%sindex.html", sio_httpenv_get_field(root));
-            char head[4096] = { 0 };
-            sio_httpmod_html_response(httpconn->conn, head, 4096, name);
-            if (sio_httpmod_conn_keep(httpconn) != 0) {
-                sio_conn_close(httpconn->conn);
-            }
-        }
-    }
-
     return 0;
 }
 
@@ -173,6 +156,27 @@ int sio_httpmod_protodata(void *handler, enum sio_httpprot_data type, const sio_
 }
 
 static inline
+int sio_httpmod_protoover(void *handler)
+{
+    struct sio_http_conn *httpconn = handler;
+    struct sio_httpds *ds = httpconn->ds;
+
+    httpconn->complete = 1;
+    const char *url = ds[SIO_HTTPDS_URL].dsstr.data;
+    if (strncmp(url, "/", strlen("/")) == 0) {
+        char name[512] = { 0 };
+        sprintf(name, "%sindex.html", sio_httpenv_get_field(root));
+        char head[4096] = { 0 };
+        sio_httpmod_html_response(httpconn->conn, head, 4096, name);
+        if (sio_httpmod_conn_keep(httpconn) != 0) {
+            sio_conn_close(httpconn->conn);
+        }
+    }
+
+    return 0;
+}
+
+static inline
 struct sio_http_conn *sio_httpmod_httpconn_create(sio_conn_t conn)
 {
     struct sio_http_conn *httpconn = malloc(sizeof(struct sio_http_conn));
@@ -204,6 +208,7 @@ struct sio_http_conn *sio_httpmod_httpconn_create(sio_conn_t conn)
     hopt.ops.prot_stat = sio_httpmod_protostat;
     hopt.ops.prot_field = sio_httpmod_protofield;
     hopt.ops.prot_data = sio_httpmod_protodata;
+    hopt.ops.prot_over = sio_httpmod_protoover;
     sio_httpprot_setopt(httpprot, SIO_HTTPPROT_OPS, &hopt);
     httpconn->httpprot = httpprot;
 

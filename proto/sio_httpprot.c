@@ -19,12 +19,12 @@ struct sio_httpprot
     struct sio_httpprot_owner owner;
 };
 
-#define sio_httpprot_callcb(func, type, ...) \
+#define sio_httpprot_callcb(func, ...) \
     do { \
         struct sio_httpprot *httpprot = (struct sio_httpprot *)parser; \
         struct sio_httpprot_owner *owner = &httpprot->owner; \
         if (owner->ops.func != NULL) { \
-            int ret = owner->ops.func(owner->private, type, ##__VA_ARGS__); \
+            int ret = owner->ops.func(owner->private, ##__VA_ARGS__); \
             if (ret == -1) { \
                 http_parser_pause(parser, 1); \
             } \
@@ -43,7 +43,7 @@ int http_packet_begin(http_parser *parser)
 static inline
 int http_packet_complete(http_parser *parser)
 {
-    sio_httpprot_callcb(prot_stat, SIO_HTTPPROTO_STAT_COMPLETE);
+    sio_httpprot_callcb(prot_over);
 
     return 0;
 }

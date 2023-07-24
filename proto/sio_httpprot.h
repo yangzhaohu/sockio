@@ -37,8 +37,8 @@ struct sio_httpprot_ops
 {
     int (*prot_stat)(void *handler, enum sio_httpprot_stat type);
     int (*prot_field)(void *handler, const sio_str_t *field, const sio_str_t *val);
-    int (*prot_data)(void *handler, enum sio_httpprot_data type,
-                const sio_str_t *data);
+    int (*prot_data)(void *handler, enum sio_httpprot_data type, const sio_str_t *data);
+    int (*prot_over)(void *handler);
 };
 
 union sio_httpprot_opt
