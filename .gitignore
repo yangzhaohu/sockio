@@ -364,3 +364,5 @@ ASALocalRun/
 out/
 target/
 root/
+3dparty/
+depend/

@@ -1,13 +1,20 @@
 #include "sio_httpmod.h"
 #include <string.h>
 #include <stdlib.h>
-#include <regex.h>
 #include "sio_common.h"
 #include "sio_def.h"
 #include "sio_list.h"
+#include "moudle/sio_locate.h"
+#include "moudle/sio_locatmod.h"
 #include "proto/sio_httpprot.h"
 #include "sio_httpmod_html.h"
 #include "sio_log.h"
+
+struct sio_http_env
+{
+    struct sio_locate *locate;
+    struct sio_locatmod *locatmod;
+};
 
 enum sio_httpds_index
 {
@@ -34,36 +41,13 @@ struct sio_http_buffer
 struct sio_http_conn
 {
     sio_conn_t conn;
+    int matchpos;
+    struct sio_location location;
     struct sio_http_buffer buf;
     struct sio_httpprot *httpprot;
     struct sio_httpds ds[SIO_HTTPDS_BUTT];
 
     unsigned int complete:1; // packet complete
-};
-
-struct sio_http_realloca
-{
-    struct sio_list_head entry;
-    struct sio_locate loca;
-    union {
-        struct sio_submod *submod;
-        struct sio_locate *loca;
-    } route;
-};
-
-struct sio_http_submod
-{
-    struct sio_list_head entry;
-    struct sio_submod *submod;
-};
-
-struct sio_http_env
-{
-    char root[256];
-    char index[256];
-
-    struct sio_list_head locahead;
-    struct sio_list_head submodhead;
 };
 
 static struct sio_http_env g_httpenv = { 0 };
@@ -150,9 +134,29 @@ int sio_httpmod_protodata(void *handler, enum sio_httpprot_data type, const sio_
         }
         ds[SIO_HTTPDS_URL].dsstr.data = data->data;
         ds[SIO_HTTPDS_URL].dsstr.length = len;
+
+        struct sio_locate *locate = sio_httpenv_get_field(locate);
+        struct sio_location location = { 0 };
+        int matchpos = sio_locate_match(locate, data->data, len, &location);
+        if (matchpos != -1) {
+            httpconn->location = location;
+            httpconn->matchpos = matchpos;
+        }
     }
 
     return len;
+}
+
+static inline
+int sio_httpmod_find_base_url_pos(const char *url, int len)
+{
+    for (len--; len > 0; len--) {
+        if (url[len] == '/') {
+            break;
+        }
+    }
+
+    return len + 1;
 }
 
 static inline
@@ -163,9 +167,14 @@ int sio_httpmod_protoover(void *handler)
 
     httpconn->complete = 1;
     const char *url = ds[SIO_HTTPDS_URL].dsstr.data;
-    if (strncmp(url, "/", strlen("/")) == 0) {
+    int len = ds[SIO_HTTPDS_URL].dsstr.length;
+
+    struct sio_location *location = &httpconn->location;
+    if (location->type == SIO_LOCATE_HTTP_DIRECT) {
         char name[512] = { 0 };
-        sprintf(name, "%sindex.html", sio_httpenv_get_field(root));
+        int baseurl = sio_httpmod_find_base_url_pos(url, httpconn->matchpos);
+        sprintf(name, "%s%.*s", location->route, len - baseurl, url + baseurl);
+        printf("name: %s\n", name);
         char head[4096] = { 0 };
         sio_httpmod_html_response(httpconn->conn, head, 4096, name);
         if (sio_httpmod_conn_keep(httpconn) != 0) {
@@ -229,64 +238,19 @@ void sio_httpmod_httpconn_destory(struct sio_http_conn *httpconn)
     free(httpconn);
 }
 
-static inline
-struct sio_submod *sio_httpmod_find_submod(const char *name)
-{
-    struct sio_http_submod *submod = NULL;
-    struct sio_list_head *pos;
-    sio_list_foreach(pos, &sio_httpenv_get_field(submodhead)) {
-        submod = (struct sio_http_submod *)pos;
-        if (submod->submod->mod_name) {
-            const char *modname = NULL;
-            submod->submod->mod_name(&name);
-            int ret = strcmp(modname, name);
-            if (ret == 0) {
-                break;
-            }
-        }
-    }
-
-    if (submod) {
-        return submod->submod;
-    }
-
-    return NULL;
-}
-
 int sio_httpmod_create(void)
 {
-    sio_list_init(&sio_httpenv_get_field(locahead));
-    sio_list_init(&sio_httpenv_get_field(submodhead));
+    sio_httpenv_get_field(locate) = sio_locate_create();
+    sio_httpenv_get_field(locatmod) = sio_locatmod_create();
 
     return 0;
 }
 
-int sio_httpmod_setlocat(const struct sio_locate *locations, int size)
+int sio_httpmod_setlocat(const struct sio_location *locations, int size)
 {
+    struct sio_locate *locate = sio_httpenv_get_field(locate);
     for (int i = 0; i < size; i++) {
-        const struct sio_locate *loca = &locations[i];
-        struct sio_submod *submod = NULL;
-        int len = strlen(loca->route);
-        len = len >= 256 ? 255 : len;
-        if (loca->type == SIO_HTTP_LOCA_ROOT) {
-            memcpy(sio_httpenv_get_field(root), loca->route, len);
-        } else if (loca->type == SIO_HTTP_LOCA_INDEX) {
-            memcpy(sio_httpenv_get_field(index), loca->route, len);
-        } else if (loca->type == SIO_HTTP_LOCA_MOD) {
-            submod = sio_httpmod_find_submod(loca->route);
-            if (submod == NULL) {
-                SIO_LOGE("not found moudle: %s\n", loca->route);
-                continue;
-            }
-        }
-
-        struct sio_http_realloca *realloca = malloc(sizeof(struct sio_http_realloca));
-        memset(realloca, 0, sizeof(struct sio_http_realloca));
-        memcpy(&realloca->loca, loca, sizeof(struct sio_locate));
-        if (loca->type == SIO_HTTP_LOCA_MOD) {
-            realloca->route.submod = submod;
-        }
-        sio_list_add(&realloca->entry, &sio_httpenv_get_field(locahead));
+        sio_locate_add(locate, &locations[i]);
     }
 
     return 0;
@@ -344,5 +308,11 @@ int sio_httpmod_streamclose(sio_conn_t conn)
 
 int sio_httpmod_destory(void)
 {
+    struct sio_locate *locate = sio_httpenv_get_field(locate);
+    sio_locate_destory(locate);
+
+    struct sio_locatmod *locatmod = sio_httpenv_get_field(locatmod);
+    sio_locatmod_destory(locatmod);
+
     return 0;
 }

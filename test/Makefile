@@ -8,10 +8,11 @@ OBJ_OUTPUT := ../out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS := -fPIE
-INCLUDES := -I../
-LIBS := -L../target -lsockio
+INCLUDES := -I../ -I../depend/include
+LIBS := -L../target -lsockio  -ldl -lpcre2-8 -lpcre2-posix
 
-SRCS := test_http_parser.c
+SRCS := test_http_parser.c \
+	pcre2demo.c
 
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)

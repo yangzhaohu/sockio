@@ -5,32 +5,45 @@ int main()
 {
     struct sio_servmod *servmod = sio_servmod_create(SIO_SUBMOD_HTTP);
 
-    struct sio_locate locat[] = {
+    struct sio_location locat[] = {
         {
-            .type = SIO_HTTP_LOCA_ROOT,
-            .loname = "rootpath",
-            .route = "/workspaces/sockio/root/"
-        },
-        {
-            .type = SIO_HTTP_LOCA_INDEX,
-            .loname = "homepage",
-            .regex = "/",
-            .route = "index.html"
-        },
-        {
-            .type = SIO_HTTP_LOCA_MOD,
+            .type = SIO_LOCATE_HTTP_MOUDLE,
             .loname = "httpmod1",
-            .regex = "/testmod",
+            .regex = "^/custom",
             .route = "http_custom_mod1"
         },
         {
-            .type = SIO_HTTP_LOCA_VAL,
+            .type = SIO_LOCATE_HTTP_DIRECT,
             .loname = "urlloca1",
-            .regex = "/html",
-            .route = "/workspaces/sockio/root/html/"
+            .regex = "^/$",
+            .route = "/workspaces/sockio/root/"
+        },
+        {
+            .type = SIO_LOCATE_HTTP_DIRECT,
+            .loname = "urlloca2",
+            .regex = "^/html$",
+            .route = "/workspaces/sockio/root/"
+        },
+        {
+            .type = SIO_LOCATE_HTTP_DIRECT,
+            .loname = "urlloca3",
+            .regex = "^/html/.*\\.html$",
+            .route = "/workspaces/sockio/root/"
+        },
+        {
+            .type = SIO_LOCATE_HTTP_LOCATE,
+            .loname = "urlloca4",
+            .regex = "^/locate_route$",
+            .route = "urlloca3"
+        },
+        {
+            .type = SIO_LOCATE_HTTP_DIRECT,
+            .loname = "urlloca5",
+            .regex = "^.*/prefix/",
+            .route = "/workspaces/sockio/root/"
         }
     };
-    sio_servmod_setlocat(servmod, locat, sizeof(locat) / sizeof(struct sio_locate));
+    sio_servmod_setlocat(servmod, locat, sizeof(locat) / sizeof(struct sio_location));
 
     union sio_servmod_opt opt = {
         .addr = {"127.0.0.1", 8000}
@@ -40,6 +53,8 @@ int main()
     sio_servmod_dowork(servmod);
 
     getc(stdin);
+
+    sio_servmod_destory(servmod);
 
     return 0;
 }

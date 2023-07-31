@@ -8,8 +8,11 @@ OBJ_OUTPUT := ../out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS := -fPIE
-INCLUDES := -I../
-LIBS := -L../target -lsockio
+INCLUDES := -I../ -I../include
+LIBS := -L../target -lsockio -Wl,-rpath=. -Wl,-rpath-link=../depend/lib
+
+#CFLAGS += $(FLAGS)
+#CXXFLAGS += $(FLAGS)
 
 SRCS := sample_server.c \
 		sample_servflow.c \
@@ -33,7 +36,8 @@ TARGET_LIST := $(patsubst %.cpp, %, $(TARGET_LIST))
 
 all: $(OBJS) $(TARGET_LIST)
 $(TARGET_LIST):
-	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath=./ -o $(TARGET_OUT)$@
+	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -o $(TARGET_OUT)$@
 
 clean:
-	rm -rf $(OBJ_OUTPUT)*.o $(OBJ_OUTPUT)*.d $(OBJ_OUTPUT)*.d.tmp $(TARGET_OUT)/$(TARGET) $(TARGET_OUT)/$(TARGET).*
+	rm -f $(OBJS)
+	cd $(TARGET_OUT) && rm -f $(TARGET_LIST)

@@ -6,8 +6,8 @@ OBJ_OUTPUT := out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS :=
-INCLUDES := -I3dparty -I.
-LIBS := -ldl
+INCLUDES := -I. -Iinclude -Idepend/include -I3dparty
+LIBS := -Ldepend/lib -ldl -lhttp_parser -lpcre2-8 -lpcre2-posix
 
 SRCS := sio_mplex.c \
 		sio_select.c \
@@ -31,15 +31,16 @@ SRCS := sio_mplex.c \
 		sio_servmod.c \
 		moudle/http/sio_httpmod.c \
 		moudle/http/sio_httpmod_html.c \
+		moudle/locate/sio_locate.c \
+		moudle/locate/sio_locatmod.c \
 		proto/sio_httpprot.c \
-		3dparty/http_parser/http_parser.c \
 		utils/sio_dlopen.c
 
 .PHONY: incre all clean help
 
 ifdef compiler
 ifeq ($(compiler), gcc)
-FLAGS += -fPIC -shared -Wl,-z,defs -g -DLINUX
+FLAGS += -fPIC -shared -DLINUX -g -Wl,-z,defs -Wl,-rpath=.
 else
 FLAGS += /DWIN32
 endif

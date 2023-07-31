@@ -222,7 +222,7 @@ int sio_servmod_getopt(struct sio_servmod *servmod, enum sio_servmod_optcmd cmd,
     return -1;
 }
 
-int sio_servmod_setlocat(struct sio_servmod *servmod, const struct sio_locate *locations, int size)
+int sio_servmod_setlocat(struct sio_servmod *servmod, const struct sio_location *locations, int size)
 {
     SIO_COND_CHECK_RETURN_VAL(!servmod, -1);
 
