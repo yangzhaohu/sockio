@@ -31,12 +31,12 @@ DEPS := $(DEPS:%.cpp=$(OBJ_OUTPUT)%.d)
 
 $(OBJ_OUTPUT)%.d: %.c
 	@set -e; mkdir -p $(dir $@); rm -f $@; $(CC) -MM $< $(INCLUDES) > $@.tmp; \
-	sed 's,\($*\)\.o[ :]*,$(OBJ_OUTPUT)\1.o : ,g' < $@.tmp > $@; \
+	sed 's,.*\.o:,$@:,g' < $@.tmp | sed 's/\.\d/\.o/g' > $@; \
 	rm -f $@.tmp
 
 $(OBJ_OUTPUT)%.d: %.cpp
-	@set -e; mkdir -p $(dir $@); rm -f $@; $(CC) -MM $< $(INCLUDES) > $@.tmp; \
-	sed 's,\($*\)\.o[ :]*,$(OBJ_OUTPUT)\1.o : ,g' < $@.tmp > $@; \
+	@set -e; mkdir -p $(dir $@); rm -f $@; $(CXX) -MM $< $(INCLUDES) > $@.tmp; \
+	sed 's,.*\.o:,$@:,g' < $@.tmp | sed 's/\.\d/\.o/g' > $@; \
 	rm -f $@.tmp
 
 -include $(DEPS)
