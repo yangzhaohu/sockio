@@ -6,7 +6,7 @@ OBJ_OUTPUT := out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS :=
-INCLUDES := -I. -Iinclude -Idepend/include -I3dparty
+INCLUDES := -I. -Iinclude -Idepend/include
 LIBS := -Ldepend/lib -ldl -lhttp_parser -lpcre2-8 -lpcre2-posix
 
 SRCS := sio_mplex.c \
