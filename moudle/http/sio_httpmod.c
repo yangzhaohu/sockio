@@ -256,7 +256,7 @@ int sio_httpmod_setlocat(const struct sio_location *locations, int size)
     return 0;
 }
 
-int sio_httpmod_hookmod(const char *modname, struct sio_submod *mode)
+int sio_httpmod_hookmod(const char *modname, struct sio_submod *mod)
 {
     return 0;
 }
