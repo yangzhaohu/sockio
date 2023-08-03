@@ -44,6 +44,7 @@ struct sio_socket_state
     // enum sio_events events;
     enum sio_socket_shuthow shut;
     int placement:1;
+    int listening:1;
 };
 
 struct sio_socket_owner
@@ -382,6 +383,7 @@ struct sio_socket *sio_socket_create_imp(enum sio_socket_proto proto, char *plac
 
     struct sio_socket_attr *attr = &sock->attr;
     attr->proto = proto;
+    attr->mean = SIO_SOCK_MEAN_SOCKET;
     
     sock->fd = -1;
 
@@ -476,22 +478,58 @@ int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
     return ret;
 }
 
-int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
+static inline
+int sio_socket_bind_imp(struct sio_socket *sock, int fd, struct sio_socket_addr *addr)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
-
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(sock->fd != -1, -1,
-        SIO_LOGE("socket is listenning\n"));
-    
-    struct sio_socket_attr *attr = &sock->attr;
-    int fd = sio_socket_sock(attr->proto);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
-        SIO_LOGE("socket socket failed\n"));
-    
     struct sockaddr_in addr_in = { 0 };
     sio_socket_addr_in(sock, addr, &addr_in);
 
     int ret = bind(fd, (struct sockaddr *)&addr_in, sizeof(addr_in));
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    return 0;
+}
+
+int sio_socket_bind(struct sio_socket *sock, struct sio_socket_addr *addr)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
+
+    struct sio_socket_attr *attr = &sock->attr;
+    int fd = -1;
+    if (sock->fd == -1) {
+        fd = sio_socket_sock(attr->proto);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
+            SIO_LOGE("socket socket failed\n"));
+    }
+
+    int ret = sio_socket_bind_imp(sock, fd, addr);
+       SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        SIO_LOGE("socket bind failed\n"),
+        close(fd));
+
+    sock->fd = fd;
+
+    return ret;
+}
+
+int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
+
+    struct sio_socket_state *stat = &sock->stat;
+
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(stat->listening == 1, 0,
+        SIO_LOGE("socket is listenning\n"));
+    
+    struct sio_socket_attr *attr = &sock->attr;
+    int fd = -1;
+    if (sock->fd == -1) {
+        fd = sio_socket_sock(attr->proto);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
+            SIO_LOGE("socket socket failed\n"));
+    }
+    
+    int ret = sio_socket_bind_imp(sock, fd, addr);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
         SIO_LOGE("socket bind failed\n"),
         close(fd));
@@ -503,6 +541,8 @@ int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
 
     sock->fd = fd;
     attr->mean = SIO_SOCK_MEAN_SERVER;
+
+    stat->listening = 1;
 
     return 0;
 }
