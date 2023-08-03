@@ -5,6 +5,7 @@
 #include "sio_common.h"
 #include "sio_mod.h"
 #include "moudle/http/sio_httpmod.h"
+#include "moudle/rtsp/sio_rtspmod.h"
 #include "sio_log.h"
 
 struct sio_conn
@@ -34,6 +35,18 @@ struct sio_mod g_global_mod[SIO_SUBMOD_BUTT] = {
         },
         .setlocat = sio_httpmod_setlocat,
         .stream_in = sio_httpmod_streamin
+    },
+    [SIO_SUBMOD_RTSP] = {
+        .submod = {
+            .mod_name = sio_rtspmod_name,
+            .mod_version = sio_rtspmod_version,
+            .mod_type = sio_rtspmod_type,
+            .install = sio_rtspmod_create,
+            .unstall = sio_rtspmod_destory,
+            .stream_conn = sio_rtspmod_streamconn,
+            .stream_close = sio_rtspmod_streamclose,
+        },
+        .stream_in = sio_rtspmod_streamin
     }
  };
 

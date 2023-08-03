@@ -29,12 +29,14 @@ SRCS := sio_mplex.c \
 		sio_taskfifo.c \
 		sio_elepool.c \
 		sio_servmod.c \
+		utils/sio_dlopen.c \
+		proto/sio_httpprot.c \
+		proto/sio_rtspprot.c \
 		moudle/http/sio_httpmod.c \
 		moudle/http/sio_httpmod_html.c \
 		moudle/locate/sio_locate.c \
 		moudle/locate/sio_locatmod.c \
-		proto/sio_httpprot.c \
-		utils/sio_dlopen.c
+		moudle/rtsp/sio_rtspmod.c
 
 .PHONY: incre all clean help
 

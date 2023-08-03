@@ -7,6 +7,7 @@ enum sio_submod_type
 {
     SIO_SUBMOD_RAW = 1,
     SIO_SUBMOD_HTTP,
+    SIO_SUBMOD_RTSP,
     SIO_SUBMOD_BUTT
 };
 

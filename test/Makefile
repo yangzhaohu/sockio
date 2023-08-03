@@ -12,7 +12,8 @@ INCLUDES := -I../ -I../depend/include
 LIBS := -L../target -lsockio  -ldl -lpcre2-8 -lpcre2-posix
 
 SRCS := test_http_parser.c \
-	pcre2demo.c
+	pcre2demo.c \
+	test_rtspprot.c
 
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)
@@ -29,7 +30,7 @@ TARGET_LIST := $(patsubst %.cpp, %, $(TARGET_LIST))
 
 all: $(OBJS) $(TARGET_LIST)
 $(TARGET_LIST):
-	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath=./ -o $(TARGET_OUT)$@
+	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath=./ -Wl,-rpath-link=../depend/lib -o $(TARGET_OUT)$@
 
 clean:
 	rm -rf $(OBJ_OUTPUT)*.o $(OBJ_OUTPUT)*.d $(OBJ_OUTPUT)*.d.tmp $(TARGET_OUT)/$(TARGET) $(TARGET_OUT)/$(TARGET).*
