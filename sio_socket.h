@@ -21,7 +21,7 @@ enum sio_socket_proto
 
 struct sio_socket_addr
 {
-    char addr[32];
+    char addr[48];
     int port;
 };
 
@@ -90,10 +90,12 @@ int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock);
 
 int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr);
 
-int sio_socket_read(struct sio_socket *sock, char *buf, int maxlen);
-int sio_socket_async_read(struct sio_socket *sock, char *buf, int maxlen);
+int sio_socket_read(struct sio_socket *sock, char *buf, int len);
+int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_socket_addr *peer);
+int sio_socket_async_read(struct sio_socket *sock, char *buf, int len);
 
 int sio_socket_write(struct sio_socket *sock, const char *buf, int len);
+int sio_socket_writeto(struct sio_socket *sock, const char *buf, int len, struct sio_socket_addr *peer);
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len);
 
 int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);

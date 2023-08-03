@@ -637,12 +637,12 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr)
     return 0;
 }
 
-int sio_socket_read(struct sio_socket *sock, char *buf, int maxlen)
+int sio_socket_read(struct sio_socket *sock, char *buf, int len)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
-    SIO_COND_CHECK_RETURN_VAL(!buf || maxlen == 0, -1);
+    SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
 
-    int ret = recv(sock->fd, buf, maxlen, 0);
+    int ret = recv(sock->fd, buf, len, 0);
 
     if (ret == 0) {
         sio_socket_readerr_set(SIO_ERRNO_CLOSE);
@@ -655,17 +655,38 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int maxlen)
     return ret;
 }
 
-int sio_socket_async_read(struct sio_socket *sock, char *buf, int maxlen)
+int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_socket_addr *peer)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
+    SIO_COND_CHECK_RETURN_VAL(!buf || len == 0 || !peer, -1);
+
+    struct sockaddr_in addr = { 0 };
+    socklen_t l = sizeof(addr);
+    int ret = recvfrom(sock->fd, buf, len, 0, (struct sockaddr *)&addr, &l);
+
+    if (ret == -1) {
+        int err = sio_sock_errno;
+        sio_socket_readerr_set(err);
+        SIO_COND_CHECK_RETURN_VAL(sio_socket_again(err), SIO_ERRNO_AGAIN);
+    }
+
+    inet_ntop(AF_INET, &addr.sin_addr.s_addr, peer->addr, sizeof(peer->addr));
+    peer->port = ntohs(addr.sin_port);
+
+    return ret;
+}
+
+int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1 || !sock->mp, -1);
-    SIO_COND_CHECK_RETURN_VAL(!buf || maxlen == 0, -1);
+    SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
 
     struct sio_event ev = { 0 };
     ev.events |= SIO_EVENTS_ASYNC_READ;
     ev.owner.fd = sock->fd;
     ev.owner.pri = sock;
     ev.buf.ptr = buf;
-    ev.buf.len = maxlen;
+    ev.buf.len = len;
     return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
@@ -675,6 +696,17 @@ int sio_socket_write(struct sio_socket *sock, const char *buf, int len)
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
 
     return send(sock->fd, buf, len, 0);
+}
+
+int sio_socket_writeto(struct sio_socket *sock, const char *buf, int len, struct sio_socket_addr *peer)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
+    SIO_COND_CHECK_RETURN_VAL(!buf || len == 0 || !peer, -1);
+
+    struct sockaddr_in addr = { 0 };
+    sio_socket_addr_in(sock, peer, &addr);
+
+    return sendto(sock->fd, buf, len, 0, (const struct sockaddr *)&addr, sizeof(struct sockaddr_in));
 }
 
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
