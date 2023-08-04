@@ -14,7 +14,8 @@ LIBS := -L../target -lsockio  -ldl -lpcre2-8 -lpcre2-posix
 SRCS := test_http_parser.c \
 	pcre2demo.c \
 	test_rtspprot.c \
-	test_udp.c
+	test_udp.c \
+	test_udp2.c
 
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)

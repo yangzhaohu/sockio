@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
-#include "sio_mplex_thread.h"
 
 int main()
 {
@@ -21,6 +20,9 @@ int main()
     printf("recv: %s\n    form: %s:%d\n", buf, addr.addr, addr.port);
 
     getc(stdin);
+
+    sio_socket_destory(sock);
+    sio_socket_destory(sock2);
 
     return 0;
 }
