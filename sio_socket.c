@@ -47,10 +47,20 @@ struct sio_socket_state
     int listening:1;
 };
 
+struct sio_socket_ops_pri
+{
+    int (*readable)(struct sio_socket *sock);
+    int (*writeable)(struct sio_socket *sock);
+    int (*acceptasync)(struct sio_socket *sock, struct sio_socket *newsock);
+    int (*readasync)(struct sio_socket *sock, const char *data, int len);
+    int (*writeasync)(struct sio_socket *sock, const char *data, int len);
+    int (*closeable)(struct sio_socket *sock);
+};
+
 struct sio_socket_owner
 {
     void *pri;
-    struct sio_socket_ops ops;
+    struct sio_socket_ops_pri ops;
 };
 
 struct sio_socket
@@ -225,7 +235,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
         }
         struct sio_socket_attr *attr = &sock->attr;
         struct sio_socket_owner *owner = &sock->owner;
-        struct sio_socket_ops *ops = &owner->ops;
+        struct sio_socket_ops_pri *ops = &owner->ops;
         // printf("socket fd: %d, event: %d\n", sock->fd, event->events);
 
         sio_socket_event_dispatch_once(event);
@@ -277,8 +287,20 @@ void sio_socket_get_private(struct sio_socket *sock, void **private)
 static inline
 void sio_socket_set_ops(struct sio_socket *sock, struct sio_socket_ops ops)
 {
+    struct sio_socket_attr *attr = &sock->attr;
     struct sio_socket_owner *owner = &sock->owner;
-    owner->ops = ops;
+    if (attr->proto == SIO_SOCK_TCP) {
+        owner->ops.readable = ops.readable;
+        owner->ops.writeable = ops.writeable;
+    } else {
+        owner->ops.readable = ops.readfromable;
+        owner->ops.writeable = ops.writetoable;
+    }
+
+    owner->ops.acceptasync = ops.acceptasync;
+    owner->ops.readasync = ops.readasync;
+    owner->ops.writeasync = ops.writeasync;
+    owner->ops.closeable = ops.closeable;
 }
 
 static inline
