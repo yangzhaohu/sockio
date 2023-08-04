@@ -821,11 +821,7 @@ int sio_socket_destory(struct sio_socket *sock)
     if (sock->fd != -1) {
         struct sio_socket_state *stat = &sock->stat;
         int how = (~stat->shut) & 0x03;
-        if (how != 0) {
-            int ret = sio_socket_shutdown_imp(sock, how);
-            SIO_COND_CHECK_CALLOPS(ret != 0,
-                SIO_LOGE("socket shutdown: %d failed, err: %d\n", how, sio_sock_errno));
-        }
+        SIO_COND_CHECK_CALLOPS(how != 0, sio_socket_shutdown_imp(sock, how));
 
         int ret = sio_socket_close_imp(sock);
         SIO_COND_CHECK_CALLOPS(ret != 0,
