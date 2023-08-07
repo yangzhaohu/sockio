@@ -4,14 +4,10 @@
 #include "sio_server.h"
 #include "sio_common.h"
 #include "sio_mod.h"
+#include "moudle/sio_conn.h"
 #include "moudle/http/sio_httpmod.h"
 #include "moudle/rtsp/sio_rtspmod.h"
 #include "sio_log.h"
-
-struct sio_conn
-{
-    void *private;
-};
 
 struct sio_servmod
 {
@@ -50,8 +46,6 @@ struct sio_mod g_global_mod[SIO_SUBMOD_BUTT] = {
     }
  };
 
- #define SIO_CONN_SOCK_MEMPTR(mem) ((void *)mem + sizeof(struct sio_conn))
- #define SIO_SOCK_CONN_MEMPTR(mem) ((void *)mem - sizeof(struct sio_conn))
 
 static inline
 int sio_socket_readable(struct sio_socket *sock)
@@ -66,7 +60,7 @@ int sio_socket_readable(struct sio_socket *sock)
     char data[512] = { 0 };
     int len = sio_socket_read(sock, data, 512);
     if (len > 0 && mod->stream_in) {
-        sio_conn_t conn = SIO_SOCK_CONN_MEMPTR(sock);
+        sio_conn_t conn = sio_conn_ref_socket_conn(sock);
         mod->stream_in(conn, data, len);
     }
 
@@ -89,14 +83,13 @@ int sio_socket_closeable(struct sio_socket *sock)
     struct sio_mod *mod = servmod->mod;
     struct sio_submod *submod = &mod->submod;
 
-    sio_conn_t conn = SIO_SOCK_CONN_MEMPTR(sock);
+    sio_conn_t conn = sio_conn_ref_socket_conn(sock);
 
     if (submod->stream_close) {
         submod->stream_close(conn);
     }
     
-    sio_socket_close(sock);
-    free(conn);
+    sio_conn_destory(conn);
 
     return 0;
 }
@@ -104,8 +97,8 @@ int sio_socket_closeable(struct sio_socket *sock)
 static inline
 struct sio_socket *sio_servmod_socket()
 {
-    char *mem = malloc(sizeof(struct sio_conn) + sio_socket_struct_size());
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, SIO_CONN_SOCK_MEMPTR(mem));
+    sio_conn_t conn = sio_conn_create(NULL);
+    struct sio_socket *sock = sio_conn_socket_ref(conn);
     union sio_socket_opt opt = {
         .ops.readable = sio_socket_readable,
         .ops.writeable = sio_socket_writeable,
@@ -138,7 +131,7 @@ int sio_servmod_newconn(struct sio_server *serv)
 
     int ret = sio_server_accept(serv, sock);
     if (ret == 0 && submod->stream_conn) {
-        sio_conn_t conn = SIO_SOCK_CONN_MEMPTR(sock);
+        sio_conn_t conn = sio_conn_ref_socket_conn(sock);
         submod->stream_conn(conn);
     }
 
@@ -286,48 +279,4 @@ int sio_servmod_destory(struct sio_servmod *servmod)
     }
 
     return 0;
-}
-
-int sio_conn_setopt(sio_conn_t conn, enum sio_conn_optcmd cmd, union sio_conn_opt *opt)
-{
-    int ret = 0;
-    switch (cmd) {
-    case SIO_CONN_PRIVATE:
-        conn->private = opt->private;
-        break;
-
-    default:
-        ret = -1;
-        break;
-    }
-
-    return ret;
-}
-
-int sio_conn_getopt(sio_conn_t conn, enum sio_conn_optcmd cmd, union sio_conn_opt *opt)
-{
-    int ret = 0;
-    switch (cmd) {
-    case SIO_CONN_PRIVATE:
-        opt->private = conn->private;
-        break;
-
-    default:
-        ret = -1;
-        break;
-    }
-
-    return ret;
-}
-
-int sio_conn_write(sio_conn_t conn, const char *buf, int len)
-{
-    struct sio_socket *sock = SIO_CONN_SOCK_MEMPTR(conn);
-    return sio_socket_write(sock, buf, len);
-}
-
-int sio_conn_close(sio_conn_t conn)
-{
-    struct sio_socket *sock = SIO_CONN_SOCK_MEMPTR(conn);
-    return sio_socket_shutdown(sock, SIO_SOCK_SHUTWR);
 }
