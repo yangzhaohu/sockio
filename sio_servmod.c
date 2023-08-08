@@ -95,9 +95,13 @@ int sio_socket_closeable(struct sio_socket *sock)
 }
 
 static inline
-struct sio_socket *sio_servmod_socket()
+struct sio_socket *sio_servmod_conn_socket(struct sio_server *serv)
 {
     sio_conn_t conn = sio_conn_create(SIO_SOCK_TCP, NULL);
+    SIO_COND_CHECK_RETURN_VAL(!conn, NULL);
+    union sio_conn_opt optc = { .server = serv };
+    sio_conn_setopt(conn, SIO_CONN_SERVER, &optc);
+
     struct sio_socket *sock = sio_conn_socket_ref(conn);
     union sio_socket_opt opt = {
         .ops.readable = sio_socket_readable,
@@ -115,7 +119,7 @@ struct sio_socket *sio_servmod_socket()
 static inline
 int sio_servmod_newconn(struct sio_server *serv)
 {
-    struct sio_socket *sock = sio_servmod_socket();
+    struct sio_socket *sock = sio_servmod_conn_socket(serv);
 
     union sio_server_opt opts = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);

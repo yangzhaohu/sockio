@@ -6,13 +6,17 @@
 struct sio_conn;
 typedef struct sio_conn* sio_conn_t;
 
+struct sio_server;
+
 enum sio_conn_optcmd
 {
+    SIO_CONN_SERVER,
     SIO_CONN_PRIVATE
 };
 
 union sio_conn_opt
 {
+    struct sio_server *server;
     void *private;
 };
 

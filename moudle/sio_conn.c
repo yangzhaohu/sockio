@@ -11,6 +11,7 @@ struct sio_conn_state
 struct sio_conn
 {
     struct sio_conn_state stat;
+    struct sio_server *server;
     void *private;
 };
 
@@ -61,6 +62,9 @@ int sio_conn_setopt(sio_conn_t conn, enum sio_conn_optcmd cmd, union sio_conn_op
 {
     int ret = 0;
     switch (cmd) {
+    case SIO_CONN_SERVER:
+        conn->server = opt->server;
+        break;
     case SIO_CONN_PRIVATE:
         conn->private = opt->private;
         break;
@@ -77,6 +81,9 @@ int sio_conn_getopt(sio_conn_t conn, enum sio_conn_optcmd cmd, union sio_conn_op
 {
     int ret = 0;
     switch (cmd) {
+    case SIO_CONN_SERVER:
+        opt->server = conn->server;
+        break;
     case SIO_CONN_PRIVATE:
         opt->private = conn->private;
         break;
