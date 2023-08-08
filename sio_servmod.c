@@ -97,7 +97,7 @@ int sio_socket_closeable(struct sio_socket *sock)
 static inline
 struct sio_socket *sio_servmod_socket()
 {
-    sio_conn_t conn = sio_conn_create(NULL);
+    sio_conn_t conn = sio_conn_create(SIO_SOCK_TCP, NULL);
     struct sio_socket *sock = sio_conn_socket_ref(conn);
     union sio_socket_opt opt = {
         .ops.readable = sio_socket_readable,

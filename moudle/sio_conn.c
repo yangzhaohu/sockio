@@ -22,7 +22,7 @@ unsigned int sio_conn_struct_size()
     return sizeof(struct sio_conn) + sio_socket_struct_size();
 }
 
-sio_conn_t sio_conn_create(void *placement)
+sio_conn_t sio_conn_create(enum sio_socket_proto proto, void *placement)
 {
     int plmt = 0;
     sio_conn_t conn = placement;
@@ -34,7 +34,7 @@ sio_conn_t sio_conn_create(void *placement)
 
     memset(conn, 0, sizeof(struct sio_conn));
 
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, SIO_CONN_SOCK_MEMPTR(conn));
+    struct sio_socket *sock = sio_socket_create(proto, SIO_CONN_SOCK_MEMPTR(conn));
     if (!sock) {
         SIO_COND_CHECK_RETURN_VAL(plmt == 1, NULL);
         free(conn);

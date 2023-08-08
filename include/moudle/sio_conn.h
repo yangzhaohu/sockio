@@ -22,7 +22,7 @@ extern "C" {
 
 unsigned int sio_conn_struct_size();
 
-sio_conn_t sio_conn_create(void *placement);
+sio_conn_t sio_conn_create(enum sio_socket_proto proto, void *placement);
 
 struct sio_socket *sio_conn_socket_ref(sio_conn_t conn);
 
