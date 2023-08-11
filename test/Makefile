@@ -39,4 +39,5 @@ $(TARGET_LIST):
 	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath=./ -Wl,-rpath-link=../depend/lib -o $(TARGET_OUT)$@
 
 clean:
-	rm -rf $(OBJ_OUTPUT)*.o $(OBJ_OUTPUT)*.d $(OBJ_OUTPUT)*.d.tmp $(TARGET_OUT)/$(TARGET) $(TARGET_OUT)/$(TARGET).*
+	rm -f $(OBJS)
+	cd $(TARGET_OUT) && rm -f $(TARGET_LIST)
