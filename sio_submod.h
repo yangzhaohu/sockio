@@ -1,8 +1,8 @@
 #ifndef SIO_SUBMOD_H_
 #define SIO_SUBMOD_H_
 
+#include "sio_server.h"
 #include "moudle/sio_locate.h"
-#include "moudle/sio_conn.h"
 
 enum sio_submod_type
 {
@@ -24,12 +24,8 @@ struct sio_submod
     int (*install)(void);
     int (*getlocat)(const char **locations, int size);
     int (*mod_hook)(const char *modname, struct sio_submod *mod);
+    int (*newconn)(struct sio_server *server);
     int (*unstall)(void);
-
-    int (*stream_conn)(sio_conn_t conn);
-    int (*stream_close)(sio_conn_t conn);
-
-    int (*stream_seg)(sio_conn_t conn, int type, const char *data, int len);
 };
 
 #endif

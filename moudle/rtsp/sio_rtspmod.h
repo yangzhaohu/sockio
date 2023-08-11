@@ -13,11 +13,7 @@ int sio_rtspmod_version(const char **version);
 
 int sio_rtspmod_create(void);
 
-int sio_rtspmod_streamconn(sio_conn_t conn);
-
-int sio_rtspmod_streamin(sio_conn_t conn, const char *data, int len);
-
-int sio_rtspmod_streamclose(sio_conn_t conn);
+int sio_rtspmod_newconn(struct sio_server *server);
 
 int sio_rtspmod_destory(void);
 

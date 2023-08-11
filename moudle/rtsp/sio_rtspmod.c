@@ -20,7 +20,6 @@ struct sio_rtsp_buffer
 
 struct sio_rtsp_conn
 {
-    sio_conn_t conn;
     struct sio_rtsp_buffer buf;
 
     struct sio_rtspprot *prot;
@@ -66,13 +65,13 @@ struct sio_rtsp_conn *sio_rtspmod_get_rtspconn_from_rtspprot(struct sio_rtspprot
 }
 
 static inline
-struct sio_rtsp_conn *sio_rtspmod_get_rtspconn_from_conn(sio_conn_t conn)
+struct sio_rtsp_conn *sio_rtspmod_get_rtspconn_from_conn(struct sio_socket *sock)
 {
-    union sio_conn_opt opt = { 0 };
-    sio_conn_getopt(conn, SIO_CONN_PRIVATE, &opt);
+    union sio_socket_opt opt = { 0 };
+    sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_rtsp_conn *rtspconn = opt.private;
-    return rtspconn;
+    struct sio_rtsp_conn *rconn = opt.private;
+    return rconn;
 }
 
 static inline
@@ -99,8 +98,8 @@ static inline
 int sio_rtspmod_protofiled(struct sio_rtspprot *prot, const char *at, int len)
 {
     // SIO_LOGE("field: %.*s\n", len, at);
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_rtspprot(prot);
-    sio_str_t *field = &rtspconn->field;
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_rtspprot(prot);
+    sio_str_t *field = &rconn->field;
     field->data = at;
     field->length = len;
     return 0;
@@ -110,15 +109,15 @@ static inline
 int sio_rtspmod_protovalue(struct sio_rtspprot *prot, const char *at, int len)
 {
     // SIO_LOGE("value: %.*s\n", len, at);
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_rtspprot(prot);
-    sio_str_t *field = &rtspconn->field;
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_rtspprot(prot);
+    sio_str_t *field = &rconn->field;
 
     if (strncmp(field->data, "CSeq", strlen("CSeq")) == 0) {
-        sio_str_t *cseq = &rtspconn->cseq;
+        sio_str_t *cseq = &rconn->cseq;
         cseq->data = at;
         cseq->length = len;
     } else if (strncmp(field->data, "Transport", strlen("Transport")) == 0) {
-        sio_str_t *cliport = &rtspconn->cliport;
+        sio_str_t *cliport = &rconn->cliport;
         cliport->data = at;
         cliport->length = len;
         char port[32] = { 0 };
@@ -131,16 +130,16 @@ int sio_rtspmod_protovalue(struct sio_rtspprot *prot, const char *at, int len)
 static inline
 int sio_rtspmod_protocomplete(struct sio_rtspprot *prot)
 {
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_rtspprot(prot);
-    rtspconn->complete = 1;
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_rtspprot(prot);
+    rconn->complete = 1;
     return 0;
 }
 
 static inline
-int sio_rtspmod_options_response(sio_conn_t conn)
+int sio_rtspmod_options_response(struct sio_socket *sock)
 {
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_conn(conn);
-    sio_str_t *cseq = &rtspconn->cseq;
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+    sio_str_t *cseq = &rconn->cseq;
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
@@ -148,16 +147,16 @@ int sio_rtspmod_options_response(sio_conn_t conn)
                     "Public: %s\r\n"
                     "\r\n", cseq->length, cseq->data, "OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY");
 
-    sio_conn_write(conn, buffer, strlen(buffer));
+    sio_socket_write(sock, buffer, strlen(buffer));
 
     return 0;
 }
 
 static inline
-int sio_rtspmod_describe_response(sio_conn_t conn)
+int sio_rtspmod_describe_response(struct sio_socket *sock)
 {
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_conn(conn);
-    sio_str_t *cseq = &rtspconn->cseq;
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+    sio_str_t *cseq = &rconn->cseq;
 
     char scri[512] = { 0 };
     sprintf(scri, "v=0\r\n"
@@ -175,21 +174,19 @@ int sio_rtspmod_describe_response(sio_conn_t conn)
                      "Content-type: application/sdp\r\n"
                      "\r\n", cseq->length, cseq->data, strlen(scri));
 
-    sio_conn_write(conn, buffer, strlen(buffer));
-    sio_conn_write(conn, scri, strlen(scri));
+    sio_socket_write(sock, buffer, strlen(buffer));
+    sio_socket_write(sock, scri, strlen(scri));
 
     return 0;
 }
 
-sio_conn_t conn_rtp = NULL;
-sio_conn_t conn_rtcp = NULL;
+struct sio_socket *sock_rtp = NULL;
+struct sio_socket *sock_rtcp = NULL;
 static inline
 int sio_rtspmod_udpconn_create()
 {
-    conn_rtp = sio_conn_create(SIO_SOCK_UDP, NULL);
-    conn_rtcp = sio_conn_create(SIO_SOCK_UDP, NULL);
-    struct sio_socket *sock_rtp = sio_conn_socket_ref(conn_rtp);
-    struct sio_socket *sock_rtcp = sio_conn_socket_ref(conn_rtcp);
+    sock_rtp = sio_socket_create(SIO_SOCK_UDP, NULL);
+    sock_rtcp = sio_socket_create(SIO_SOCK_UDP, NULL);
     struct sio_socket_addr addr = {"127.0.0.1", 56400};
     int ret = sio_socket_bind(sock_rtp, &addr);
     if (ret == -1) {
@@ -218,7 +215,6 @@ unsigned int sio_rtspmod_rtp_timestamp()
 static inline
 void sio_rtspmod_rtp_send(const unsigned char *data, unsigned int len)
 {
-    struct sio_socket *sock_rtp = sio_conn_socket_ref(conn_rtp);
     struct sio_socket_addr addr = {"127.0.0.1", g_port_rtp};
     sio_socket_writeto(sock_rtp, (const char *)data, len, &addr);
 }
@@ -246,13 +242,13 @@ void *sio_rtspmod_rtp_routine(void *arg)
 }
 
 static inline
-int sio_rtspmod_setup_response(sio_conn_t conn)
+int sio_rtspmod_setup_response(struct sio_socket *sock)
 {
     sio_rtspmod_udpconn_create();
 
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_conn(conn);
-    sio_str_t *cseq = &rtspconn->cseq;
-    sio_str_t *cliport = &rtspconn->cliport;
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+    sio_str_t *cseq = &rconn->cseq;
+    sio_str_t *cliport = &rconn->cliport;
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
@@ -261,16 +257,16 @@ int sio_rtspmod_setup_response(sio_conn_t conn)
                     "Session: 66334873\r\n"
                     "\r\n", cseq->length, cseq->data, cliport->length, cliport->data);
 
-    sio_conn_write(conn, buffer, strlen(buffer));
+    sio_socket_write(sock, buffer, strlen(buffer));
 
     return 0;
 }
 
 static inline
-int sio_rtspmod_play_response(sio_conn_t conn)
+int sio_rtspmod_play_response(struct sio_socket *sock)
 {
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_conn(conn);
-    sio_str_t *cseq = &rtspconn->cseq;
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+    sio_str_t *cseq = &rconn->cseq;
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
@@ -279,7 +275,7 @@ int sio_rtspmod_play_response(sio_conn_t conn)
                     "Session: 66334873; timeout=60\r\n"
                     "\r\n", cseq->length, cseq->data);
 
-    sio_conn_write(conn, buffer, strlen(buffer));
+    sio_socket_write(sock, buffer, strlen(buffer));
 
     static struct sio_thread *thread = NULL;
     if (thread == NULL) {
@@ -291,20 +287,20 @@ int sio_rtspmod_play_response(sio_conn_t conn)
 }
 
 static inline
-struct sio_rtsp_conn *sio_rtspmod_rtspconn_create(sio_conn_t conn)
+struct sio_rtsp_conn *sio_rtspmod_rtspconn_create(struct sio_socket *sock)
 {
-    struct sio_rtsp_conn *rtspconn = malloc(sizeof(struct sio_rtsp_conn));
-    SIO_COND_CHECK_RETURN_VAL(!rtspconn, NULL);
+    struct sio_rtsp_conn *rconn = malloc(sizeof(struct sio_rtsp_conn));
+    SIO_COND_CHECK_RETURN_VAL(!rconn, NULL);
 
-    memset(rtspconn, 0, sizeof(struct sio_rtsp_conn));
+    memset(rconn, 0, sizeof(struct sio_rtsp_conn));
 
     char *mem = malloc(sizeof(char) * 40960);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!mem, NULL,
-        free(rtspconn));
+        free(rconn));
 
     memset(mem, 0, sizeof(char) * 40960);
 
-    struct sio_rtsp_buffer *buf = &rtspconn->buf;
+    struct sio_rtsp_buffer *buf = &rconn->buf;
     buf->buf = mem;
     buf->pos = mem;
     buf->last = mem;
@@ -313,10 +309,10 @@ struct sio_rtsp_conn *sio_rtspmod_rtspconn_create(sio_conn_t conn)
     struct sio_rtspprot *prot = sio_rtspprot_create();
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!prot, NULL,
         free(mem),
-        free(rtspconn));
+        free(rconn));
     
     union sio_rtspprot_opt opt = {
-        .private = rtspconn
+        .private = rconn
     };
     sio_rtspprot_setopt(prot, SIO_RTSPPROT_PRIVATE, &opt);
     opt.ops.prot_begin = sio_rtspmod_protobegin;
@@ -327,74 +323,57 @@ struct sio_rtsp_conn *sio_rtspmod_rtspconn_create(sio_conn_t conn)
     opt.ops.prot_complete = sio_rtspmod_protocomplete;
     sio_rtspprot_setopt(prot, SIO_RTSPPROT_OPS, &opt);
     
-    rtspconn->prot = prot;
+    rconn->prot = prot;
 
-    return rtspconn;
+    return rconn;
 }
 
 static inline
-void sio_rtspmod_rtspconn_destory(struct sio_rtsp_conn *rtspconn)
+void sio_rtspmod_rtspconn_destory(struct sio_rtsp_conn *rconn)
 {
-    free(rtspconn->buf.buf);
-    free(rtspconn);
+    free(rconn->buf.buf);
+    free(rconn);
 }
 
-int sio_rtspmod_create(void)
+static inline
+int sio_rtspmod_socket_readable(struct sio_socket *sock)
 {
-    return 0;
-}
-
-int sio_rtspmod_streamconn(sio_conn_t conn)
-{
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_rtspconn_create(conn);
-    SIO_COND_CHECK_RETURN_VAL(!rtspconn, -1);
-
-    // conn with rtspconn
-    union sio_conn_opt opt = { .private = rtspconn };
-    sio_conn_setopt(conn, SIO_CONN_PRIVATE, &opt);
-    rtspconn->conn = conn;
-
-    return 0;
-}
-
-int sio_rtspmod_streamin(sio_conn_t conn, const char *data, int len)
-{
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_conn(conn);
-    struct sio_rtspprot *prot = rtspconn->prot;
-    struct sio_rtsp_buffer *buf = &rtspconn->buf;
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+    struct sio_rtspprot *prot = rconn->prot;
+    struct sio_rtsp_buffer *buf = &rconn->buf;
 
     int l = buf->end - buf->last;
-    l = l > len ? len : l;
-    memcpy(buf->last, data, l);
-    buf->last += l;
+    int len = sio_socket_read(sock, buf->last, l);
+    SIO_COND_CHECK_RETURN_VAL(len <= 0, 0);
+    buf->last += len;
 
     l = buf->last - buf->pos;
     l = sio_rtspprot_process(prot, buf->pos, l);
 
-    if (rtspconn->complete != 1) {
+    if (rconn->complete != 1) {
         buf->pos += l;
         return 0;
     }
 
-    rtspconn->complete = 0;
+    rconn->complete = 0;
     buf->last = buf->pos = buf->buf; // reset
 
     int method = sio_rtspprot_method(prot);
     switch (method) {
     case 1 << SIO_RTSP_OPTIONS:
-        sio_rtspmod_options_response(conn);
+        sio_rtspmod_options_response(sock);
         break;
     
     case 1 << SIO_RTSP_DESCRIBE:
-        sio_rtspmod_describe_response(conn);
+        sio_rtspmod_describe_response(sock);
         break;
     
     case 1 << SIO_RTSP_SETUP:
-        sio_rtspmod_setup_response(conn);
+        sio_rtspmod_setup_response(sock);
         break;
 
     case 1 << SIO_RTSP_PLAY:
-        sio_rtspmod_play_response(conn);
+        sio_rtspmod_play_response(sock);
         break;
     
     default:
@@ -404,19 +383,61 @@ int sio_rtspmod_streamin(sio_conn_t conn, const char *data, int len)
     return 0;
 }
 
-int sio_rtspmod_streamclose(sio_conn_t conn)
+static inline
+int sio_rtspmod_socket_writeable(struct sio_socket *sock)
 {
-    struct sio_rtsp_conn *rtspconn = sio_rtspmod_get_rtspconn_from_conn(conn);
-    sio_rtspmod_rtspconn_destory(rtspconn);
+    return 0;
+}
+
+static inline
+int sio_rtspmod_socket_closeable(struct sio_socket *sock)
+{
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+    sio_rtspmod_rtspconn_destory(rconn);
+
+    sio_socket_destory(sock);
+
+    return 0;
+}
+
+int sio_rtspmod_create(void)
+{
+    return 0;
+}
+
+int sio_rtspmod_newconn(struct sio_server *server)
+{
+    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
+    union sio_socket_opt opt = {
+        .ops.readable = sio_rtspmod_socket_readable,
+        .ops.writeable = sio_rtspmod_socket_writeable,
+        .ops.closeable = sio_rtspmod_socket_closeable
+    };
+    sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
+
+    opt.nonblock = 1;
+    sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
+
+    int ret = sio_server_accept(server, sock);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        sio_socket_destory(sock));
+
+    ret = sio_server_socket_mplex(server, sock);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        sio_socket_destory(sock));
+    
+    struct sio_rtsp_conn *rconn = sio_rtspmod_rtspconn_create(NULL);
+    opt.private = rconn;
+    sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     return 0;
 }
 
 int sio_rtspmod_destory(void)
 {
-    if (conn_rtp) {
-        sio_conn_destory(conn_rtp);
-        sio_conn_destory(conn_rtcp);
+    if (sock_rtp) {
+        sio_socket_destory(sock_rtp);
+        sio_socket_destory(sock_rtcp);
     }
     return 0;
 }

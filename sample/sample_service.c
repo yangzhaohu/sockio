@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include "sio_servmod.h"
+#include "sio_service.h"
 
 int main()
 {
-    struct sio_servmod *servmod = sio_servmod_create(SIO_SUBMOD_HTTP);
+    struct sio_service *servmod = sio_service_create(SIO_SUBMOD_RTSP);
 
     struct sio_location locat[] = {
         {
@@ -43,18 +43,18 @@ int main()
             .route = "/workspaces/sockio/root/"
         }
     };
-    sio_servmod_setlocat(servmod, locat, sizeof(locat) / sizeof(struct sio_location));
+    sio_service_setlocat(servmod, locat, sizeof(locat) / sizeof(struct sio_location));
 
-    union sio_servmod_opt opt = {
+    union sio_service_opt opt = {
         .addr = {"127.0.0.1", 8000}
     };
-    sio_servmod_setopt(servmod, SIO_SERVMOD_ADDR, &opt);
+    sio_service_setopt(servmod, SIO_SERVICE_ADDR, &opt);
 
-    sio_servmod_dowork(servmod);
+    sio_service_dowork(servmod);
 
     getc(stdin);
 
-    sio_servmod_destory(servmod);
+    sio_service_destory(servmod);
 
     return 0;
 }

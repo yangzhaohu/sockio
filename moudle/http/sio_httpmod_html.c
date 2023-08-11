@@ -11,7 +11,7 @@ int sio_http_head_append(char *buf, const char *field)
 }
 
 static inline
-int sio_httpmod_notfound(sio_conn_t conn, char *headbuf, int size)
+int sio_httpmod_notfound(struct sio_socket *sock, char *headbuf, int size)
 {
     const char *body = "<!DOCTYPE html>\r\n"
                     "<html>\r\n"
@@ -31,19 +31,19 @@ int sio_httpmod_notfound(sio_conn_t conn, char *headbuf, int size)
     l += sio_http_head_append(headbuf + l, cl);
     l += sio_http_head_append(headbuf + l, "\r\n");
 
-    sio_conn_write(conn, headbuf, l);
-    sio_conn_write(conn, body, len);
-    sio_conn_close(conn);
+    sio_socket_write(sock, headbuf, l);
+    sio_socket_write(sock, body, len);
+    sio_socket_close(sock);
 
     return 0;
 }
 
-int sio_httpmod_html_response(sio_conn_t conn, char *headbuf, int size, const char *file)
+int sio_httpmod_html_response(struct sio_socket *sock, char *headbuf, int size, const char *file)
 {
     FILE *fp = fopen(file, "r");
     if (fp == NULL) {
         SIO_LOGE("%s not found\n", file);
-        sio_httpmod_notfound(conn, headbuf, size);
+        sio_httpmod_notfound(sock, headbuf, size);
         return -1;
     }
 
@@ -59,7 +59,7 @@ int sio_httpmod_html_response(sio_conn_t conn, char *headbuf, int size, const ch
     l += sio_http_head_append(headbuf + l, cl);
     l += sio_http_head_append(headbuf + l, "\r\n");
 
-    sio_conn_write(conn, headbuf, l);
+    sio_socket_write(sock, headbuf, l);
 
     while (1) {
         char tmp[1024] = { 0 };
@@ -67,7 +67,7 @@ int sio_httpmod_html_response(sio_conn_t conn, char *headbuf, int size, const ch
         if (l <= 0) {
             break;
         }
-        sio_conn_write(conn, tmp, l);
+        sio_socket_write(sock, tmp, l);
     }
 
     fclose(fp);

@@ -28,11 +28,10 @@ SRCS := sio_mplex.c \
 		sio_block.c \
 		sio_taskfifo.c \
 		sio_elepool.c \
-		sio_servmod.c \
+		sio_service.c \
 		utils/sio_dlopen.c \
 		proto/sio_httpprot.c \
 		proto/sio_rtspprot.c \
-		moudle/sio_conn.c \
 		moudle/http/sio_httpmod.c \
 		moudle/http/sio_httpmod_html.c \
 		moudle/locate/sio_locate.c \
