@@ -239,6 +239,7 @@ void *sio_rtspmod_rtp_routine(void *arg)
 
     while (1) {
         sio_rtp_jpeg_process(jpeg, jpegdata, len, sio_rtspmod_rtp_send);
+        usleep(40 * 1000);
     }
 
     return NULL;
