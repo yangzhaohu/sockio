@@ -1,0 +1,19 @@
+#ifndef SIO_ENDIAN_H_
+#define SIO_ENDIAN_H_
+
+#define SIO_LITTLE_ENDIAN       0x41424344UL 
+#define SIO_BIG_ENDIAN          0x44434241UL
+#define SIO_PDP_ENDIAN          0x42414443UL
+#define SIO_ENDIAN_ORDER_CHECK  ('ABCD')
+
+#if SIO_ENDIAN_ORDER_CHECK==SIO_LITTLE_ENDIAN
+    #define SIO_BYTE_ORDER SIO_LITTLE_ENDIAN
+#elif SIO_ENDIAN_ORDER_CHECK==SIO_BIG_ENDIAN
+    #define SIO_BYTE_ORDER SIO_BIG_ENDIAN
+#elif SIO_ENDIAN_ORDER_CHECK==SIO_PDP_ENDIAN
+    #define SIO_BYTE_ORDER SIO_PDP_ENDIAN
+#else
+    # error "What kind of hardware is this?"
+#endif
+
+#endif

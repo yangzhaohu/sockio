@@ -7,15 +7,19 @@ $(shell mkdir -p $(TARGET_OUT))
 OBJ_OUTPUT := ../out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
-FLAGS := -fPIE
+FLAGS := -fPIE -g
 INCLUDES := -I../ -I../depend/include
 LIBS := -L../target -lsockio  -ldl -lpcre2-8 -lpcre2-posix
+
+CFLAGS += $(FLAGS)
+CXXFLAGS += $(FLAGS)
 
 SRCS := test_http_parser.c \
 	pcre2demo.c \
 	test_rtspprot.c \
 	test_udp.c \
-	test_udp2.c
+	test_udp2.c \
+	test_jpeg_parser.c
 
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)

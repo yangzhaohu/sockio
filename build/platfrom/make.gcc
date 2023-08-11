@@ -7,7 +7,7 @@ CXX := g++
 # exec
 # -fPIE
 
-FLAGS += -Wall -Werror
+FLAGS += -Wall -Werror -Wno-multichar
 CFLAGS += $(FLAGS)
 CXXFLAGS += $(FLAGS)
 
