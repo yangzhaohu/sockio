@@ -35,8 +35,7 @@ struct sio_rtsp_conn
     struct sio_rtsp_rtp rtp;
 
     sio_str_t field;
-    sio_str_t cseq;
-    sio_str_t cliport;
+    unsigned int seq;
     unsigned int complete:1; // packet complete
 
     struct sio_thread *thread;
@@ -141,16 +140,15 @@ int sio_rtspmod_protovalue(struct sio_rtspprot *prot, const char *at, int len)
     sio_str_t *field = &rconn->field;
 
     if (strncmp(field->data, "CSeq", strlen("CSeq")) == 0) {
-        sio_str_t *cseq = &rconn->cseq;
-        cseq->data = at;
-        cseq->length = len;
+        char port[len + 1];
+        port[len] = 0;
+        memcpy(port, at, len);
+        sscanf(port, "%u", &rconn->seq);
     } else if (strncmp(field->data, "Transport", strlen("Transport")) == 0) {
-        sio_str_t *cliport = &rconn->cliport;
-        cliport->data = at;
-        cliport->length = len;
-        char port[32] = { 0 };
-        memcpy(port, cliport->data, len);
-        sscanf(port, "RTP/AVP;unicast;client_port=%d-%d", &rtp->channel.rtpchn, &rtp->channel.rtcpchn);
+        char port[len + 1];
+        port[len] = 0;
+        memcpy(port, at, len);
+        sscanf(port, "RTP/AVP;unicast;client_port=%u-%u", &rtp->channel.rtpchn, &rtp->channel.rtcpchn);
     }
     return 0;
 }
@@ -167,13 +165,12 @@ static inline
 int sio_rtspmod_options_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
-    sio_str_t *cseq = &rconn->cseq;
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
-                    "CSeq: %.*s\r\n"
+                    "CSeq: %u\r\n"
                     "Public: %s\r\n"
-                    "\r\n", cseq->length, cseq->data, "OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY");
+                    "\r\n", rconn->seq, "OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY");
 
     sio_socket_write(sock, buffer, strlen(buffer));
 
@@ -184,7 +181,6 @@ static inline
 int sio_rtspmod_describe_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
-    sio_str_t *cseq = &rconn->cseq;
 
     char scri[512] = { 0 };
     sprintf(scri, "v=0\r\n"
@@ -197,10 +193,10 @@ int sio_rtspmod_describe_response(struct sio_socket *sock)
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
-                     "CSeq: %.*s\r\n"
+                     "CSeq: %u\r\n"
                      "Content-length: %ld\r\n"
                      "Content-type: application/sdp\r\n"
-                     "\r\n", cseq->length, cseq->data, strlen(scri));
+                     "\r\n", rconn->seq, strlen(scri));
 
     sio_socket_write(sock, buffer, strlen(buffer));
     sio_socket_write(sock, scri, strlen(scri));
@@ -254,18 +250,16 @@ static inline
 int sio_rtspmod_setup_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
-    sio_str_t *cseq = &rconn->cseq;
-    sio_str_t *cliport = &rconn->cliport;
 
     struct sio_rtsp_rtp *rtp = &rconn->rtp;
     unsigned int port = sio_rtp_session_udpsock(&rtp->sockpair[0], &rtp->sockpair[1]);
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
-                    "CSeq: %.*s\r\n"
-                    "Transport: %.*s;server_port=%u-%u\r\n"
+                    "CSeq: %u\r\n"
+                    "Transport: RTP/AVP;unicast;client_port=%u-%u;server_port=%u-%u\r\n"
                     "Session: 66334873\r\n"
-                    "\r\n", cseq->length, cseq->data, cliport->length, cliport->data, port - 2, port - 1);
+                    "\r\n", rconn->seq, rtp->channel.rtpchn, rtp->channel.rtcpchn, port - 2, port - 1);
 
     sio_socket_write(sock, buffer, strlen(buffer));
 
@@ -276,14 +270,13 @@ static inline
 int sio_rtspmod_play_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
-    sio_str_t *cseq = &rconn->cseq;
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
-                    "CSeq: %.*s\r\n"
+                    "CSeq: %u\r\n"
                     "Range: npt=0.000-\r\n"
                     "Session: 66334873; timeout=60\r\n"
-                    "\r\n", cseq->length, cseq->data);
+                    "\r\n", rconn->seq);
 
     sio_socket_write(sock, buffer, strlen(buffer));
 
