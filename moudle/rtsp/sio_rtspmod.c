@@ -148,7 +148,7 @@ int sio_rtspmod_protovalue(struct sio_rtspprot *prot, const char *at, int len)
         char port[len + 1];
         port[len] = 0;
         memcpy(port, at, len);
-        sscanf(port, "RTP/AVP;unicast;client_port=%u-%u", &rtp->channel.rtpchn, &rtp->channel.rtcpchn);
+        sscanf(port, "%*[^;];%*[^;];%*[^=]=%u-%u", &rtp->channel.rtpchn, &rtp->channel.rtcpchn);
     }
     return 0;
 }
