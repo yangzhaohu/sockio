@@ -27,17 +27,17 @@ extern "C" {
 
 struct sio_service *sio_service_create(enum sio_submod_type type);
 
-int sio_service_setopt(struct sio_service *servmod, enum sio_service_optcmd cmd, union sio_service_opt *opt);
+int sio_service_setopt(struct sio_service *service, enum sio_service_optcmd cmd, union sio_service_opt *opt);
 
-int sio_service_getopt(struct sio_service *servmod, enum sio_service_optcmd cmd, union sio_service_opt *opt);
+int sio_service_getopt(struct sio_service *service, enum sio_service_optcmd cmd, union sio_service_opt *opt);
 
-int sio_service_setlocat(struct sio_service *servmod, const struct sio_location *locations, int size);
+int sio_service_setlocat(struct sio_service *service, const struct sio_location *locations, int size);
 
-int sio_service_dowork(struct sio_service *servmod);
+int sio_service_dowork(struct sio_service *service);
 
-int sio_service_insmod(struct sio_service *servmod, const char *modname, struct sio_submod *mod);
+int sio_service_insmod(struct sio_service *service, const char *modname, struct sio_submod *mod);
 
-int sio_service_destory(struct sio_service *servmod);
+int sio_service_destory(struct sio_service *service);
 
 #ifdef __cplusplus
 }
