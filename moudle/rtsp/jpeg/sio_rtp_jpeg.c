@@ -80,7 +80,7 @@ unsigned int sio_rtp_jpeg_jpeghdr_dqt_zero(struct sio_jpeghdr_dqt *dqt, struct s
 }
 
 int sio_rtp_jpeg_process(struct sio_rtp_jpeg *jpeg, const unsigned char *data, unsigned int len,
-    void (*payload)(const unsigned char *data, unsigned int len))
+    void *handle, void (*payload)(void *handle, const unsigned char *data, unsigned int len))
 {
     SIO_COND_CHECK_RETURN_VAL(!jpeg || !payload, -1);
 
@@ -122,7 +122,7 @@ int sio_rtp_jpeg_process(struct sio_rtp_jpeg *jpeg, const unsigned char *data, u
         }
 
         memcpy(ptr, data + offset, l);
-        payload(jpeg->rtp, l + (ptr - jpeg->rtp));
+        payload(handle, jpeg->rtp, l + (ptr - jpeg->rtp));
 
         offset += l;
     }
