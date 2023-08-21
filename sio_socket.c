@@ -304,6 +304,25 @@ void sio_socket_set_ops(struct sio_socket *sock, struct sio_socket_ops ops)
 }
 
 static inline
+void sio_socket_get_ops(struct sio_socket *sock, struct sio_socket_ops *ops)
+{
+    struct sio_socket_attr *attr = &sock->attr;
+    struct sio_socket_owner *owner = &sock->owner;
+    if (attr->proto == SIO_SOCK_TCP) {
+        ops->readable = owner->ops.readable;
+        ops->writeable = owner->ops.writeable;
+    } else {
+        ops->readfromable = owner->ops.readable;
+        ops->writetoable = owner->ops.writeable;
+    }
+
+    ops->acceptasync = owner->ops.acceptasync;
+    ops->readasync = owner->ops.readasync;
+    ops->writeasync = owner->ops.writeasync;
+    ops->closeable = owner->ops.closeable;
+}
+
+static inline
 void sio_socket_set_mplex(struct sio_socket *sock, struct sio_mplex *mplex)
 {
     sock->mp = mplex;
@@ -491,6 +510,10 @@ int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
     case SIO_SOCK_PRIVATE:
         sio_socket_get_private(sock, &opt->private);
         break;
+    
+    case SIO_SOCK_OPS:
+        sio_socket_get_ops(sock, &opt->ops);
+        break;
 
     default:
         ret = -1;
@@ -498,6 +521,36 @@ int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
     }
 
     return ret;
+}
+
+int sio_socket_peername(struct sio_socket *sock, struct sio_socket_addr *peer)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || !peer, -1);
+
+    struct sockaddr_in addr_in = { 0 };
+    socklen_t l = sizeof(addr_in);
+    int ret = getpeername(sock->fd, (struct sockaddr *)&addr_in, &l);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    inet_ntop(AF_INET, &addr_in.sin_addr.s_addr, peer->addr, sizeof(peer->addr));
+    peer->port = ntohs(addr_in.sin_port);
+
+    return 0;
+}
+
+int sio_socket_sockname(struct sio_socket *sock, struct sio_socket_addr *addr)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
+
+    struct sockaddr_in addr_in = { 0 };
+    socklen_t l = sizeof(addr_in);
+    int ret = getsockname(sock->fd, (struct sockaddr *)&addr_in, &l);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    inet_ntop(AF_INET, &addr_in.sin_addr.s_addr, addr->addr, sizeof(addr->addr));
+    addr->port = ntohs(addr_in.sin_port);
+
+    return 0;
 }
 
 static inline

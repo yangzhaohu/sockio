@@ -14,6 +14,12 @@
         continue;                               \
     }
 
+#define SIO_COND_CHECK_CALLOPS_CONTINUE(cond, ...)          \
+    if (cond) {                                             \
+        (__VA_ARGS__);                                      \
+        continue;                                           \
+    }
+
 #define SIO_COND_CHECK_BREAK(cond)              \
     if (cond) {                                 \
         break;                                  \

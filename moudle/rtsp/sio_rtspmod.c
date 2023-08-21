@@ -6,8 +6,8 @@
 #include "sio_common.h"
 #include "sio_def.h"
 #include "proto/sio_rtspprot.h"
-#include "jpeg/sio_rtp_jpeg.h"
 #include "sio_thread.h"
+#include "sio_rtpvod.h"
 #include "sio_log.h"
 
 struct sio_rtsp_buffer
@@ -18,28 +18,18 @@ struct sio_rtsp_buffer
     char *end;
 };
 
-struct sio_rtsp_rtp
-{
-    unsigned int sid;
-    struct {
-        unsigned int rtpchn;
-        unsigned int rtcpchn;
-    }channel;
-    struct sio_socket *sockpair[2];
-};
-
 struct sio_rtsp_conn
 {
     struct sio_rtsp_buffer buf;
     struct sio_rtspprot *prot;
-    struct sio_rtsp_rtp rtp;
+    struct sio_rtpvod *rtpvod;
 
     sio_str_t field;
     unsigned int seq;
-    unsigned int complete:1; // packet complete
+    unsigned int rtpchn;
+    unsigned int rtcpchn;
 
-    struct sio_thread *thread;
-    int loop;
+    unsigned int complete:1; // packet complete
 };
 
 struct sio_rtspmod
@@ -62,36 +52,6 @@ int sio_rtspmod_version(const char **version)
 {
     *version = "0.0.1";
     return 0;
-}
-
-static inline
-int sio_rtp_session_udpsock(struct sio_socket **rtp, struct sio_socket **rtcp)
-{
-    static unsigned short port = 40000;
-    port = port >= 65532 ? 40000 : port;
-
-    *rtp = sio_socket_create(SIO_SOCK_UDP, NULL);
-    SIO_COND_CHECK_RETURN_VAL(!(*rtp), -1);
-    
-    *rtcp = sio_socket_create(SIO_SOCK_UDP, NULL);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!(*rtcp), -1,
-        sio_socket_destory(*rtp));
-
-    struct sio_socket_addr addr = {"127.0.0.1", port};
-    int ret = sio_socket_bind(*rtp, &addr);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        sio_socket_destory(*rtp),
-        sio_socket_destory(*rtcp));
-    
-    struct sio_socket_addr addr2 = {"127.0.0.1", port + 1};
-    ret = sio_socket_bind(*rtcp, &addr2);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        sio_socket_destory(*rtp),
-        sio_socket_destory(*rtcp));
-    
-    port += 2;
-
-    return port;
 }
 
 static inline
@@ -136,7 +96,6 @@ int sio_rtspmod_protovalue(struct sio_rtspprot *prot, const char *at, int len)
 {
     // SIO_LOGE("value: %.*s\n", len, at);
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_rtspprot(prot);
-    struct sio_rtsp_rtp *rtp = &rconn->rtp;
     sio_str_t *field = &rconn->field;
 
     if (strncmp(field->data, "CSeq", strlen("CSeq")) == 0) {
@@ -148,7 +107,7 @@ int sio_rtspmod_protovalue(struct sio_rtspprot *prot, const char *at, int len)
         char port[len + 1];
         port[len] = 0;
         memcpy(port, at, len);
-        sscanf(port, "%*[^;];%*[^;];%*[^=]=%u-%u", &rtp->channel.rtpchn, &rtp->channel.rtcpchn);
+        sscanf(port, "%*[^;];%*[^;];%*[^=]=%u-%u", &rconn->rtpchn, &rconn->rtcpchn);
     }
     return 0;
 }
@@ -165,6 +124,9 @@ static inline
 int sio_rtspmod_options_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+
+    rconn->rtpvod = sio_rtpvod_create();
+    sio_rtpvod_open_rtpstream(rconn->rtpvod, "test.jpg");
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
@@ -215,51 +177,20 @@ unsigned int sio_rtspmod_rtp_timestamp()
 }
 
 static inline
-void sio_rtspmod_rtp_send(void *handle, const unsigned char *data, unsigned int len)
-{
-    struct sio_rtsp_conn *rconn = handle;
-    struct sio_rtsp_rtp *rtp = &rconn->rtp;
-    struct sio_socket_addr addr = {"127.0.0.1", rtp->channel.rtpchn};
-    sio_socket_writeto(rconn->rtp.sockpair[0], (const char *)data, len, &addr);
-}
-
-void *sio_rtspmod_rtp_routine(void *arg)
-{
-    struct sio_rtsp_conn *rconn = (struct sio_rtsp_conn *)arg;
-    FILE *fp = fopen("test.jpg", "rb");
-    fseek(fp, 0, SEEK_END);
-    long len = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    unsigned char *jpegdata = malloc(len);
-    fread(jpegdata, 1, len, fp);
-
-    fclose(fp);
-
-    struct sio_rtp_jpeg *jpeg = sio_rtp_jpeg_create(1420);
-
-    while (rconn->loop) {
-        sio_rtp_jpeg_process(jpeg, jpegdata, len, rconn, sio_rtspmod_rtp_send);
-        usleep(40 * 1000);
-    }
-
-    return NULL;
-}
-
-static inline
 int sio_rtspmod_setup_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
-    struct sio_rtsp_rtp *rtp = &rconn->rtp;
-    unsigned int port = sio_rtp_session_udpsock(&rtp->sockpair[0], &rtp->sockpair[1]);
+    struct sio_rtpchn *rtpchn = sio_rtpvod_open_rtpchn(rconn->rtpvod, sock, rconn->rtpchn, rconn->rtcpchn, SIO_RTPCHN_OVER_UDP);
+    unsigned int rtpport = sio_rtpchn_chnrtp(rtpchn);
+    unsigned int rtcpport = sio_rtpchn_chnrtcp(rtpchn);
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
                     "CSeq: %u\r\n"
                     "Transport: RTP/AVP;unicast;client_port=%u-%u;server_port=%u-%u\r\n"
                     "Session: 66334873\r\n"
-                    "\r\n", rconn->seq, rtp->channel.rtpchn, rtp->channel.rtcpchn, port - 2, port - 1);
+                    "\r\n", rconn->seq, rconn->rtpchn, rconn->rtcpchn, rtpport, rtcpport);
 
     sio_socket_write(sock, buffer, strlen(buffer));
 
@@ -279,13 +210,6 @@ int sio_rtspmod_play_response(struct sio_socket *sock)
                     "\r\n", rconn->seq);
 
     sio_socket_write(sock, buffer, strlen(buffer));
-
-    if (rconn->thread == NULL) {
-        rconn->thread = sio_thread_create(sio_rtspmod_rtp_routine, rconn);
-        rconn->loop = 1;
-        sio_thread_start(rconn->thread);
-    }
-
 
     return 0;
 }
@@ -335,6 +259,9 @@ struct sio_rtsp_conn *sio_rtspmod_rtspconn_create(struct sio_socket *sock)
 static inline
 void sio_rtspmod_rtspconn_destory(struct sio_rtsp_conn *rconn)
 {
+    sio_rtspprot_destory(rconn->prot);
+    sio_rtpvod_destory(rconn->rtpvod);
+
     free(rconn->buf.buf);
     free(rconn);
 }
@@ -398,9 +325,6 @@ int sio_rtspmod_socket_closeable(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
     sio_rtspmod_rtspconn_destory(rconn);
-
-    rconn->loop = 0;
-    sio_thread_destory(rconn->thread);
 
     sio_socket_destory(sock);
 

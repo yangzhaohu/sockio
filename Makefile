@@ -37,7 +37,13 @@ SRCS := sio_mplex.c \
 		moudle/locate/sio_locate.c \
 		moudle/locate/sio_locatmod.c \
 		moudle/rtsp/sio_rtspmod.c \
-		moudle/rtsp/jpeg/sio_rtp_jpeg.c
+		moudle/rtsp/sio_rtpvod.c \
+		moudle/rtsp/sio_rtpstream.c \
+		moudle/rtsp/sio_rtpchn.c \
+		moudle/rtsp/rtpack/sio_avdev.c \
+		moudle/rtsp/rtpack/sio_avdev_jpeg.c \
+		moudle/rtsp/rtpack/sio_rtpack.c \
+		moudle/rtsp/rtpack/sio_rtpack_jpeg.c \
 
 .PHONY: incre all clean help
 

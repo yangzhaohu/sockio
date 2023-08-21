@@ -1,4 +1,4 @@
-#include "sio_rtp_jpeg.h"
+#include "sio_rtpack_jpeg.h"
 #include <stdlib.h>
 #include <string.h>
 #include "sio_common.h"
@@ -6,7 +6,7 @@
 #include "proto/sio_jpegprot.h"
 #include "sio_jpeg_parser.h"
 
-struct sio_rtp_jpeg
+struct sio_rtpack_jpeg
 {
     unsigned int size;
     unsigned char *buffer;
@@ -16,12 +16,12 @@ struct sio_rtp_jpeg
 
 #define sio_rtp_packet_size(jpeg) jpeg->size - SIO_RTP_OVER_TCP_HEADBYTE
 
-struct sio_rtp_jpeg *sio_rtp_jpeg_create(unsigned int size)
+sio_rtpack_t sio_rtpack_jpeg_create(unsigned int size)
 {
-    struct sio_rtp_jpeg *jpeg = malloc(sizeof(struct sio_rtp_jpeg));
+    struct sio_rtpack_jpeg *jpeg = malloc(sizeof(struct sio_rtpack_jpeg));
     SIO_COND_CHECK_RETURN_VAL(!jpeg, NULL);
 
-    memset(jpeg, 0, sizeof(struct sio_rtp_jpeg));
+    memset(jpeg, 0, sizeof(struct sio_rtpack_jpeg));
 
     size = size + SIO_RTP_OVER_TCP_HEADBYTE + sizeof(struct sio_rtphdr);
     jpeg->buffer = malloc(size);
@@ -35,7 +35,7 @@ struct sio_rtp_jpeg *sio_rtp_jpeg_create(unsigned int size)
 }
 
 static inline
-void sio_rtp_jpeg_rtphdr_zero(struct sio_rtphdr *rtphdr)
+void sio_rtpack_jpeg_rtphdr_zero(struct sio_rtphdr *rtphdr)
 {
     sio_rtp_header_set_version(rtphdr, 2);
     sio_rtp_header_set_padding(rtphdr, 0);
@@ -47,7 +47,7 @@ void sio_rtp_jpeg_rtphdr_zero(struct sio_rtphdr *rtphdr)
 }
 
 static inline
-void sio_rtp_jpeg_jpeghdr_zero(struct sio_jpeghdr *jpeghdr, struct sio_jpeg_meta *meta,
+void sio_rtpack_jpeg_jpeghdr_zero(struct sio_jpeghdr *jpeghdr, struct sio_jpeg_meta *meta,
     unsigned int offset)
 {
     jpeghdr->tspec = 0;
@@ -63,7 +63,7 @@ void sio_rtp_jpeg_jpeghdr_zero(struct sio_jpeghdr *jpeghdr, struct sio_jpeg_meta
 }
 
 static inline
-unsigned int sio_rtp_jpeg_jpeghdr_dqt_zero(struct sio_jpeghdr_dqt *dqt, struct sio_jpeg_meta *meta)
+unsigned int sio_rtpack_jpeg_jpeghdr_dqt_zero(struct sio_jpeghdr_dqt *dqt, struct sio_jpeg_meta *meta)
 {
     dqt->mbz = 0;
     dqt->precision = 0;
@@ -79,17 +79,21 @@ unsigned int sio_rtp_jpeg_jpeghdr_dqt_zero(struct sio_jpeghdr_dqt *dqt, struct s
     return offset;
 }
 
-int sio_rtp_jpeg_process(struct sio_rtp_jpeg *jpeg, const unsigned char *data, unsigned int len,
-    void *handle, void (*payload)(void *handle, const unsigned char *data, unsigned int len))
+int sio_rtpack_jpeg_packet(sio_rtpack_t rtpack, struct sio_avframe *frame, 
+    void *handle, void (*package)(void *handle, struct sio_packet *pack))
 {
-    SIO_COND_CHECK_RETURN_VAL(!jpeg || !payload, -1);
+    SIO_COND_CHECK_RETURN_VAL(!rtpack || !package, -1);
+
+    struct sio_rtpack_jpeg *jpeg = rtpack;
 
     struct sio_jpeg_meta meta = { 0 };
-    int ret = sio_jpeg_parser(&meta, data, len);
+    int ret = sio_jpeg_parser(&meta, frame->data, frame->length);
     SIO_COND_CHECK_RETURN_VAL(ret != 0, -1);
 
+    unsigned int len = frame->length;
+
     struct sio_rtphdr *rtphdr = (struct sio_rtphdr *)jpeg->rtp;
-    sio_rtp_jpeg_rtphdr_zero(rtphdr);
+    sio_rtpack_jpeg_rtphdr_zero(rtphdr);
 
     unsigned int timestamp = 0;
     unsigned int offset = 0;
@@ -103,7 +107,7 @@ int sio_rtp_jpeg_process(struct sio_rtp_jpeg *jpeg, const unsigned char *data, u
         ptr += sizeof(struct sio_rtphdr);
 
         struct sio_jpeghdr *jpeghdr = (struct sio_jpeghdr *)ptr;
-        sio_rtp_jpeg_jpeghdr_zero(jpeghdr, &meta, offset);
+        sio_rtpack_jpeg_jpeghdr_zero(jpeghdr, &meta, offset);
         ptr += sizeof(struct sio_jpeghdr);
 
         if (meta.dri != 0) {
@@ -111,7 +115,7 @@ int sio_rtp_jpeg_process(struct sio_rtp_jpeg *jpeg, const unsigned char *data, u
 
         if (jpeghdr->quant > 128 && offset == 0) {
             struct sio_jpeghdr_dqt *dqt = (struct sio_jpeghdr_dqt *)(ptr);
-            unsigned int off = sio_rtp_jpeg_jpeghdr_dqt_zero(dqt, &meta);
+            unsigned int off = sio_rtpack_jpeg_jpeghdr_dqt_zero(dqt, &meta);
             ptr += off;
         }
 
@@ -121,8 +125,13 @@ int sio_rtp_jpeg_process(struct sio_rtp_jpeg *jpeg, const unsigned char *data, u
             sio_rtp_header_set_mark(rtphdr, 1);
         }
 
-        memcpy(ptr, data + offset, l);
-        payload(handle, jpeg->rtp, l + (ptr - jpeg->rtp));
+        memcpy(ptr, frame->data + offset, l);
+
+        struct sio_packet pack = {
+            .data = jpeg->rtp,
+            .length = l + (ptr - jpeg->rtp)
+        };
+        package(handle, &pack);
 
         offset += l;
     }
@@ -130,9 +139,12 @@ int sio_rtp_jpeg_process(struct sio_rtp_jpeg *jpeg, const unsigned char *data, u
     return 0;
 }
 
-int sio_rtp_jpeg_destory(struct sio_rtp_jpeg *jpeg)
+int sio_rtpack_jpeg_destory(sio_rtpack_t rtpack)
 {
-    SIO_COND_CHECK_RETURN_VAL(!jpeg, -1);
+    SIO_COND_CHECK_RETURN_VAL(!rtpack, -1);
+
+    struct sio_rtpack_jpeg *jpeg = rtpack;
+    
     free(jpeg->buffer);
     free(jpeg);
 
