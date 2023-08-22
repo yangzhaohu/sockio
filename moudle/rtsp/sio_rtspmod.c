@@ -218,7 +218,6 @@ int sio_rtspmod_setup_response(struct sio_socket *sock)
     sio_rtpvod_attach_rtpchn(rconn->rtpvod, rtpchn);
     sio_rtpvod_start(rconn->rtpvod);
 
-    // struct sio_rtpchn *rtpchn = sio_rtpvod_open_rtpchn(rconn->rtpvod, sock, rconn->rtpchn, rconn->rtcpchn, SIO_RTPCHN_OVER_UDP);
     unsigned int rtpport = sio_rtpchn_chnrtp(rtpchn);
     unsigned int rtcpport = sio_rtpchn_chnrtcp(rtpchn);
 
@@ -289,7 +288,6 @@ static inline
 int sio_rtspmod_socket_readable(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
-    // struct sio_rtspprot *prot = rconn->prot;
     struct sio_rtsp_buffer *buf = &rconn->buf;
 
     int l = buf->end - buf->last;
@@ -298,7 +296,6 @@ int sio_rtspmod_socket_readable(struct sio_socket *sock)
     buf->last += len;
 
     l = buf->last - buf->pos;
-    // l = sio_rtspprot_process(prot, buf->pos, l);
     l = http_parser_execute(&rconn->parser, &g_http_parser_cb, buf->pos, l);
 
     if (rconn->complete != 1) {
@@ -309,26 +306,25 @@ int sio_rtspmod_socket_readable(struct sio_socket *sock)
     rconn->complete = 0;
     buf->last = buf->pos = buf->buf; // reset
 
-    // int method = sio_rtspprot_method(prot);
     int method = rconn->parser.method;
     switch (method) {
-    case /* 1 << SIO_RTSP_OPTIONS */ HTTP_OPTIONS:
+    case HTTP_OPTIONS:
         sio_rtspmod_options_response(sock);
         break;
     
-    case /* 1 << SIO_RTSP_DESCRIBE */ HTTP_DESCRIBE:
+    case HTTP_DESCRIBE:
         sio_rtspmod_describe_response(sock);
         break;
     
-    case /* 1 << SIO_RTSP_SETUP */ HTTP_SETUP:
+    case HTTP_SETUP:
         sio_rtspmod_setup_response(sock);
         break;
 
-    case /* 1 << SIO_RTSP_PLAY */ HTTP_PLAY:
+    case HTTP_PLAY:
         sio_rtspmod_play_response(sock);
         break;
 
-    case /* 1 << SIO_RTSP_ANNOUNCE */ HTTP_ANNOUNCE:
+    case HTTP_ANNOUNCE:
         sio_rtspmod_announce_response(sock);
         break;
     
