@@ -63,6 +63,18 @@ struct sio_rtpchn *sio_rtpchn_create()
 }
 
 static inline
+int sio_rtpchn_rtpack_readable_from(struct sio_socket *sock)
+{
+    return 0;
+}
+
+static inline
+int sio_rtpchn_rtpack_writeable_to(struct sio_socket *sock)
+{
+    return 0;
+}
+
+static inline
 int sio_rtpchn_rtpack_writeable(struct sio_socket *sock)
 {
     return 0;
@@ -100,8 +112,9 @@ struct sio_rtpchn *sio_rtpchn_overudp_open(struct sio_socket *rtsp, int rtp, int
     rtpchn->rtpchn = rtp;
     rtpchn->rtcpchn = rtcp;
 
-    union sio_socket_opt opt = { 
-        .ops.writeable = sio_rtpchn_rtpack_writeable
+    union sio_socket_opt opt = {
+        .ops.readable = sio_rtpchn_rtpack_readable_from,
+        .ops.writeable = sio_rtpchn_rtpack_writeable_to
     };
     sio_socket_setopt(rtpchn->sock[SIO_CHN_RTP], SIO_SOCK_OPS, &opt);
 

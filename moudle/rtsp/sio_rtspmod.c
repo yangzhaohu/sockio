@@ -2,11 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include <unistd.h>
 #include "sio_common.h"
 #include "sio_def.h"
 #include "proto/sio_rtspprot.h"
-#include "sio_thread.h"
+#include "sio_rtpchn.h"
 #include "sio_rtpvod.h"
 #include "sio_log.h"
 
@@ -22,14 +21,16 @@ struct sio_rtsp_conn
 {
     struct sio_rtsp_buffer buf;
     struct sio_rtspprot *prot;
+    struct sio_rtpchn *rtpchn;
     struct sio_rtpvod *rtpvod;
 
     sio_str_t field;
     unsigned int seq;
-    unsigned int rtpchn;
-    unsigned int rtcpchn;
+    unsigned int rtp;
+    unsigned int rtcp;
 
     unsigned int complete:1; // packet complete
+    unsigned int live:1;
 };
 
 struct sio_rtspmod
@@ -107,7 +108,7 @@ int sio_rtspmod_protovalue(struct sio_rtspprot *prot, const char *at, int len)
         char port[len + 1];
         port[len] = 0;
         memcpy(port, at, len);
-        sscanf(port, "%*[^;];%*[^;];%*[^=]=%u-%u", &rconn->rtpchn, &rconn->rtcpchn);
+        sscanf(port, "%*[^;];%*[^;];%*[^=]=%u-%u", &rconn->rtp, &rconn->rtcp);
     }
     return 0;
 }
@@ -125,14 +126,11 @@ int sio_rtspmod_options_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
-    rconn->rtpvod = sio_rtpvod_create();
-    sio_rtpvod_open_rtpstream(rconn->rtpvod, "test.jpg");
-
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
                     "CSeq: %u\r\n"
                     "Public: %s\r\n"
-                    "\r\n", rconn->seq, "OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY");
+                    "\r\n", rconn->seq, "OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY, ANNOUNCE, RECORD");
 
     sio_socket_write(sock, buffer, strlen(buffer));
 
@@ -143,6 +141,11 @@ static inline
 int sio_rtspmod_describe_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+
+    rconn->rtpvod = sio_rtpvod_create();
+    sio_rtpvod_open(rconn->rtpvod, "test.jpg");
+
+    rconn->live = 0;
 
     char scri[512] = { 0 };
     sprintf(scri, "v=0\r\n"
@@ -167,6 +170,23 @@ int sio_rtspmod_describe_response(struct sio_socket *sock)
 }
 
 static inline
+int sio_rtspmod_announce_response(struct sio_socket *sock)
+{
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+
+    rconn->live = 1;
+
+    char buffer[1024] = { 0 };
+    sprintf(buffer, "RTSP/1.0 200 OK\r\n"
+                    "CSeq: %u\r\n"
+                    "\r\n", rconn->seq);
+
+    sio_socket_write(sock, buffer, strlen(buffer));
+
+    return 0;
+}
+
+static inline
 unsigned int sio_rtspmod_rtp_timestamp()
 {
     struct timeval tv = { 0 };
@@ -181,7 +201,12 @@ int sio_rtspmod_setup_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
-    struct sio_rtpchn *rtpchn = sio_rtpvod_open_rtpchn(rconn->rtpvod, sock, rconn->rtpchn, rconn->rtcpchn, SIO_RTPCHN_OVER_UDP);
+    struct sio_rtpchn *rtpchn = sio_rtpchn_overudp_open(sock, rconn->rtp, rconn->rtcp);
+    rconn->rtpchn = rtpchn;
+    sio_rtpvod_attach_rtpchn(rconn->rtpvod, rtpchn);
+    sio_rtpvod_start(rconn->rtpvod);
+
+    // struct sio_rtpchn *rtpchn = sio_rtpvod_open_rtpchn(rconn->rtpvod, sock, rconn->rtpchn, rconn->rtcpchn, SIO_RTPCHN_OVER_UDP);
     unsigned int rtpport = sio_rtpchn_chnrtp(rtpchn);
     unsigned int rtcpport = sio_rtpchn_chnrtcp(rtpchn);
 
@@ -190,7 +215,7 @@ int sio_rtspmod_setup_response(struct sio_socket *sock)
                     "CSeq: %u\r\n"
                     "Transport: RTP/AVP;unicast;client_port=%u-%u;server_port=%u-%u\r\n"
                     "Session: 66334873\r\n"
-                    "\r\n", rconn->seq, rconn->rtpchn, rconn->rtcpchn, rtpport, rtcpport);
+                    "\r\n", rconn->seq, rconn->rtp, rconn->rtcp, rtpport, rtcpport);
 
     sio_socket_write(sock, buffer, strlen(buffer));
 
@@ -305,6 +330,10 @@ int sio_rtspmod_socket_readable(struct sio_socket *sock)
 
     case 1 << SIO_RTSP_PLAY:
         sio_rtspmod_play_response(sock);
+        break;
+
+    case 1 << SIO_RTSP_ANNOUNCE:
+        sio_rtspmod_announce_response(sock);
         break;
     
     default:

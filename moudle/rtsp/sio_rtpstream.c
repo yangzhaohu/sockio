@@ -53,31 +53,6 @@ void *sio_rtpstream_proc_routine(void *arg)
 }
 
 static inline
-int sio_rtpstream_destory(struct sio_rtpstream *stream)
-{
-    free(stream);
-
-    return 0;
-}
-
-static inline
-struct sio_rtpstream *sio_rtpstream_create()
-{
-    struct sio_rtpstream *stream = malloc(sizeof(struct sio_rtpstream));
-    SIO_COND_CHECK_RETURN_VAL(!stream, NULL);
-
-    memset(stream, 0, sizeof(struct sio_rtpstream));
-
-    struct sio_thread *thread = sio_thread_create(sio_rtpstream_proc_routine, stream);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!thread, NULL,
-        free(stream));
-
-    stream->thread = thread;
-
-    return stream;
-}
-
-static inline
 int sio_rtpstream_avdev_open(struct sio_rtpstream *stream, const char* name)
 {
     struct sio_avdev *dev = sio_avdev_find(SIO_AVDEV_JPEG);
@@ -111,11 +86,38 @@ int sio_rtpstream_avdev_close(struct sio_rtpstream *stream)
     int ret = dev->close(dev->handle);
     SIO_COND_CHECK_RETURN_VAL(ret != 0, -1);
 
+    dev->handle = NULL;
+
     struct sio_rtpack *packet = &stream->packet;
     ret = packet->close(packet->handle);
     SIO_COND_CHECK_RETURN_VAL(ret != 0, -1);
 
-    dev->handle = NULL;
+    packet->handle = NULL;
+
+    return 0;
+}
+
+static inline
+struct sio_rtpstream *sio_rtpstream_create()
+{
+    struct sio_rtpstream *stream = malloc(sizeof(struct sio_rtpstream));
+    SIO_COND_CHECK_RETURN_VAL(!stream, NULL);
+
+    memset(stream, 0, sizeof(struct sio_rtpstream));
+
+    struct sio_thread *thread = sio_thread_create(sio_rtpstream_proc_routine, stream);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!thread, NULL,
+        free(stream));
+
+    stream->thread = thread;
+
+    return stream;
+}
+
+static inline
+int sio_rtpstream_destory(struct sio_rtpstream *stream)
+{
+    free(stream);
 
     return 0;
 }
@@ -126,16 +128,20 @@ struct sio_rtpstream *sio_rtpstream_open(const char* name)
     SIO_COND_CHECK_RETURN_VAL(!stream, NULL);
 
     int ret = sio_rtpstream_avdev_open(stream, name);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
-        sio_rtpstream_destory(stream));
-
-    struct sio_thread *thread = stream->thread;
-    ret = sio_thread_start(thread);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
-        sio_rtpstream_avdev_close(stream),
-        sio_rtpstream_destory(stream));
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, NULL);
 
     return stream;
+}
+
+int sio_rtpstream_start(struct sio_rtpstream *stream)
+{
+    SIO_COND_CHECK_RETURN_VAL(!stream, -1);
+
+    struct sio_thread *thread = stream->thread;
+    int ret = sio_thread_start(thread);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+    return 0;
 }
 
 int sio_rtpstream_setopt(struct sio_rtpstream *stream, 

@@ -28,6 +28,8 @@ extern "C" {
 
 struct sio_rtpstream *sio_rtpstream_open(const char* name);
 
+int sio_rtpstream_start(struct sio_rtpstream *stream);
+
 int sio_rtpstream_setopt(struct sio_rtpstream *stream, 
     enum sio_rtpstream_optcmd cmd, union sio_rtpstream_opt *opt);
 

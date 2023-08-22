@@ -32,47 +32,47 @@ struct sio_rtpvod *sio_rtpvod_create()
     return rtpvod;
 }
 
-struct sio_rtpchn *sio_rtpvod_open_rtpchn(struct sio_rtpvod *rtpvod, struct sio_socket *rtsp,
-    int rtp, int rtcp, enum sio_rtpchn_over over)
+int sio_rtpvod_attach_rtpchn(struct sio_rtpvod *rtpvod, struct sio_rtpchn *rtpchn)
 {
-    SIO_COND_CHECK_RETURN_VAL(!rtpvod || !rtsp, NULL);
-    SIO_COND_CHECK_RETURN_VAL(rtpvod->rtpchn, 0);
+    SIO_COND_CHECK_RETURN_VAL(!rtpvod, -1);
+    SIO_COND_CHECK_RETURN_VAL(rtpvod->rtpchn, -1);
 
-    if (over == SIO_RTPCHN_OVER_UDP) {
-        rtpvod->rtpchn = sio_rtpchn_overudp_open(rtsp, rtp, rtcp);
-    } else {
-        rtpvod->rtpchn = sio_rtpchn_overtcp_open(rtsp, rtp, rtcp);
-    }
+    rtpvod->rtpchn = rtpchn;
 
-    SIO_COND_CHECK_RETURN_VAL(!rtpvod->rtpchn, NULL);
+    return 0;
+}
 
-    struct sio_rtpstream *stream = rtpvod->stream;
+int sio_rtpvod_open(struct sio_rtpvod *rtpvod, const char *name)
+{
+    SIO_COND_CHECK_RETURN_VAL(!rtpvod || !name, -1);
+    SIO_COND_CHECK_RETURN_VAL(rtpvod->stream, 0);
+
+    struct sio_rtpstream *stream = sio_rtpstream_open(name);
+    SIO_COND_CHECK_RETURN_VAL(!stream, -1);
+
     union sio_rtpstream_opt opt = { .private = rtpvod };
     sio_rtpstream_setopt(stream, SIO_RTPSTREAM_PRIVATE, &opt);
     opt.ops.rtpack = sio_rtpvod_rtpack_send;
     sio_rtpstream_setopt(stream, SIO_RTPSTREAM_OPS, &opt);
 
-    return rtpvod->rtpchn;
+    rtpvod->stream = stream;
+
+    return 0;
 }
 
-struct sio_rtpstream *sio_rtpvod_open_rtpstream(struct sio_rtpvod *rtpvod, const char *name)
+int sio_rtpvod_start(struct sio_rtpvod *rtpvod)
 {
-    SIO_COND_CHECK_RETURN_VAL(!rtpvod || !name, NULL);
-    SIO_COND_CHECK_RETURN_VAL(rtpvod->stream, 0);
+    SIO_COND_CHECK_RETURN_VAL(!rtpvod, -1);
 
-    rtpvod->stream = sio_rtpstream_open(name);
-
-    SIO_COND_CHECK_RETURN_VAL(!rtpvod->stream, NULL);
-
-    return rtpvod->stream;
+    return sio_rtpstream_start(rtpvod->stream);
 }
 
 struct sio_rtpvod *sio_rtpvod_destory(struct sio_rtpvod *rtpvod)
 {
     SIO_COND_CHECK_RETURN_VAL(!rtpvod, NULL);
 
-    SIO_COND_CHECK_CALLOPS(rtpvod->rtpchn,
-        sio_rtpchn_close(rtpvod->rtpchn));
+    // SIO_COND_CHECK_CALLOPS(rtpvod->rtpchn,
+    //     sio_rtpchn_close(rtpvod->rtpchn));
     
     SIO_COND_CHECK_CALLOPS(rtpvod->stream,
         sio_rtpstream_close(rtpvod->stream));
