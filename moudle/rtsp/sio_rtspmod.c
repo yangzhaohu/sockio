@@ -251,6 +251,39 @@ int sio_rtspmod_play_response(struct sio_socket *sock)
 }
 
 static inline
+int sio_rtspmod_record_response(struct sio_socket *sock)
+{
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+
+    char buffer[1024] = { 0 };
+    sprintf(buffer, "RTSP/1.0 200 OK\r\n"
+                    "CSeq: %u\r\n"
+                    "Session: 66334873\r\n"
+                    "\r\n", rconn->seq);
+
+    sio_socket_write(sock, buffer, strlen(buffer));
+
+    return 0;
+}
+
+static inline
+int sio_rtspmod_teardown_response(struct sio_socket *sock)
+{
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+
+    rconn->live = 1;
+
+    char buffer[1024] = { 0 };
+    sprintf(buffer, "RTSP/1.0 200 OK\r\n"
+                    "CSeq: %u\r\n"
+                    "\r\n", rconn->seq);
+
+    sio_socket_write(sock, buffer, strlen(buffer));
+
+    return 0;
+}
+
+static inline
 struct sio_rtsp_conn *sio_rtspmod_rtspconn_create(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = malloc(sizeof(struct sio_rtsp_conn));
@@ -326,6 +359,14 @@ int sio_rtspmod_socket_readable(struct sio_socket *sock)
 
     case HTTP_ANNOUNCE:
         sio_rtspmod_announce_response(sock);
+        break;
+    
+    case HTTP_RECORD:
+        sio_rtspmod_record_response(sock);
+        break;
+
+    case HTTP_TEARDOWN:
+        sio_rtspmod_teardown_response(sock);
         break;
     
     default:
