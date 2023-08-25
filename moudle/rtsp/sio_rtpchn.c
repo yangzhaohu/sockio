@@ -11,8 +11,15 @@ enum sio_chn
     SIO_CHN_BUTT
 };
 
+struct sio_rtpchn_owner
+{
+    void *private;
+    struct sio_rtpchn_ops ops;
+};
+
 struct sio_rtpchn
 {
+    struct sio_rtpchn_owner owner;
     struct sio_socket *sock[SIO_CHN_BUTT];
     int rtpchn;
     int rtcpchn;
@@ -65,6 +72,18 @@ struct sio_rtpchn *sio_rtpchn_create()
 static inline
 int sio_rtpchn_rtpack_readable_from(struct sio_socket *sock)
 {
+    char data[2048] = { 0 };
+    struct sio_socket_addr peer = { 0 };
+    int len = sio_socket_readfrom(sock, data, 2048, &peer);
+
+    union sio_socket_opt opt = { 0 };
+    sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
+
+    struct sio_rtpchn *rtpchn = opt.private;
+    if (rtpchn->owner.ops.rtpack) {
+        rtpchn->owner.ops.rtpack(rtpchn, data, len);
+    }
+
     return 0;
 }
 
@@ -113,12 +132,56 @@ struct sio_rtpchn *sio_rtpchn_overudp_open(struct sio_socket *rtsp, int rtp, int
     rtpchn->rtcpchn = rtcp;
 
     union sio_socket_opt opt = {
-        .ops.readable = sio_rtpchn_rtpack_readable_from,
-        .ops.writeable = sio_rtpchn_rtpack_writeable_to
+        .ops.readfromable = sio_rtpchn_rtpack_readable_from,
+        .ops.writetoable = sio_rtpchn_rtpack_writeable_to
     };
     sio_socket_setopt(rtpchn->sock[SIO_CHN_RTP], SIO_SOCK_OPS, &opt);
 
+    opt.private = rtpchn;
+    sio_socket_setopt(rtpchn->sock[SIO_CHN_RTP], SIO_SOCK_PRIVATE, &opt);
+
+    ret = sio_socket_getopt(rtsp, SIO_SOCK_MPLEX, &opt);
+    ret = sio_socket_setopt(rtpchn->sock[SIO_CHN_RTP], SIO_SOCK_MPLEX, &opt);
+
+    ret = sio_socket_mplex(rtpchn->sock[SIO_CHN_RTP], SIO_EV_OPT_ADD, SIO_EVENTS_IN);
+
     return rtpchn;
+}
+
+int sio_rtpchn_setopt(struct sio_rtpchn *rtpchn,
+    enum sio_rtpchn_optcmd cmd, union sio_rtpchn_opt *opt)
+{
+    switch (cmd)
+    {
+    case SIO_RTPCHN_PRIVATE:
+        rtpchn->owner.private = opt->private;
+        break;
+
+    case SIO_RTPCHN_OPS:
+        rtpchn->owner.ops = opt->ops;
+        break;
+
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+int sio_rtpchn_getopt(struct sio_rtpchn *rtpchn,
+    enum sio_rtpchn_optcmd cmd, union sio_rtpchn_opt *opt)
+{
+    switch (cmd)
+    {
+    case SIO_RTPCHN_PRIVATE:
+        opt->private = rtpchn->owner.private;
+        break;
+
+    default:
+        break;
+    }
+
+    return 0;
 }
 
 int sio_rtpchn_chnrtp(struct sio_rtpchn *rtpchn)
@@ -158,7 +221,8 @@ int sio_rtpchn_close(struct sio_rtpchn *rtpchn)
     SIO_COND_CHECK_RETURN_VAL(!rtpchn, -1);
 
     if (rtpchn->sock[SIO_CHN_RTP] != rtpchn->sock[SIO_CHN_RTCP]) {
-
+        sio_socket_destory(rtpchn->sock[SIO_CHN_RTP]);
+        sio_socket_destory(rtpchn->sock[SIO_CHN_RTCP]);
     }
 
     free(rtpchn);

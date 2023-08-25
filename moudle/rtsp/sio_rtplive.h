@@ -1,26 +1,27 @@
 #ifndef SIO_RTPLIVE_H_
 #define SIO_RTPLIVE_H_
 
-#include "sio_rtpchn.h"
+#include "sio_rtspdev.h"
 
 struct sio_rtplive;
-struct sio_socket;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct sio_rtplive *sio_rtplive_create();
+sio_rtspdev_t sio_rtplive_open(const char *name);
 
-int sio_rtplive_open(struct sio_rtplive *rtplive, const char *name);
+int sio_rtplive_set_describe(sio_rtspdev_t dev, const char *describe, int len);
 
-int sio_rtplive_start(struct sio_rtplive *rtplive);
+int sio_rtplive_get_describe(sio_rtspdev_t dev, const char **describe);
 
-int sio_rtplive_attach_rtpchn(struct sio_rtplive *rtplive, struct sio_rtpchn *rtpchn);
+int sio_rtplive_add_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn);
 
-int sio_rtplive_record(struct sio_rtplive *rtplive, const char *data, unsigned int len);
+int sio_rtplive_rm_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn);
 
-struct sio_rtplive *sio_rtplive_destory(struct sio_rtplive *rtplive);
+int sio_rtplive_record(sio_rtspdev_t dev, const char *data, unsigned int len);
+
+int sio_rtplive_close(sio_rtspdev_t dev);
 
 #ifdef __cplusplus
 }

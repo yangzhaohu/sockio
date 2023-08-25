@@ -510,9 +510,13 @@ int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
     case SIO_SOCK_PRIVATE:
         sio_socket_get_private(sock, &opt->private);
         break;
-    
+
     case SIO_SOCK_OPS:
         sio_socket_get_ops(sock, &opt->ops);
+        break;
+    
+    case SIO_SOCK_MPLEX:
+        opt->mplex = sock->mp;
         break;
 
     default:

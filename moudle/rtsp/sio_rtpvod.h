@@ -1,25 +1,23 @@
 #ifndef SIO_RTPVOD_H_
 #define SIO_RTPVOD_H_
 
-#include "sio_rtpchn.h"
-#include "sio_rtpstream.h"
+#include "sio_rtspdev.h"
 
 struct sio_rtpvod;
-struct sio_socket;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct sio_rtpvod *sio_rtpvod_create();
+sio_rtspdev_t sio_rtpvod_open(const char *name);
 
-int sio_rtpvod_open(struct sio_rtpvod *rtpvod, const char *name);
+int sio_rtpvod_play(sio_rtspdev_t dev);
 
-int sio_rtpvod_start(struct sio_rtpvod *rtpvod);
+int sio_rtpvod_get_describe(sio_rtspdev_t dev, const char **describe);
 
-int sio_rtpvod_attach_rtpchn(struct sio_rtpvod *rtpvod, struct sio_rtpchn *rtpchn);
+int sio_rtpvod_add_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn);
 
-struct sio_rtpvod *sio_rtpvod_destory(struct sio_rtpvod *rtpvod);
+int sio_rtpvod_close(sio_rtspdev_t dev);
 
 #ifdef __cplusplus
 }

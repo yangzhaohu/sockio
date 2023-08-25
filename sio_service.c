@@ -37,7 +37,8 @@ struct sio_mod g_global_mod1[SIO_SUBMOD_BUTT] = {
             .install = sio_rtspmod_create,
             .newconn = sio_rtspmod_newconn,
             .unstall = sio_rtspmod_destory
-        }
+        },
+        .setlocat = sio_rtspmod_setlocat
     }
  };
 

@@ -13,6 +13,8 @@ int sio_rtspmod_version(const char **version);
 
 int sio_rtspmod_create(void);
 
+int sio_rtspmod_setlocat(const struct sio_location *locations, int size);
+
 int sio_rtspmod_newconn(struct sio_server *server);
 
 int sio_rtspmod_destory(void);

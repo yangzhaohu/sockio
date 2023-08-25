@@ -41,8 +41,21 @@ int main()
             .loname = "urlloca5",
             .regex = "^.*/prefix/",
             .route = "/workspaces/sockio/root/"
+        },
+        {
+            .type = SIO_LOCATE_RTSP_VOD,
+            .loname = "urlloca6",
+            .regex = "^.*/vod/",
+            .route = "/workspaces/sockio/root/"
+        },
+        {
+            .type = SIO_LOCATE_RTSP_LIVE,
+            .loname = "urlloca7",
+            .regex = "^.*/live/",
+            .route = "/workspaces/sockio/root/"
         }
     };
+
     sio_service_setlocat(servmod, locat, sizeof(locat) / sizeof(struct sio_location));
 
     union sio_service_opt opt = {

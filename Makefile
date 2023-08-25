@@ -29,6 +29,7 @@ SRCS := sio_mplex.c \
 		sio_taskfifo.c \
 		sio_elepool.c \
 		sio_service.c \
+		sio_regex.c \
 		utils/sio_dlopen.c \
 		proto/sio_httpprot.c \
 		proto/sio_rtspprot.c \
@@ -37,7 +38,9 @@ SRCS := sio_mplex.c \
 		moudle/locate/sio_locate.c \
 		moudle/locate/sio_locatmod.c \
 		moudle/rtsp/sio_rtspmod.c \
+		moudle/rtsp/sio_rtpool.c \
 		moudle/rtsp/sio_rtpvod.c \
+		moudle/rtsp/sio_rtplive.c \
 		moudle/rtsp/sio_rtpstream.c \
 		moudle/rtsp/sio_rtpchn.c \
 		moudle/rtsp/rtpack/sio_avdev.c \
