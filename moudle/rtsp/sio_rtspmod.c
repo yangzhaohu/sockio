@@ -216,7 +216,7 @@ int sio_rtspmod_response_404(struct sio_socket *sock)
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
     char buffer[1024] = { 0 };
-    sprintf(buffer, "RTSP/1.0 404 OK\r\n"
+    sprintf(buffer, "RTSP/1.0 404 Not Found\r\n"
                     "CSeq: %u\r\n"
                     "\r\n", rconn->seq);
 
