@@ -137,6 +137,14 @@ int sio_rtplive_record(sio_rtspdev_t dev, const char *data, unsigned int len)
 static inline
 int sio_rtplive_destory(struct sio_rtplive *rtplive)
 {
+    struct sio_list_head *pos;
+    sio_list_foreach_del(pos, &rtplive->head) {
+        struct sio_rtpchn_node *node = NULL;
+        node = (struct sio_rtpchn_node *)pos;
+        sio_list_del(pos);
+        free(node);
+        node = NULL;
+    }
     sio_mutex_destory(&rtplive->mutex);
     free(rtplive);
 
