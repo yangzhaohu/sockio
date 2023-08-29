@@ -3,6 +3,7 @@
 #include <string.h>
 #include "sio_common.h"
 #include "sio_list.h"
+#include "sio_mutex.h"
 #include "sio_rtpchn.h"
 #include "sio_log.h"
 
@@ -18,6 +19,7 @@ struct sio_rtplive
 {
     char descibe[4096];
     sio_rtpool_head head;
+    sio_mutex mutex;
 };
 
 static inline
@@ -44,6 +46,7 @@ struct sio_rtplive *sio_rtplive_create()
     memset(rtplive, 0, sizeof(struct sio_rtplive));
 
     sio_list_init(&rtplive->head);
+    sio_mutex_init(&rtplive->mutex);
 
     return rtplive;
 }
@@ -82,16 +85,19 @@ int sio_rtplive_get_describe(sio_rtspdev_t dev, const char **describe)
 int sio_rtplive_add_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn)
 {
     struct sio_rtplive *rtplive = (struct sio_rtplive *)dev;
-
     struct sio_rtpchn_node *node = NULL;
+
+    sio_mutex_lock(&rtplive->mutex);
     node = sio_rtplive_find_imp(&rtplive->head, rtpchn);
-    SIO_COND_CHECK_RETURN_VAL(node, 0);
+    if (node == NULL) {
+        node = malloc(sizeof(struct sio_rtpchn_node));
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(!node, -1,
+            sio_mutex_unlock(&rtplive->mutex));
 
-    node = malloc(sizeof(struct sio_rtpchn_node));
-    SIO_COND_CHECK_RETURN_VAL(!node, -1);
-
-    node->rtpchn = rtpchn;
-    sio_list_add(&node->entry, &rtplive->head);
+        node->rtpchn = rtpchn;
+        sio_list_add(&node->entry, &rtplive->head);
+    }
+    sio_mutex_unlock(&rtplive->mutex);
 
     return 0;
 }
@@ -99,12 +105,14 @@ int sio_rtplive_add_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn)
 int sio_rtplive_rm_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn)
 {
     struct sio_rtplive *rtplive = (struct sio_rtplive *)dev;
-
     struct sio_rtpchn_node *node = NULL;
-    node = sio_rtplive_find_imp(&rtplive->head, rtpchn);
-    SIO_COND_CHECK_RETURN_VAL(!node, 0);
 
-    sio_list_del(&node->entry);
+    sio_mutex_lock(&rtplive->mutex);
+    node = sio_rtplive_find_imp(&rtplive->head, rtpchn);
+    if (node) {
+        sio_list_del(&node->entry);
+    }
+    sio_mutex_unlock(&rtplive->mutex);
 
     return 0;
 }
@@ -115,16 +123,21 @@ int sio_rtplive_record(sio_rtspdev_t dev, const char *data, unsigned int len)
 
     struct sio_rtpchn_node *node = NULL;
     struct sio_list_head *pos;
+
+    sio_mutex_lock(&rtplive->mutex);
     sio_list_foreach(pos, &rtplive->head) {
         node = (struct sio_rtpchn_node *)pos;
         sio_rtpchn_rtpsend(node->rtpchn, data, len);
     }
+    sio_mutex_unlock(&rtplive->mutex);
 
     return 0;
 }
 
+static inline
 int sio_rtplive_destory(struct sio_rtplive *rtplive)
 {
+    sio_mutex_destory(&rtplive->mutex);
     free(rtplive);
 
     return 0;
@@ -134,7 +147,5 @@ int sio_rtplive_close(sio_rtspdev_t dev)
 {
     struct sio_rtplive *rtplive = (struct sio_rtplive *)dev;
 
-    free(rtplive);
-
-    return 0;
+    return sio_rtplive_destory(rtplive);
 }
