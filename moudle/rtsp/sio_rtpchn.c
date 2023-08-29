@@ -221,7 +221,12 @@ int sio_rtpchn_rtpsend(struct sio_rtpchn *rtpchn, const char *data, unsigned int
 
     int ret = 0;
     if (rtpchn->sock[SIO_CHN_RTP] == rtpchn->sock[SIO_CHN_RTCP]) {
-        ret = sio_rtpchn_tcpsend(rtpchn, data, len);
+        char *tcpdata = (char *)data - 4;
+        tcpdata[0] = '$';
+        tcpdata[1] = rtpchn->rtpchn;
+        tcpdata[2] = (char)((len & 0xFF00) >> 8);
+        tcpdata[3] = (char)(len & 0xFF);
+        ret = sio_rtpchn_tcpsend(rtpchn, tcpdata, len + 4);
     } else {
         ret = sio_rtpchn_udpsend(rtpchn, data, len);
     }
