@@ -110,12 +110,6 @@ struct sio_rtpchn *sio_rtpchn_overtcp_open(struct sio_socket *rtsp, int rtp, int
     rtpchn->rtpchn = rtp;
     rtpchn->rtcpchn = rtcp;
 
-    union sio_socket_opt opt = { NULL };
-    sio_socket_getopt(rtsp, SIO_SOCK_OPS, &opt);
-
-    opt.ops.writeable = sio_rtpchn_rtpack_writeable;
-    sio_socket_setopt(rtsp, SIO_SOCK_OPS, &opt);
-
     return rtpchn;
 }
 
@@ -204,16 +198,35 @@ int sio_rtpchn_chnrtcp(struct sio_rtpchn *rtpchn)
     return addr.port;
 }
 
-int sio_rtpchn_rtpsend(struct sio_rtpchn *rtpchn, const char *data, unsigned int len)
+static inline
+int sio_rtpchn_tcpsend(struct sio_rtpchn *rtpchn, const char *data, unsigned int len)
 {
-    SIO_COND_CHECK_RETURN_VAL(!rtpchn, -1);
+    return sio_socket_write(rtpchn->sock[SIO_CHN_RTP], data, len);
+}
 
+static inline
+int sio_rtpchn_udpsend(struct sio_rtpchn *rtpchn, const char *data, unsigned int len)
+{
     struct sio_socket_addr peer = {
         .addr = "127.0.0.1",
         .port = rtpchn->rtpchn
     };
 
     return sio_socket_writeto(rtpchn->sock[SIO_CHN_RTP], data, len, &peer);
+}
+
+int sio_rtpchn_rtpsend(struct sio_rtpchn *rtpchn, const char *data, unsigned int len)
+{
+    SIO_COND_CHECK_RETURN_VAL(!rtpchn, -1);
+
+    int ret = 0;
+    if (rtpchn->sock[SIO_CHN_RTP] == rtpchn->sock[SIO_CHN_RTCP]) {
+        ret = sio_rtpchn_tcpsend(rtpchn, data, len);
+    } else {
+        ret = sio_rtpchn_udpsend(rtpchn, data, len);
+    }
+
+    return ret;
 }
 
 int sio_rtpchn_close(struct sio_rtpchn *rtpchn)

@@ -64,6 +64,7 @@ struct sio_rtsp_conn
     char addrname[64];
     sio_str_t body;
 
+    unsigned int overtcp:1;
     unsigned int complete:1; // packet complete
 };
 
@@ -166,6 +167,10 @@ int sio_rtsp_packet_head_field_value(http_parser *parser, const char *at, size_t
         memcpy(port, at, len);
         sscanf(port, "%u", &rconn->seq);
     } else if (strncmp(field->data, "Transport", strlen("Transport")) == 0) {
+        int pos = sio_regex("RTP/AVP/TCP", at, len);
+        if (pos >= 0) {
+            rconn->overtcp = 1;
+        }
         char port[len + 1];
         port[len] = 0;
         memcpy(port, at, len);
@@ -332,7 +337,12 @@ int sio_rtspmod_setup_response(struct sio_socket *sock)
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
     struct sio_rtspdev *rtdev = &rconn->rtdev;
 
-    struct sio_rtpchn *rtpchn = sio_rtpchn_overudp_open(sock, rconn->rtp, rconn->rtcp);
+    struct sio_rtpchn *rtpchn = NULL;
+    if (rconn->overtcp) {
+        rtpchn = sio_rtpchn_overtcp_open(sock, rconn->rtp, rconn->rtcp);
+    } else {
+        rtpchn = sio_rtpchn_overudp_open(sock, rconn->rtp, rconn->rtcp);
+    }
     rconn->rtpchn = rtpchn;
 
     // set send rtpchn
@@ -348,11 +358,19 @@ int sio_rtspmod_setup_response(struct sio_socket *sock)
     unsigned int rtcpport = sio_rtpchn_chnrtcp(rtpchn);
 
     char buffer[1024] = { 0 };
-    sprintf(buffer, "RTSP/1.0 200 OK\r\n"
-                    "CSeq: %u\r\n"
-                    "Transport: RTP/AVP;unicast;client_port=%u-%u;server_port=%u-%u\r\n"
-                    "Session: 66334873\r\n"
-                    "\r\n", rconn->seq, rconn->rtp, rconn->rtcp, rtpport, rtcpport);
+    if (rconn->overtcp) {
+        sprintf(buffer, "RTSP/1.0 200 OK\r\n"
+                        "CSeq: %u\r\n"
+                        "Transport: RTP/AVP/TCP;unicast;interleaved=%u-%u\r\n"
+                        "Session: 66334873\r\n"
+                        "\r\n", rconn->seq, rconn->rtp, rconn->rtcp);
+    } else {
+        sprintf(buffer, "RTSP/1.0 200 OK\r\n"
+                        "CSeq: %u\r\n"
+                        "Transport: RTP/AVP;unicast;client_port=%u-%u;server_port=%u-%u\r\n"
+                        "Session: 66334873\r\n"
+                        "\r\n", rconn->seq, rconn->rtp, rconn->rtcp, rtpport, rtcpport);
+    }
 
     sio_socket_write(sock, buffer, strlen(buffer));
 
