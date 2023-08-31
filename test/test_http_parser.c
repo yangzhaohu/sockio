@@ -41,9 +41,8 @@ static char *g_resp =
             "Connection: keep-alive\r\n"
             "Content-Type: text/html\r\n"
             "Content-Length: 125\r\n\r\n"
-            "<html>";
-
-static char *g_resp2 = "<head><title>Hello</title></head>"
+            "<html>"
+            "<head><title>Hello</title></head>"
             "<body>"
             "<center><h1>Hello, Client</h1></center>"
             "<hr><center>SOCKIO</center>"
@@ -53,10 +52,10 @@ static char *g_resp2 = "<head><title>Hello</title></head>"
 int main()
 {
     struct sio_httpprot *http = sio_httpprot_create(SIO_HTTP_RESPONSE);
-    int ret = sio_httpprot_process(http, g_resp, strlen(g_resp));
+    int ret = sio_httpprot_process(http, g_resp, 96);
     printf("g_resp len: %d, ret: %d\n", (int)strlen(g_resp), ret);
-    ret = sio_httpprot_process(http, g_resp2, strlen(g_resp2));
-    printf("g_resp2 len: %d, ret: %d\n", (int)strlen(g_resp2), ret);
+    ret = sio_httpprot_process(http, g_resp + 96, strlen(g_resp) - 96);
+    printf("g_resp2 len: %d, ret: %d\n", (int)strlen(g_resp), ret);
 
     getc(stdin);
 
