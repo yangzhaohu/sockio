@@ -335,7 +335,6 @@ static inline
 int sio_rtspmod_setup_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
-    struct sio_rtspdev *rtdev = &rconn->rtdev;
 
     struct sio_rtpchn *rtpchn = NULL;
     if (rconn->overtcp) {
@@ -344,15 +343,6 @@ int sio_rtspmod_setup_response(struct sio_socket *sock)
         rtpchn = sio_rtpchn_overudp_open(sock, rconn->rtp, rconn->rtcp);
     }
     rconn->rtpchn = rtpchn;
-
-    // set send rtpchn
-    if (rconn->type == SIO_RTSPTYPE_VOD) {
-        rtdev->add_senddst(rtdev->dev, rtpchn);
-    } else if (rconn->type == SIO_RTSPTYPE_LIVE) {
-        struct sio_rtpool *rtpool = sio_rtspmod_get_rtpool();
-        sio_rtpool_find(rtpool, rconn->addrname, (void **)&rtdev);
-        rtdev->add_senddst(rtdev->dev, rtpchn);
-    }
 
     unsigned int rtpport = sio_rtpchn_chnrtp(rtpchn);
     unsigned int rtcpport = sio_rtpchn_chnrtcp(rtpchn);
@@ -393,6 +383,14 @@ int sio_rtspmod_play_response(struct sio_socket *sock)
                     "\r\n", rconn->seq);
 
     sio_socket_write(sock, buffer, strlen(buffer));
+
+    if (rconn->type == SIO_RTSPTYPE_VOD) {
+        rtdev->add_senddst(rtdev->dev, rconn->rtpchn);
+    } else if (rconn->type == SIO_RTSPTYPE_LIVE) {
+        struct sio_rtpool *rtpool = sio_rtspmod_get_rtpool();
+        sio_rtpool_find(rtpool, rconn->addrname, (void **)&rtdev);
+        rtdev->add_senddst(rtdev->dev, rconn->rtpchn);
+    }
 
     return 0;
 }
