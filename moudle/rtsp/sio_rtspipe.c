@@ -20,7 +20,7 @@ struct sio_rtspipe
     struct sio_rtspipe_owner owner;
 
     struct sio_socket *sock[SIO_RTSPIPE_BUTT][SIO_RTSPCHN_BUTT];
-    enum sio_rtspchn_t chn[SIO_RTSPIPE_BUTT][SIO_RTSPCHN_BUTT];
+    unsigned short chn[SIO_RTSPIPE_BUTT][SIO_RTSPCHN_BUTT];
 };
 
 static inline
@@ -217,18 +217,20 @@ int sio_rtspipe_rtpsend(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enu
         chn < SIO_RTSPCHN_RTP || chn >= SIO_RTSPCHN_BUTT, -1);
 
     struct sio_socket *sock = rtpipe->sock[pipe][chn];
+    unsigned short chndst = rtpipe->chn[pipe][chn];
     int ret = 0;
     if (rtpipe->over == SIO_RTSPIPE_OVERTCP) {
-        char *tcpdata = (char *)data - 4;
-        tcpdata[0] = '$';
-        tcpdata[1] = 0;
-        tcpdata[2] = (char)((len & 0xFF00) >> 8);
-        tcpdata[3] = (char)(len & 0xFF);
-        ret = sio_socket_write(sock, tcpdata, len + 4);
+        char tcphdr[4] = { 0 };
+        tcphdr[0] = '$';
+        tcphdr[1] = chndst & 0xFF;
+        tcphdr[2] = (char)((len & 0xFF00) >> 8);
+        tcphdr[3] = (char)(len & 0xFF);
+        ret = sio_socket_write(sock, tcphdr, 4);
+        ret = sio_socket_write(sock, data, len);
     } else {
         struct sio_socket_addr peer = {
             .addr = "127.0.0.1",
-            .port = chn
+            .port = chndst
         };
 
         ret = sio_socket_writeto(sock, data, len, &peer);

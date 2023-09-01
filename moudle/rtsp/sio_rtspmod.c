@@ -355,12 +355,12 @@ int sio_rtspmod_setup_response(struct sio_socket *sock)
     if (rconn->setup == 0) {
         sio_rtspipe_open_videochn(rtpipe, rconn->rtp, rconn->rtcp);
         rtpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTP);
-        rtcpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTP);
+        rtcpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTCP);
         rconn->setup = 1;
     } else {
         sio_rtspipe_open_audiochn(rtpipe, rconn->rtp, rconn->rtcp);
-        rtpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTCP);
-        rtcpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTCP);
+        rtpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_AUDIO, SIO_RTSPCHN_RTP);
+        rtcpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_AUDIO, SIO_RTSPCHN_RTCP);
     }
 
     char buffer[1024] = { 0 };
