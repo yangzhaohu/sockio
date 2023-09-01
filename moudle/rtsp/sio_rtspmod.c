@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <arpa/inet.h>
 #include "sio_common.h"
 #include "sio_def.h"
 #include "moudle/sio_locate.h"
@@ -49,6 +50,22 @@ const struct sio_rtspdev g_rtspdev[] =
     }
 };
 
+struct sio_rtsp_rtp
+{
+    char *data;
+    unsigned short len;
+    enum sio_rtspipe_t pipe;
+    enum sio_rtspchn_t chn;
+};
+
+enum sio_rtsp_packst
+{
+    SIO_RTSP_PACKST_INITIAL,
+    SIO_RTSP_PACKST_HTTPACK,
+    SIO_RTSP_PACKST_RTPACKSIZE,
+    SIO_RTSP_PACKST_RTPACKAGE
+};
+
 struct sio_rtsp_conn
 {
     struct http_parser parser;
@@ -67,6 +84,9 @@ struct sio_rtsp_conn
     unsigned int setup:1;
     unsigned int overtcp:1;
     unsigned int complete:1; // packet complete
+
+    enum sio_rtsp_packst packst;
+    struct sio_rtsp_rtp package;
 };
 
 struct sio_rtspmod
@@ -449,6 +469,45 @@ int sio_rtspmod_teardown_response(struct sio_socket *sock)
 }
 
 static inline
+int sio_rtspmod_response(struct sio_socket *sock, int method)
+{
+    switch (method) {
+    case HTTP_OPTIONS:
+        sio_rtspmod_options_response(sock);
+        break;
+
+    case HTTP_DESCRIBE:
+        sio_rtspmod_describe_response(sock);
+        break;
+
+    case HTTP_SETUP:
+        sio_rtspmod_setup_response(sock);
+        break;
+
+    case HTTP_PLAY:
+        sio_rtspmod_play_response(sock);
+        break;
+
+    case HTTP_ANNOUNCE:
+        sio_rtspmod_announce_response(sock);
+        break;
+
+    case HTTP_RECORD:
+        sio_rtspmod_record_response(sock);
+        break;
+
+    case HTTP_TEARDOWN:
+        sio_rtspmod_teardown_response(sock);
+        break;
+
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+static inline
 struct sio_rtsp_conn *sio_rtspmod_rtspconn_create(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = malloc(sizeof(struct sio_rtsp_conn));
@@ -470,6 +529,8 @@ struct sio_rtsp_conn *sio_rtspmod_rtspconn_create(struct sio_socket *sock)
 
     http_parser_init(&rconn->parser, HTTP_REQUEST);
 
+    rconn->packst = SIO_RTSP_PACKST_INITIAL;
+
     return rconn;
 }
 
@@ -478,6 +539,16 @@ void sio_rtspmod_rtspconn_destory(struct sio_rtsp_conn *rconn)
 {
     free(rconn->buf.buf);
     free(rconn);
+}
+
+static inline
+void sio_rtspmod_live_record2(struct sio_rtsp_conn *rcon, const char *data, int len)
+{
+    struct sio_rtspdev *rtdev = &rcon->rtdev;
+
+    if (rtdev->record) {
+        rtdev->record(rtdev->dev, data, len);
+    }
 }
 
 static void sio_rtspmod_live_record(struct sio_rtspipe *rtpipe, const char *data, int len)
@@ -492,6 +563,129 @@ static void sio_rtspmod_live_record(struct sio_rtspipe *rtpipe, const char *data
 }
 
 static inline
+int sio_rtspmod_rtp_valid(struct sio_rtsp_conn *rcon, unsigned char chn)
+{
+    struct sio_rtsp_rtp *package = &rcon->package;
+    struct sio_rtspipe *rtpipe = rcon->rtpipe;
+    if (sio_rtspipe_peerchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTP) == chn) {
+        package->pipe = SIO_RTSPIPE_VIDEO;
+        package->chn = SIO_RTSPCHN_RTP;
+        return 0;
+    } else if (sio_rtspipe_peerchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTCP) == chn) {
+        package->pipe = SIO_RTSPIPE_VIDEO;
+        package->chn = SIO_RTSPCHN_RTCP;
+        return 0;
+    }else if (sio_rtspipe_peerchn(rtpipe, SIO_RTSPIPE_AUDIO, SIO_RTSPCHN_RTP) == chn) {
+        package->pipe = SIO_RTSPIPE_AUDIO;
+        package->chn = SIO_RTSPCHN_RTP;
+        return 0;
+    } else if (sio_rtspipe_peerchn(rtpipe, SIO_RTSPIPE_AUDIO, SIO_RTSPCHN_RTCP) == chn) {
+        package->pipe = SIO_RTSPIPE_AUDIO;
+        package->chn = SIO_RTSPCHN_RTCP;
+        return 0;
+    }
+
+    return -1;
+}
+
+static inline
+int sio_rtspmod_buffer_move(struct sio_rtsp_buffer *buf)
+{
+    int l = buf->last - buf->pos;
+    SIO_COND_CHECK_RETURN_VAL(buf->pos == buf->buf, l);
+
+    if (l > 0) {
+        memcpy(buf->buf, buf->pos, l);
+        buf->buf[l] = 0;
+    }
+    buf->pos = buf->buf;
+    buf->last = buf->pos + l;
+
+    return l;
+}
+
+static inline
+int sio_rtspmod_is_httpreq(const char *data, int len)
+{
+    struct http_parser parser;
+    http_parser_init(&parser, HTTP_REQUEST);
+    http_parser_settings http_parser_cb = { 0 };
+
+    http_parser_execute(&parser, &http_parser_cb, data, len);
+
+    return parser.http_errno == HPE_OK ? 0 : -1;
+}
+
+static inline
+int sio_rtspmod_rtsp_unpack(struct sio_rtsp_conn *rcon, struct sio_socket *sock)
+{
+    struct sio_rtsp_buffer *buf = &rcon->buf;
+    struct sio_rtsp_rtp *package = &rcon->package;
+
+    int l = buf->last - buf->pos;
+    SIO_COND_CHECK_RETURN_VAL(l < 5, -1); // data not enough
+
+    while (l) {
+        switch (rcon->packst) {
+        case SIO_RTSP_PACKST_INITIAL:
+            if (sio_rtspmod_is_httpreq(buf->pos, l) == 0) {
+                l = sio_rtspmod_buffer_move(buf);
+                rcon->packst = SIO_RTSP_PACKST_HTTPACK;
+            } else if((unsigned char)buf->pos[0] == '$' &&
+                sio_rtspmod_rtp_valid(rcon, (unsigned char)buf->pos[1]) == 0) {
+                rcon->packst = SIO_RTSP_PACKST_RTPACKSIZE;
+            } else {
+                if (l > 0) { // find backward
+                    buf->pos++;
+                    l = buf->last - buf->pos;
+                }
+            }
+            break;
+        case SIO_RTSP_PACKST_HTTPACK:
+        {
+            unsigned int len = http_parser_execute(&rcon->parser, &g_http_parser_cb, buf->pos, l);
+            if (rcon->complete != 1) {
+                buf->pos += len;
+                return 0;
+            } else {
+                buf->pos += len;
+            }
+
+            // complete
+            rcon->complete = 0;
+            l = sio_rtspmod_buffer_move(buf);
+            sio_rtspmod_response(sock, rcon->parser.method);
+            rcon->packst = SIO_RTSP_PACKST_INITIAL;
+            break;
+        }
+        case SIO_RTSP_PACKST_RTPACKSIZE:
+        {
+            unsigned short *len = (unsigned short *)&buf->pos[2];
+            package->len = ntohs(*len);
+            rcon->packst = SIO_RTSP_PACKST_RTPACKAGE;
+            break;
+        }
+        case SIO_RTSP_PACKST_RTPACKAGE:
+            if (l < package->len + 4) {
+                return 0;
+            }
+            sio_rtspmod_live_record2(rcon, buf->pos + 4, package->len);
+            buf->pos += package->len + 4;
+            package->len = 0;
+            // l = buf->last - buf->pos; // update
+            l = sio_rtspmod_buffer_move(buf);
+            rcon->packst = SIO_RTSP_PACKST_INITIAL;
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    return 0;
+}
+
+static inline
 int sio_rtspmod_socket_readable(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
@@ -502,50 +696,7 @@ int sio_rtspmod_socket_readable(struct sio_socket *sock)
     SIO_COND_CHECK_RETURN_VAL(len <= 0, 0);
     buf->last += len;
 
-    l = buf->last - buf->pos;
-    l = http_parser_execute(&rconn->parser, &g_http_parser_cb, buf->pos, l);
-
-    if (rconn->complete != 1) {
-        buf->pos += l;
-        return 0;
-    }
-
-    rconn->complete = 0;
-    buf->last = buf->pos = buf->buf; // reset
-
-    int method = rconn->parser.method;
-    switch (method) {
-    case HTTP_OPTIONS:
-        sio_rtspmod_options_response(sock);
-        break;
-    
-    case HTTP_DESCRIBE:
-        sio_rtspmod_describe_response(sock);
-        break;
-    
-    case HTTP_SETUP:
-        sio_rtspmod_setup_response(sock);
-        break;
-
-    case HTTP_PLAY:
-        sio_rtspmod_play_response(sock);
-        break;
-
-    case HTTP_ANNOUNCE:
-        sio_rtspmod_announce_response(sock);
-        break;
-    
-    case HTTP_RECORD:
-        sio_rtspmod_record_response(sock);
-        break;
-
-    case HTTP_TEARDOWN:
-        sio_rtspmod_teardown_response(sock);
-        break;
-    
-    default:
-        break;
-    }
+    sio_rtspmod_rtsp_unpack(rconn, sock);
 
     return 0;
 }

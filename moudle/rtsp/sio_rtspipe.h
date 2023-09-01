@@ -57,6 +57,8 @@ int sio_rtspipe_getopt(struct sio_rtspipe *rtpipe,
 
 int sio_rtspipe_getchn(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enum sio_rtspchn_t chn);
 
+int sio_rtspipe_peerchn(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enum sio_rtspchn_t chn);
+
 int sio_rtspipe_rtpsend(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enum sio_rtspchn_t chn,
     const char *data, unsigned int len);
 

@@ -209,6 +209,15 @@ int sio_rtspipe_getchn(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enum
     return addr.port;
 }
 
+int sio_rtspipe_peerchn(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enum sio_rtspchn_t chn)
+{
+    SIO_COND_CHECK_RETURN_VAL(!rtpipe, -1);
+    SIO_COND_CHECK_RETURN_VAL(pipe < SIO_RTSPIPE_VIDEO || pipe >= SIO_RTSPIPE_BUTT ||
+        chn < SIO_RTSPCHN_RTP || chn >= SIO_RTSPCHN_BUTT, -1);
+
+    return rtpipe->chn[pipe][chn];
+}
+
 int sio_rtspipe_rtpsend(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enum sio_rtspchn_t chn,
     const char *data, unsigned int len)
 {
