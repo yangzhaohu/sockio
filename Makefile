@@ -42,7 +42,7 @@ SRCS := sio_mplex.c \
 		moudle/rtsp/sio_rtpvod.c \
 		moudle/rtsp/sio_rtplive.c \
 		moudle/rtsp/sio_rtpstream.c \
-		moudle/rtsp/sio_rtpchn.c \
+		moudle/rtsp/sio_rtspipe.c \
 		moudle/rtsp/rtpack/sio_avdev.c \
 		moudle/rtsp/rtpack/sio_avdev_jpeg.c \
 		moudle/rtsp/rtpack/sio_rtpack.c \

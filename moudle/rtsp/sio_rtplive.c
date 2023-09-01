@@ -4,13 +4,13 @@
 #include "sio_common.h"
 #include "sio_list.h"
 #include "sio_mutex.h"
-#include "sio_rtpchn.h"
+#include "sio_rtspipe.h"
 #include "sio_log.h"
 
-struct sio_rtpchn_node
+struct sio_rtspipe_node
 {
     struct sio_list_head entry;
-    struct sio_rtpchn *rtpchn;
+    struct sio_rtspipe *rtpchn;
 };
 
 typedef struct sio_list_head sio_rtpool_head;
@@ -23,12 +23,12 @@ struct sio_rtplive
 };
 
 static inline
-struct sio_rtpchn_node *sio_rtplive_find_imp(struct sio_list_head *head, struct sio_rtpchn *rtpchn)
+struct sio_rtspipe_node *sio_rtplive_find_imp(struct sio_list_head *head, struct sio_rtspipe *rtpchn)
 {
-    struct sio_rtpchn_node *node = NULL;
+    struct sio_rtspipe_node *node = NULL;
     struct sio_list_head *pos;
     sio_list_foreach(pos, head) {
-        node = (struct sio_rtpchn_node *)pos;
+        node = (struct sio_rtspipe_node *)pos;
         if (node->rtpchn == rtpchn) {
             return node;
         }
@@ -82,15 +82,15 @@ int sio_rtplive_get_describe(sio_rtspdev_t dev, const char **describe)
     return 0;
 }
 
-int sio_rtplive_add_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn)
+int sio_rtplive_add_senddst(sio_rtspdev_t dev, struct sio_rtspipe *rtpchn)
 {
     struct sio_rtplive *rtplive = (struct sio_rtplive *)dev;
-    struct sio_rtpchn_node *node = NULL;
+    struct sio_rtspipe_node *node = NULL;
 
     sio_mutex_lock(&rtplive->mutex);
     node = sio_rtplive_find_imp(&rtplive->head, rtpchn);
     if (node == NULL) {
-        node = malloc(sizeof(struct sio_rtpchn_node));
+        node = malloc(sizeof(struct sio_rtspipe_node));
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(!node, -1,
             sio_mutex_unlock(&rtplive->mutex));
 
@@ -102,10 +102,10 @@ int sio_rtplive_add_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn)
     return 0;
 }
 
-int sio_rtplive_rm_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn)
+int sio_rtplive_rm_senddst(sio_rtspdev_t dev, struct sio_rtspipe *rtpchn)
 {
     struct sio_rtplive *rtplive = (struct sio_rtplive *)dev;
-    struct sio_rtpchn_node *node = NULL;
+    struct sio_rtspipe_node *node = NULL;
 
     sio_mutex_lock(&rtplive->mutex);
     node = sio_rtplive_find_imp(&rtplive->head, rtpchn);
@@ -121,13 +121,13 @@ int sio_rtplive_record(sio_rtspdev_t dev, const char *data, unsigned int len)
 {
     struct sio_rtplive *rtplive = (struct sio_rtplive *)dev;
 
-    struct sio_rtpchn_node *node = NULL;
+    struct sio_rtspipe_node *node = NULL;
     struct sio_list_head *pos;
 
     sio_mutex_lock(&rtplive->mutex);
     sio_list_foreach(pos, &rtplive->head) {
-        node = (struct sio_rtpchn_node *)pos;
-        sio_rtpchn_rtpsend(node->rtpchn, data, len);
+        node = (struct sio_rtspipe_node *)pos;
+        sio_rtspipe_rtpsend(node->rtpchn, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTP, data, len);
     }
     sio_mutex_unlock(&rtplive->mutex);
 
@@ -139,8 +139,8 @@ int sio_rtplive_destory(struct sio_rtplive *rtplive)
 {
     struct sio_list_head *pos;
     sio_list_foreach_del(pos, &rtplive->head) {
-        struct sio_rtpchn_node *node = NULL;
-        node = (struct sio_rtpchn_node *)pos;
+        struct sio_rtspipe_node *node = NULL;
+        node = (struct sio_rtspipe_node *)pos;
         sio_list_del(pos);
         free(node);
         node = NULL;

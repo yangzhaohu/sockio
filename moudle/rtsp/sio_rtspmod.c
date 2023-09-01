@@ -8,7 +8,7 @@
 #include "http_parser/http_parser.h"
 #include "sio_regex.h"
 #include "sio_rtspdev.h"
-#include "sio_rtpchn.h"
+#include "sio_rtspipe.h"
 #include "sio_rtpvod.h"
 #include "sio_rtplive.h"
 #include "sio_rtpool.h"
@@ -53,7 +53,7 @@ struct sio_rtsp_conn
 {
     struct http_parser parser;
     struct sio_rtsp_buffer buf;
-    struct sio_rtpchn *rtpchn;
+    struct sio_rtspipe *rtpipe;
     struct sio_rtspdev rtdev;
     enum sio_rtsp_type type;
 
@@ -64,6 +64,7 @@ struct sio_rtsp_conn
     char addrname[64];
     sio_str_t body;
 
+    unsigned int setup:1;
     unsigned int overtcp:1;
     unsigned int complete:1; // packet complete
 };
@@ -81,7 +82,7 @@ static struct sio_rtspmod g_rtspmod;
 
 #define sio_rtspdev_get(type) g_rtspdev[type]
 
-static void sio_rtspmod_live_record(struct sio_rtpchn *rtpchn, const char *data, int len);
+static void sio_rtspmod_live_record(struct sio_rtspipe *rtpipe, const char *data, int len);
 
 int sio_rtspmod_name(const char **name)
 {
@@ -336,16 +337,31 @@ int sio_rtspmod_setup_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
-    struct sio_rtpchn *rtpchn = NULL;
-    if (rconn->overtcp) {
-        rtpchn = sio_rtpchn_overtcp_open(sock, rconn->rtp, rconn->rtcp);
+    struct sio_rtspipe *rtpipe = NULL;
+    if (rconn->rtpipe == NULL) {
+        if (rconn->overtcp) {
+            rtpipe = sio_rtspipe_create(sock, SIO_RTSPIPE_OVERTCP);
+        } else {
+            rtpipe = sio_rtspipe_create(sock, SIO_RTSPIPE_OVERUDP);
+        }
+        rconn->rtpipe = rtpipe;
     } else {
-        rtpchn = sio_rtpchn_overudp_open(sock, rconn->rtp, rconn->rtcp);
+        rtpipe = rconn->rtpipe;
     }
-    rconn->rtpchn = rtpchn;
 
-    unsigned int rtpport = sio_rtpchn_chnrtp(rtpchn);
-    unsigned int rtcpport = sio_rtpchn_chnrtcp(rtpchn);
+    unsigned int rtpport = 0;
+    unsigned int rtcpport = 0;
+    // first open video chnnel
+    if (rconn->setup == 0) {
+        sio_rtspipe_open_videochn(rtpipe, rconn->rtp, rconn->rtcp);
+        rtpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTP);
+        rtcpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTP);
+        rconn->setup = 1;
+    } else {
+        sio_rtspipe_open_audiochn(rtpipe, rconn->rtp, rconn->rtcp);
+        rtpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTCP);
+        rtcpport = sio_rtspipe_getchn(rtpipe, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTCP);
+    }
 
     char buffer[1024] = { 0 };
     if (rconn->overtcp) {
@@ -385,11 +401,11 @@ int sio_rtspmod_play_response(struct sio_socket *sock)
     sio_socket_write(sock, buffer, strlen(buffer));
 
     if (rconn->type == SIO_RTSPTYPE_VOD) {
-        rtdev->add_senddst(rtdev->dev, rconn->rtpchn);
+        rtdev->add_senddst(rtdev->dev, rconn->rtpipe);
     } else if (rconn->type == SIO_RTSPTYPE_LIVE) {
         struct sio_rtpool *rtpool = sio_rtspmod_get_rtpool();
         sio_rtpool_find(rtpool, rconn->addrname, (void **)&rtdev);
-        rtdev->add_senddst(rtdev->dev, rconn->rtpchn);
+        rtdev->add_senddst(rtdev->dev, rconn->rtpipe);
     }
 
     return 0;
@@ -400,11 +416,11 @@ int sio_rtspmod_record_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
-    union sio_rtpchn_opt opt = { .private = rconn };
-    sio_rtpchn_setopt(rconn->rtpchn, SIO_RTPCHN_PRIVATE, &opt);
+    union sio_rtspipe_opt opt = { .private = rconn };
+    sio_rtspipe_setopt(rconn->rtpipe, SIO_RTPCHN_PRIVATE, &opt);
 
     opt.ops.rtpack = sio_rtspmod_live_record;
-    sio_rtpchn_setopt(rconn->rtpchn, SIO_RTPCHN_OPS, &opt);
+    sio_rtspipe_setopt(rconn->rtpipe, SIO_RTPCHN_OPS, &opt);
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
@@ -464,10 +480,10 @@ void sio_rtspmod_rtspconn_destory(struct sio_rtsp_conn *rconn)
     free(rconn);
 }
 
-static void sio_rtspmod_live_record(struct sio_rtpchn *rtpchn, const char *data, int len)
+static void sio_rtspmod_live_record(struct sio_rtspipe *rtpipe, const char *data, int len)
 {
-    union sio_rtpchn_opt opt = { 0 };
-    sio_rtpchn_getopt(rtpchn, SIO_RTPCHN_PRIVATE, &opt);
+    union sio_rtspipe_opt opt = { 0 };
+    sio_rtspipe_getopt(rtpipe, SIO_RTPCHN_PRIVATE, &opt);
 
     struct sio_rtsp_conn *rconn = opt.private;
     struct sio_rtspdev *rtdev = &rconn->rtdev;
@@ -556,7 +572,7 @@ int sio_rtspmod_socket_closeable(struct sio_socket *sock)
         rtdev->close(rtdev->dev);
     }
 
-    sio_rtpchn_close(rconn->rtpchn);
+    sio_rtspipe_close(rconn->rtpipe);
 
     sio_rtspmod_rtspconn_destory(rconn);
 

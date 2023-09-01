@@ -15,7 +15,7 @@ int sio_rtpvod_play(sio_rtspdev_t dev);
 
 int sio_rtpvod_get_describe(sio_rtspdev_t dev, const char **describe);
 
-int sio_rtpvod_add_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn);
+int sio_rtpvod_add_senddst(sio_rtspdev_t dev, struct sio_rtspipe *rtpchn);
 
 int sio_rtpvod_close(sio_rtspdev_t dev);
 

@@ -11,7 +11,7 @@ enum sio_rtsp_type
 
 typedef struct sio_rtspdev * sio_rtspdev_t;
 
-struct sio_rtpchn;
+struct sio_rtspipe;
 
 struct sio_rtspdev
 {
@@ -23,8 +23,8 @@ struct sio_rtspdev
     int (*pause)(sio_rtspdev_t dev);
     int (*progress)(sio_rtspdev_t dev);
     int (*record)(sio_rtspdev_t dev, const char *data, unsigned int len);
-    int (*add_senddst)(sio_rtspdev_t dev, struct sio_rtpchn *dst);
-    int (*rm_senddst)(sio_rtspdev_t dev, struct sio_rtpchn *dst);
+    int (*add_senddst)(sio_rtspdev_t dev, struct sio_rtspipe *dst);
+    int (*rm_senddst)(sio_rtspdev_t dev, struct sio_rtspipe *dst);
     int (*close)(sio_rtspdev_t dev);
 };
 
@@ -76,13 +76,13 @@ int sio_rtspdev_record_default(sio_rtspdev_t dev, const char *data, unsigned int
 }
 
 static inline
-int sio_rtspdev_add_senddst_default(sio_rtspdev_t dev, struct sio_rtpchn *dst)
+int sio_rtspdev_add_senddst_default(sio_rtspdev_t dev, struct sio_rtspipe *dst)
 {
     return 0;
 }
 
 static inline
-int sio_rtspdev_rm_senddst_default(sio_rtspdev_t dev, struct sio_rtpchn *dst)
+int sio_rtspdev_rm_senddst_default(sio_rtspdev_t dev, struct sio_rtspipe *dst)
 {
     return 0;
 }

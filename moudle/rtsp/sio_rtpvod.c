@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include "sio_common.h"
-#include "sio_rtpchn.h"
+#include "sio_rtspipe.h"
 #include "sio_rtpstream.h"
 #include "sio_log.h"
 
 struct sio_rtpvod
 {
-    struct sio_rtpchn *rtpchn;
+    struct sio_rtspipe *rtpchn;
     struct sio_rtpstream *stream;
 };
 
@@ -27,9 +27,9 @@ void sio_rtpvod_rtpack_send(struct sio_rtpstream *stream, struct sio_packet *pac
     sio_rtpstream_getopt(stream, SIO_RTPSTREAM_PRIVATE, &opt);
 
     struct sio_rtpvod *rtpvod = opt.private;
-    struct sio_rtpchn *rtpchn = rtpvod->rtpchn;
+    struct sio_rtspipe *rtpchn = rtpvod->rtpchn;
 
-    sio_rtpchn_rtpsend(rtpchn, (char *)packet->data, packet->length);
+    sio_rtspipe_rtpsend(rtpchn, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTP, (char *)packet->data, packet->length);
 }
 
 static inline
@@ -43,7 +43,7 @@ struct sio_rtpvod *sio_rtpvod_create()
     return rtpvod;
 }
 
-int sio_rtpvod_add_senddst(sio_rtspdev_t dev, struct sio_rtpchn *rtpchn)
+int sio_rtpvod_add_senddst(sio_rtspdev_t dev, struct sio_rtspipe *rtpchn)
 {
     struct sio_rtpvod *rtpvod = (struct sio_rtpvod *)dev;
 
