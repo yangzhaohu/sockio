@@ -275,33 +275,24 @@ int sio_rtspmod_describe_response(struct sio_socket *sock)
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
     const char *scri = NULL;
+    struct sio_rtspdev *rtdev = NULL;
     if (rconn->type == SIO_RTSPTYPE_VOD) {
-        // open self rtdev
-        struct sio_rtspdev *rtdev = &rconn->rtdev;
-        *rtdev = sio_rtspdev_get(SIO_RTSPTYPE_VOD);
-        rtdev->dev = rtdev->open(rconn->addrname);
-
-        // get rtdev describe
-        rtdev->describe(rtdev->dev, &scri);
-
-    } else if (rconn->type == SIO_RTSPTYPE_LIVE) {
-        // first find exist live stream
-        struct sio_rtpool *rtpool = rconn->mod->rtpool;
-        struct sio_rtspdev *rtdev = NULL;
-        int ret = sio_rtpool_find(rtpool, rconn->addrname, (void **)&rtdev);
-        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-            SIO_LOGE("rtpdev %s not found\n", rconn->addrname),
-            sio_rtspmod_response_404(sock),
-            sio_socket_shutdown(sock, SIO_SOCK_SHUTRDWR));
-
-        // get live stream describe
-        rtdev->describe(rtdev->dev, &scri);
-
-        // open self rtdev
         rtdev = &rconn->rtdev;
-        *rtdev = sio_rtspdev_get(SIO_RTSPTYPE_LIVE);
-        rtdev->dev = rtdev->open(rconn->addrname);
+    } else if (rconn->type == SIO_RTSPTYPE_LIVE) {
+        // first find exist live stream dev
+        struct sio_rtpool *rtpool = rconn->mod->rtpool;
+        int ret = sio_rtpool_find(rtpool, rconn->addrname, (void **)&rtdev);
+        SIO_COND_CHECK_CALLOPS(ret == -1,
+            SIO_LOGE("rtpdev %s not found\n", rconn->addrname));
     }
+
+    int ret = -1;
+    if (rtdev) {
+        ret = rtdev->describe(rtdev->dev, &scri);
+    }
+
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        sio_rtspmod_response_404(sock));
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
@@ -320,19 +311,6 @@ static inline
 int sio_rtspmod_announce_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
-    struct sio_rtspdev *rtdev = &rconn->rtdev;
-
-    // open rtdev
-    *rtdev = sio_rtspdev_get(SIO_RTSPTYPE_LIVERECORD);
-    rtdev->dev = rtdev->open(NULL);
-    rtdev->setdescribe(rtdev->dev, rconn->body.data, rconn->body.length);
-
-    rconn->type = SIO_RTSPTYPE_LIVERECORD;
-
-    struct sio_rtpool *rtpool = rconn->mod->rtpool;
-    int ret = sio_rtpool_add(rtpool, rconn->addrname, rtdev);
-    SIO_COND_CHECK_CALLOPS(ret == -1,
-            SIO_LOGE("rtpdev %s add failed\n", rconn->addrname));
 
     char buffer[1024] = { 0 };
     sprintf(buffer, "RTSP/1.0 200 OK\r\n"
@@ -471,10 +449,54 @@ int sio_rtspmod_teardown_response(struct sio_socket *sock)
 }
 
 static inline
+int sio_rtspmod_open_playdev(struct sio_rtsp_conn *rconn)
+{
+    struct sio_rtspdev *rtdev = &rconn->rtdev;
+    SIO_COND_CHECK_RETURN_VAL(rtdev->dev, 0);
+
+    if (rconn->type == SIO_RTSPTYPE_VOD) {
+        *rtdev = sio_rtspdev_get(SIO_RTSPTYPE_VOD);
+    } else if (rconn->type == SIO_RTSPTYPE_LIVE) {
+        *rtdev = sio_rtspdev_get(SIO_RTSPTYPE_LIVE);
+    }
+
+    rtdev->dev = rtdev->open(rconn->addrname);
+    SIO_COND_CHECK_RETURN_VAL(rtdev->dev == NULL, -1);
+
+    return 0;
+}
+
+static inline
+int sio_rtspmod_open_recorddev(struct sio_rtsp_conn *rconn)
+{
+    struct sio_rtspdev *rtdev = &rconn->rtdev;
+    SIO_COND_CHECK_RETURN_VAL(rtdev->dev, 0);
+
+    // open rtdev
+    *rtdev = sio_rtspdev_get(SIO_RTSPTYPE_LIVERECORD);
+    rtdev->dev = rtdev->open(NULL);
+    rtdev->setdescribe(rtdev->dev, rconn->body.data, rconn->body.length);
+
+    rconn->type = SIO_RTSPTYPE_LIVERECORD;
+
+    struct sio_rtpool *rtpool = rconn->mod->rtpool;
+    int ret = sio_rtpool_add(rtpool, rconn->addrname, rtdev);
+    SIO_COND_CHECK_CALLOPS(ret == -1,
+            SIO_LOGE("rtpdev %s add failed\n", rconn->addrname));
+
+    return 0;
+}
+
+static inline
 int sio_rtspmod_response(struct sio_socket *sock, int method)
 {
+    struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
+    int ret = 0;
     switch (method) {
     case HTTP_OPTIONS:
+        ret = sio_rtspmod_open_playdev(rconn);
+        SIO_COND_CHECK_CALLOPS_BREAK(ret == -1,
+            sio_rtspmod_response_404(sock));
         sio_rtspmod_options_response(sock);
         break;
 
@@ -491,6 +513,9 @@ int sio_rtspmod_response(struct sio_socket *sock, int method)
         break;
 
     case HTTP_ANNOUNCE:
+        ret = sio_rtspmod_open_recorddev(rconn);
+        SIO_COND_CHECK_CALLOPS_BREAK(ret == -1,
+            sio_rtspmod_response_404(sock));
         sio_rtspmod_announce_response(sock);
         break;
 
