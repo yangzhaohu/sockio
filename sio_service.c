@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include "sio_server.h"
 #include "sio_common.h"
-#include "sio_mod.h"
 #include "moudle/http/sio_httpmod.h"
 #include "moudle/rtsp/sio_rtspmod.h"
 #include "sio_log.h"
@@ -11,34 +10,30 @@
 struct sio_service
 {
     struct sio_server *serv;
-    struct sio_mod *mod;
+    struct sio_submod submod;
 
     union sio_service_opt opt;
 };
 
-struct sio_mod g_global_mod1[SIO_SUBMOD_BUTT] = {
+struct sio_submod g_global_mod[SIO_SUBMOD_BUTT] = {
     [SIO_SUBMOD_HTTP] = {
-        .submod = {
-            .mod_name = sio_httpmod_name,
-            .mod_version = sio_httpmod_version,
-            .mod_type = sio_httpmod_type,
-            .install = sio_httpmod_create,
-            .mod_hook = sio_httpmod_hookmod,
-            .newconn = sio_httpmod_newconn,
-            .unstall = sio_httpmod_destory
-        },
-        .setlocat = sio_httpmod_setlocat
+        .mod_name = sio_httpmod_name,
+        .mod_version = sio_httpmod_version,
+        .mod_type = sio_httpmod_type,
+        .install = sio_httpmod_create,
+        .modhook = sio_httpmod_modhook,
+        .setlocate = sio_httpmod_setlocate,
+        .newconn = sio_httpmod_newconn,
+        .unstall = sio_httpmod_destory
     },
     [SIO_SUBMOD_RTSP] = {
-        .submod = {
-            .mod_name = sio_rtspmod_name,
-            .mod_version = sio_rtspmod_version,
-            .mod_type = sio_rtspmod_type,
-            .install = sio_rtspmod_create,
-            .newconn = sio_rtspmod_newconn,
-            .unstall = sio_rtspmod_destory
-        },
-        .setlocat = sio_rtspmod_setlocat
+        .mod_name = sio_rtspmod_name,
+        .mod_version = sio_rtspmod_version,
+        .mod_type = sio_rtspmod_type,
+        .install = sio_rtspmod_create,
+        .setlocate = sio_rtspmod_setlocate,
+        .newconn = sio_rtspmod_newconn,
+        .unstall = sio_rtspmod_destory
     }
  };
 
@@ -49,11 +44,10 @@ int sio_service_newconn(struct sio_server *serv)
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);
 
     struct sio_service *service = opts.private;
-    struct sio_mod *mod = service->mod;
-    struct sio_submod *submod = &mod->submod;
+    struct sio_submod *submod = &service->submod;
 
     if (submod->newconn) {
-        submod->newconn(serv);
+        submod->newconn(submod->mod, serv);
     }
 
     return 0;
@@ -73,8 +67,32 @@ struct sio_server *sio_service_createserv()
     return serv;
 }
 
-struct sio_service *sio_service_create(enum sio_submod_type type)
+static inline
+enum sio_submod_type sio_service_modtype(enum sio_service_type type)
 {
+    enum sio_submod_type modtype;
+    switch (type)
+    {
+    case SIO_SERVICE_HTTP:
+        modtype = SIO_SUBMOD_HTTP;
+        break;
+    case SIO_SERVICE_RTSP:
+        modtype = SIO_SUBMOD_RTSP;
+        break;
+
+    default:
+        modtype = SIO_SUBMOD_BUTT;
+        break;
+    }
+
+    return modtype;
+}
+
+struct sio_service *sio_service_create(enum sio_service_type type)
+{
+    enum sio_submod_type modtype = sio_service_modtype(type);
+    SIO_COND_CHECK_RETURN_VAL(modtype == SIO_SUBMOD_BUTT, NULL);
+
     struct sio_service *service = malloc(sizeof(struct sio_service));
     SIO_COND_CHECK_RETURN_VAL(!service, NULL);
 
@@ -92,11 +110,11 @@ struct sio_service *sio_service_create(enum sio_submod_type type)
     service->serv = serv;
 
     // module init
-    service->mod = &g_global_mod1[type];
-    struct sio_submod *submod = &service->mod->submod;
+    service->submod = g_global_mod[modtype];
+    struct sio_submod *submod = &service->submod;
     if (submod->install) {
-        int ret = submod->install();
-        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, NULL,
+        submod->mod = submod->install();
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(submod->mod == NULL, NULL,
             sio_server_destory(serv),
             free(service));
     } else {
@@ -151,11 +169,11 @@ int sio_service_setlocat(struct sio_service *service, const struct sio_location 
 {
     SIO_COND_CHECK_RETURN_VAL(!service, -1);
 
-    struct sio_mod *mod = service->mod;
+    struct sio_submod *submod = &service->submod;
 
     int ret = -1;
-    if (mod->setlocat) {
-        ret = mod->setlocat(locations, size);
+    if (submod->setlocate) {
+        ret = submod->setlocate(submod->mod, locations, size);
     }
 
     return ret;
@@ -191,10 +209,9 @@ int sio_service_destory(struct sio_service *service)
     struct sio_server *serv = service->serv;
     sio_server_destory(serv);
 
-    struct sio_mod *mod = service->mod;
-    struct sio_submod *submod = &mod->submod;
+    struct sio_submod *submod = &service->submod;
     if (submod->unstall) {
-        submod->unstall();
+        submod->unstall(submod->mod);
     }
 
     return 0;

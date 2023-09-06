@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "sio_common.h"
 #include "sio_def.h"
+#include "sio_server.h"
 #include "sio_list.h"
 #include "moudle/sio_locate.h"
 #include "moudle/sio_locatmod.h"
@@ -10,7 +11,7 @@
 #include "sio_httpmod_html.h"
 #include "sio_log.h"
 
-struct sio_http_env
+struct sio_httpmod
 {
     struct sio_locate *locate;
     struct sio_locatmod *locatmod;
@@ -40,6 +41,7 @@ struct sio_http_buffer
 
 struct sio_http_conn
 {
+    struct sio_httpmod *mod;
     struct sio_socket *sock;
     int matchpos;
     struct sio_location location;
@@ -49,11 +51,6 @@ struct sio_http_conn
 
     unsigned int complete:1; // packet complete
 };
-
-static struct sio_http_env g_httpenv = { 0 };
-
-#define sio_macro_string(name) name
-#define sio_httpenv_get_field(filed) g_httpenv.sio_macro_string(filed)
 
 int sio_httpmod_name(const char **name)
 {
@@ -119,7 +116,7 @@ int sio_httpmod_protofield(void *handler, const sio_str_t *field, const sio_str_
 
 int sio_httpmod_protodata(void *handler, enum sio_httpprot_data type, const sio_str_t *data)
 {
-    // SIO_LOGE("type: %d, %.*s\n", type, (int)len, data);
+    // SIO_LOGE("type: %d, %.*s\n", type, (int)data->length, data->data);
 
     int len = data->length;
     struct sio_http_conn *httpconn = handler;
@@ -135,7 +132,7 @@ int sio_httpmod_protodata(void *handler, enum sio_httpprot_data type, const sio_
         ds[SIO_HTTPDS_URL].dsstr.data = data->data;
         ds[SIO_HTTPDS_URL].dsstr.length = len;
 
-        struct sio_locate *locate = sio_httpenv_get_field(locate);
+        struct sio_locate *locate = httpconn->mod->locate;
         struct sio_location location = { 0 };
         int matchpos = sio_locate_match(locate, data->data, len, &location);
         if (matchpos != -1) {
@@ -185,12 +182,14 @@ int sio_httpmod_protoover(void *handler)
 }
 
 static inline
-struct sio_http_conn *sio_httpmod_httpconn_create()
+struct sio_http_conn *sio_httpmod_httpconn_create(struct sio_httpmod *mod)
 {
     struct sio_http_conn *httpconn = malloc(sizeof(struct sio_http_conn));
     SIO_COND_CHECK_RETURN_VAL(!httpconn, NULL);
 
     memset(httpconn, 0, sizeof(struct sio_http_conn));
+
+    httpconn->mod = mod;
 
     // string
     struct sio_http_buffer *buf = &httpconn->buf;
@@ -280,17 +279,31 @@ int sio_httpmod_socket_closeable(struct sio_socket *sock)
     return 0;
 }
 
-int sio_httpmod_create(void)
+sio_submod_t sio_httpmod_create(void)
 {
-    sio_httpenv_get_field(locate) = sio_locate_create();
-    sio_httpenv_get_field(locatmod) = sio_locatmod_create();
+    struct sio_httpmod *mod = malloc(sizeof(struct sio_httpmod));
+    SIO_COND_CHECK_RETURN_VAL(!mod, NULL);
 
-    return 0;
+    memset(mod, 0, sizeof(struct sio_httpmod));
+
+    struct sio_locate *locate = sio_locate_create();
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!locate, NULL,
+        free(mod));
+
+    struct sio_locatmod *locatmod = sio_locatmod_create();
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!locate, NULL,
+        sio_locate_destory(locate),
+        free(mod));
+
+    mod->locate = locate;
+    mod->locatmod = locatmod;
+
+    return mod;
 }
 
-int sio_httpmod_setlocat(const struct sio_location *locations, int size)
+int sio_httpmod_setlocate(sio_submod_t mod, const struct sio_location *locations, int size)
 {
-    struct sio_locate *locate = sio_httpenv_get_field(locate);
+    struct sio_locate *locate = ((struct sio_httpmod *)mod)->locate;
     for (int i = 0; i < size; i++) {
         sio_locate_add(locate, &locations[i]);
     }
@@ -298,12 +311,12 @@ int sio_httpmod_setlocat(const struct sio_location *locations, int size)
     return 0;
 }
 
-int sio_httpmod_hookmod(const char *modname, struct sio_submod *mod)
+int sio_httpmod_modhook(sio_submod_t mod, struct sio_submod *submod)
 {
     return 0;
 }
 
-int sio_httpmod_newconn(struct sio_server *server)
+int sio_httpmod_newconn(sio_submod_t mod, struct sio_server *server)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
     union sio_socket_opt opt = {
@@ -320,25 +333,28 @@ int sio_httpmod_newconn(struct sio_server *server)
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
         sio_socket_destory(sock));
 
+    struct sio_http_conn *hconn = sio_httpmod_httpconn_create(mod);
+    hconn->sock = sock;
+
+    opt.private = hconn;
+    sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
+
     ret = sio_server_socket_mplex(server, sock);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
         sio_socket_destory(sock));
-    
-    struct sio_http_conn *hconn = sio_httpmod_httpconn_create();
-    hconn->sock = sock;
-    opt.private = hconn;
-    sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     return 0;
 }
 
-int sio_httpmod_destory(void)
+int sio_httpmod_destory(sio_submod_t mod)
 {
-    struct sio_locate *locate = sio_httpenv_get_field(locate);
+    struct sio_locate *locate = ((struct sio_httpmod *)mod)->locate;
     sio_locate_destory(locate);
 
-    struct sio_locatmod *locatmod = sio_httpenv_get_field(locatmod);
+    struct sio_locatmod *locatmod = ((struct sio_httpmod *)mod)->locatmod;
     sio_locatmod_destory(locatmod);
+
+    free(mod);
 
     return 0;
 }

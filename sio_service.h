@@ -1,9 +1,12 @@
 #ifndef SIO_SERVICE_H_
 #define SIO_SERVICE_H_
 
-#include "sio_submod.h"
-
-struct sio_service;
+enum sio_service_type
+{
+    SIO_SERVICE_RAW = 1,
+    SIO_SERVICE_HTTP,
+    SIO_SERVICE_RTSP
+};
 
 enum sio_service_optcmd
 {
@@ -21,11 +24,14 @@ union sio_service_opt
     struct sio_service_addr addr;
 };
 
+struct sio_location;
+struct sio_submod;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct sio_service *sio_service_create(enum sio_submod_type type);
+struct sio_service *sio_service_create(enum sio_service_type type);
 
 int sio_service_setopt(struct sio_service *service, enum sio_service_optcmd cmd, union sio_service_opt *opt);
 

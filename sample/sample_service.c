@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include "sio_service.h"
+#include "moudle/sio_locate.h"
 
 int main()
 {
-    struct sio_service *servmod = sio_service_create(SIO_SUBMOD_RTSP);
+    struct sio_service *servmod = sio_service_create(SIO_SERVICE_RTSP);
 
     struct sio_location locat[] = {
         {

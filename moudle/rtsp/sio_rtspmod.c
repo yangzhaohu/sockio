@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include "sio_common.h"
 #include "sio_def.h"
+#include "sio_server.h"
 #include "moudle/sio_locate.h"
 #include "http_parser/http_parser.h"
 #include "sio_regex.h"
@@ -69,6 +70,7 @@ enum sio_rtsp_packst
 struct sio_rtsp_conn
 {
     struct http_parser parser;
+    struct sio_rtspmod *mod;
     struct sio_rtsp_buffer buf;
     struct sio_rtspipe *rtpipe;
     struct sio_rtspdev rtdev;
@@ -91,14 +93,14 @@ struct sio_rtsp_conn
 
 struct sio_rtspmod
 {
-    struct sio_locate *locat;
+    struct sio_locate *locate;
     struct sio_rtpool *rtpool;
 };
 
-static struct sio_rtspmod g_rtspmod;
+// static struct sio_rtspmod g_rtspmod;
 
-#define sio_rtspmod_get_locat() g_rtspmod.locat
-#define sio_rtspmod_get_rtpool() g_rtspmod.rtpool
+// #define sio_rtspmod_get_locat() g_rtspmod.locat
+// #define sio_rtspmod_get_rtpool() g_rtspmod.rtpool
 
 #define sio_rtspdev_get(type) g_rtspdev[type]
 
@@ -135,7 +137,7 @@ static inline
 int sio_rtsp_packet_url(http_parser *parser, const char *at, size_t len)
 {
     struct sio_rtsp_conn *rconn = (struct sio_rtsp_conn *)parser;
-    struct sio_locate *locat = sio_rtspmod_get_locat();
+    struct sio_locate *locat = rconn->mod->locate;
 
     if (rconn->addrname[0] != 0) {
         return 0;
@@ -284,7 +286,7 @@ int sio_rtspmod_describe_response(struct sio_socket *sock)
 
     } else if (rconn->type == SIO_RTSPTYPE_LIVE) {
         // first find exist live stream
-        struct sio_rtpool *rtpool = sio_rtspmod_get_rtpool();
+        struct sio_rtpool *rtpool = rconn->mod->rtpool;
         struct sio_rtspdev *rtdev = NULL;
         int ret = sio_rtpool_find(rtpool, rconn->addrname, (void **)&rtdev);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
@@ -327,7 +329,7 @@ int sio_rtspmod_announce_response(struct sio_socket *sock)
 
     rconn->type = SIO_RTSPTYPE_LIVERECORD;
 
-    struct sio_rtpool *rtpool = sio_rtspmod_get_rtpool();
+    struct sio_rtpool *rtpool = rconn->mod->rtpool;
     int ret = sio_rtpool_add(rtpool, rconn->addrname, rtdev);
     SIO_COND_CHECK_CALLOPS(ret == -1,
             SIO_LOGE("rtpdev %s add failed\n", rconn->addrname));
@@ -423,7 +425,7 @@ int sio_rtspmod_play_response(struct sio_socket *sock)
     if (rconn->type == SIO_RTSPTYPE_VOD) {
         rtdev->add_senddst(rtdev->dev, rconn->rtpipe);
     } else if (rconn->type == SIO_RTSPTYPE_LIVE) {
-        struct sio_rtpool *rtpool = sio_rtspmod_get_rtpool();
+        struct sio_rtpool *rtpool = rconn->mod->rtpool;
         sio_rtpool_find(rtpool, rconn->addrname, (void **)&rtdev);
         rtdev->add_senddst(rtdev->dev, rconn->rtpipe);
     }
@@ -713,7 +715,7 @@ int sio_rtspmod_socket_closeable(struct sio_socket *sock)
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
     if (rconn->type == SIO_RTSPTYPE_LIVERECORD) {
-        struct sio_rtpool *rtpool = sio_rtspmod_get_rtpool();
+        struct sio_rtpool *rtpool = rconn->mod->rtpool;
         sio_rtpool_del(rtpool, rconn->addrname);
     }
 
@@ -732,24 +734,31 @@ int sio_rtspmod_socket_closeable(struct sio_socket *sock)
     return 0;
 }
 
-int sio_rtspmod_create(void)
+sio_submod_t sio_rtspmod_create(void)
 {
-    struct sio_locate *locat = sio_locate_create();
-    SIO_COND_CHECK_RETURN_VAL(!locat, -1);
+    struct sio_rtspmod *mod = malloc(sizeof(struct sio_rtspmod));
+    SIO_COND_CHECK_RETURN_VAL(!mod, NULL);
+
+    memset(mod, 0, sizeof(struct sio_rtspmod));
+
+    struct sio_locate *locate = sio_locate_create();
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!locate, NULL,
+        free(mod));
 
     struct sio_rtpool *rtpool = sio_rtpool_create();
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!rtpool, -1,
-        sio_locate_destory(locat));
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!rtpool, NULL,
+        sio_locate_destory(locate),
+        free(mod));
 
-    g_rtspmod.locat = locat;
-    g_rtspmod.rtpool = rtpool;
+    mod->locate = locate;
+    mod->rtpool = rtpool;
 
-    return 0;
+    return mod;
 }
 
-int sio_rtspmod_setlocat(const struct sio_location *locations, int size)
+int sio_rtspmod_setlocate(sio_submod_t mod, const struct sio_location *locations, int size)
 {
-    struct sio_locate *locate = sio_rtspmod_get_locat();
+    struct sio_locate *locate = ((struct sio_rtspmod *)mod)->locate;
     for (int i = 0; i < size; i++) {
         if (locations[i].type < SIO_LOCATE_RTSP_VOD) {
             continue;
@@ -760,7 +769,7 @@ int sio_rtspmod_setlocat(const struct sio_location *locations, int size)
     return 0;
 }
 
-int sio_rtspmod_newconn(struct sio_server *server)
+int sio_rtspmod_newconn(sio_submod_t mod, struct sio_server *server)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
     union sio_socket_opt opt = {
@@ -777,18 +786,28 @@ int sio_rtspmod_newconn(struct sio_server *server)
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
         sio_socket_destory(sock));
 
+    struct sio_rtsp_conn *rconn = sio_rtspmod_rtspconn_create(NULL);
+    rconn->mod = mod;
+
+    opt.private = rconn;
+    sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
+
     ret = sio_server_socket_mplex(server, sock);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
         sio_socket_destory(sock));
-    
-    struct sio_rtsp_conn *rconn = sio_rtspmod_rtspconn_create(NULL);
-    opt.private = rconn;
-    sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     return 0;
 }
 
-int sio_rtspmod_destory(void)
+int sio_rtspmod_destory(sio_submod_t mod)
 {
+    struct sio_locate *locate = ((struct sio_rtspmod *)mod)->locate;
+    sio_locate_destory(locate);
+
+    struct sio_rtpool *rtpool = ((struct sio_rtspmod *)mod)->rtpool;
+    sio_rtpool_destory(rtpool);
+
+    free(mod);
+
     return 0;
 }

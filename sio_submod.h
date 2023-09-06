@@ -1,9 +1,6 @@
 #ifndef SIO_SUBMOD_H_
 #define SIO_SUBMOD_H_
 
-#include "sio_server.h"
-#include "moudle/sio_locate.h"
-
 enum sio_submod_type
 {
     SIO_SUBMOD_RAW = 1,
@@ -15,17 +12,26 @@ enum sio_submod_type
 #define SIO_SUBMOD_EXPORTSYMS g_custom_submod
 #define SIO_SUBMOD_EXPORTSYMS_INIT(submod) extern const struct sio_submod* SIO_SUBMOD_EXPORTSYMS = &submod
 
+typedef void * sio_submod_t;
+
+struct sio_server;
+struct sio_location;
+
 struct sio_submod
 {
+    sio_submod_t mod;
     int (*mod_name)(const char **name);
     int (*mod_version)(const char **version);
     int (*mod_type)(void);
 
-    int (*install)(void);
-    int (*getlocat)(const char **locations, int size);
-    int (*mod_hook)(const char *modname, struct sio_submod *mod);
-    int (*newconn)(struct sio_server *server);
-    int (*unstall)(void);
+    sio_submod_t (*install)(void);
+
+    int (*modhook)(sio_submod_t mod, struct sio_submod *submod);
+    int (*setlocate)(sio_submod_t mod, const struct sio_location *locations, int size);
+    int (*getlocate)(sio_submod_t mod, const char **locations);
+    int (*newconn)(sio_submod_t mod, struct sio_server *server);
+
+    int (*unstall)(sio_submod_t mod);
 };
 
 #endif

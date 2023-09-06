@@ -1,5 +1,8 @@
 #include "sio_httpmod_html.h"
+#include <stdio.h>
 #include <string.h>
+#include "sio_socket.h"
+#include "sio_log.h"
 
 static inline
 int sio_http_head_append(char *buf, const char *field)
@@ -42,7 +45,7 @@ int sio_httpmod_html_response(struct sio_socket *sock, char *headbuf, int size, 
 {
     FILE *fp = fopen(file, "r");
     if (fp == NULL) {
-        SIO_LOGE("%s not found\n", file);
+        // SIO_LOGE("%s not found\n", file);
         sio_httpmod_notfound(sock, headbuf, size);
         return -1;
     }
