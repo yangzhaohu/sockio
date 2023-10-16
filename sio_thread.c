@@ -19,11 +19,13 @@ struct sio_thread_ops g_phtread_ops =
 #ifdef WIN32
 {
     .create = sio_thread_win_create,
+    .join = sio_thread_win_join,
     .destory = sio_thread_win_destory
 };
 #else
 {
     .create = sio_thread_pthread_create,
+    .join = sio_thread_pthread_join,
     .destory = sio_thread_pthread_destory
 };
 #endif 
@@ -61,10 +63,27 @@ int sio_thread_start(struct sio_thread *thread)
     return 0;
 }
 
+int sio_thread_join(struct sio_thread *thread)
+{
+    SIO_COND_CHECK_RETURN_VAL(!thread, -1);
+
+    unsigned long int tid = thread->tid;
+    const struct sio_thread_ops *ops = thread->ops;
+
+    return ops->join(tid);
+}
+
 // int sio_thread_stop(struct sio_thread *thread)
 // {
 //     return 0;
 // }
+
+unsigned long int sio_thread_id(struct sio_thread *thread)
+{
+    SIO_COND_CHECK_RETURN_VAL(!thread, -1);
+
+    return thread->tid;
+}
 
 int sio_thread_destory(struct sio_thread *thread)
 {

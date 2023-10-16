@@ -13,7 +13,11 @@ struct sio_thread *sio_thread_create(void *(*routine)(void *arg), void *arg);
 
 int sio_thread_start(struct sio_thread *thread);
 
+int sio_thread_join(struct sio_thread *thread);
+
 // int sio_thread_stop(struct sio_thread *thread);
+
+unsigned long int sio_thread_id(struct sio_thread *thread);
 
 int sio_thread_destory(struct sio_thread *thread);
 

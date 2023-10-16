@@ -25,9 +25,14 @@ unsigned long int sio_thread_win_create(struct sio_thread_pri *pri)
     return tid;
 }
 
+int sio_thread_win_join(unsigned long int tid)
+{
+    return WaitForSingleObject(tid, INFINITE);
+}
+
 int sio_thread_win_destory(unsigned long int tid)
 {
-    int ret = WaitForSingleObject(tid, INFINITE);
+    int ret = sio_thread_win_join(tid);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != WAIT_OBJECT_0, -1,
         SIO_LOGE("_beginthreadex  WaitForSingleObject err: %d", ret));
 

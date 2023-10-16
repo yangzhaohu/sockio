@@ -20,9 +20,14 @@ unsigned long int sio_thread_pthread_create(struct sio_thread_pri *pri)
     return tid;
 }
 
+int sio_thread_pthread_join(unsigned long int tid)
+{
+    return pthread_join(tid, NULL);
+}
+
 int sio_thread_pthread_destory(unsigned long int tid)
 {
-    int ret = pthread_join(tid, NULL);
+    int ret = sio_thread_pthread_join(tid);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
         SIO_LOGE("pthread join err: %d", ret));
 
