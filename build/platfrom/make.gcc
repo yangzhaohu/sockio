@@ -19,7 +19,7 @@ OBJS := $(OBJS:%.cpp=$(OBJ_OUTPUT)%.o)
 $(OBJ_OUTPUT)%.o : %.c
 	$(CC) -c $< $(INCLUDES) $(CFLAGS) -o $@
 
-$(OBJ_OUTPUT)/%.o : %.cpp
+$(OBJ_OUTPUT)%.o : %.cpp
 	$(CXX) -c $< $(INCLUDES) $(CXXFLAGS) -o $@
 
 incre: $(OBJS)

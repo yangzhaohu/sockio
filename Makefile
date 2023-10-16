@@ -7,9 +7,10 @@ $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS :=
 INCLUDES := -I. -Iinclude -Idepend/include
-LIBS := -Ldepend/lib -ldl -lhttp_parser -lpcre2-8 -lpcre2-posix
+LIBS := -Ldepend/lib -ldl -lrt -lhttp_parser -lpcre2-8 -lpcre2-posix
 
-SRCS := sio_mplex.c \
+SRCS := sio_global.cpp \
+		sio_mplex.c \
 		sio_select.c \
 		sio_epoll.c \
 		sio_iocp.c \
@@ -30,6 +31,8 @@ SRCS := sio_mplex.c \
 		sio_elepool.c \
 		sio_service.c \
 		sio_regex.c \
+		sio_timer_posix.c \
+		sio_timer.c \
 		utils/sio_dlopen.c \
 		proto/sio_httpprot.c \
 		proto/sio_rtspprot.c \
