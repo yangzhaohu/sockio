@@ -1,5 +1,5 @@
-#ifndef SIO_MPLEX_THREAD_H_
-#define SIO_MPLEX_THREAD_H_
+#ifndef SIO_PERMPLEX_H_
+#define SIO_PERMPLEX_H_
 
 #include "sio_mplex.h"
 
