@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
-#include "sio_mplex_thread.h"
+#include "sio_permplex.h"
 
 static int socket_readable(struct sio_socket *sock)
 {
@@ -27,7 +27,7 @@ static int socket_closeable(struct sio_socket *sock)
     return 0;
 }
 
-int set_sock_mplex(struct sio_socket *sock, struct sio_mplex_thread *mpt)
+int set_sock_mplex(struct sio_socket *sock, struct sio_permplex *mpt)
 {
     union sio_socket_opt opt = { 0 };
     opt.ops.readfromable = socket_readable;
@@ -37,7 +37,7 @@ int set_sock_mplex(struct sio_socket *sock, struct sio_mplex_thread *mpt)
     opt.nonblock = 1;
     ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_mplex *mplex = sio_mplex_thread_mplex_ref(mpt);
+    struct sio_mplex *mplex = sio_permplex_mplex_ref(mpt);
     opt.mplex = mplex;
     sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
 
@@ -48,7 +48,7 @@ int set_sock_mplex(struct sio_socket *sock, struct sio_mplex_thread *mpt)
 
 int main()
 {
-    struct sio_mplex_thread *mpt = sio_mplex_thread_create(SIO_MPLEX_EPOLL);
+    struct sio_permplex *mpt = sio_permplex_create(SIO_MPLEX_EPOLL);
 
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_UDP, NULL);
     struct sio_socket_addr addr = { "127.0.0.1", 8090};
@@ -78,7 +78,7 @@ int main()
         }
     }
 
-    sio_mplex_thread_destory(mpt);
+    sio_permplex_destory(mpt);
 
     return 0;
 }

@@ -5,7 +5,7 @@
 #include "sio_common.h"
 #include "sio_socket.h"
 #include "sio_mplex.h"
-#include "sio_mplex_thread.h"
+#include "sio_permplex.h"
 #include "sio_thread.h"
 #include "sio_errno.h"
 #include "sio_log.h"
@@ -48,7 +48,7 @@ struct sio_server
 {
     struct sio_socket *sock;
     struct sio_server_owner owner;
-    struct sio_mplex_thread *mplths[SIO_SERVER_MAX_THREADS];
+    struct sio_permplex *pmplexs[SIO_SERVER_MAX_THREADS];
     struct sio_server_mlb mlb;
 };
 
@@ -75,7 +75,7 @@ static struct sio_socket_ops g_serv_ops =
     do { \
         for (int i = 0; i < count; i++) { \
             if (thread[i]) { \
-                sio_mplex_thread_destory(thread[i]); \
+                sio_permplex_destory(thread[i]); \
                 thread[i] = NULL; \
             } \
         } \
@@ -85,7 +85,7 @@ static struct sio_socket_ops g_serv_ops =
 static inline
 int sio_server_threads_create(struct sio_server *serv, unsigned char threads)
 {
-    struct sio_mplex_thread **mplths = serv->mplths;
+    struct sio_permplex **pmplexs = serv->pmplexs;
 
 #ifdef WIN32
     enum SIO_MPLEX_TYPE type = SIO_MPLEX_IOCP;
@@ -94,9 +94,9 @@ int sio_server_threads_create(struct sio_server *serv, unsigned char threads)
 #endif
 
     int ret = 0;
-    SIO_SERVER_THREADS_CREATE(mplths, sio_mplex_thread_create(type), threads, ret);
+    SIO_SERVER_THREADS_CREATE(pmplexs, sio_permplex_create(type), threads, ret);
     if (ret == -1) {
-        SIO_SERVER_THREADS_DESTORY(mplths, threads);
+        SIO_SERVER_THREADS_DESTORY(pmplexs, threads);
         return -1;
     }
 
@@ -109,16 +109,16 @@ int sio_server_threads_create(struct sio_server *serv, unsigned char threads)
 static inline
 int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock)
 {
-    struct sio_mplex_thread **mplths = serv->mplths;
+    struct sio_permplex **pmplexs = serv->pmplexs;
     struct sio_server_mlb *mlb = &serv->mlb;
 
     unsigned int round = mlb->round;
     unsigned int threads = mlb->threads;
 
-    struct sio_mplex_thread *mplth = mplths[round % threads];
-    SIO_COND_CHECK_RETURN_VAL(!mplth, -1);
+    struct sio_permplex *pmplex = pmplexs[round % threads];
+    SIO_COND_CHECK_RETURN_VAL(!pmplex, -1);
 
-    struct sio_mplex *mplex = sio_mplex_thread_mplex_ref(mplth);
+    struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
     SIO_COND_CHECK_RETURN_VAL(!mplex, -1);
 
     union sio_socket_opt opt = {
@@ -314,8 +314,8 @@ int sio_server_destory(struct sio_server *serv)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
 
-    struct sio_mplex_thread **mplths = serv->mplths;
-    SIO_SERVER_THREADS_DESTORY(mplths, SIO_SERVER_MAX_THREADS);
+    struct sio_permplex **pmplexs = serv->pmplexs;
+    SIO_SERVER_THREADS_DESTORY(pmplexs, SIO_SERVER_MAX_THREADS);
 
     sio_socket_destory(serv->sock);
     free(serv);

@@ -1,17 +1,17 @@
 #include <stdio.h>
 #include <string.h>
-#include "sio_mplex_thread.h"
+#include "sio_permplex.h"
 
 int main()
 {
-    struct sio_mplex_thread *mpthr = sio_mplex_thread_create(SIO_MPLEX_EPOLL);
+    struct sio_permplex *mpthr = sio_permplex_create(SIO_MPLEX_EPOLL);
     if (mpthr == NULL) {
         return -1;
     }
 
     getc(stdin);
 
-    sio_mplex_thread_destory(mpthr);
+    sio_permplex_destory(mpthr);
     
     getc(stdin);
 

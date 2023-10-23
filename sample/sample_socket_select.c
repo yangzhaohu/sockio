@@ -2,7 +2,7 @@
 #include <string.h>
 #include "sio_socket.h"
 #include "sio_mplex.h"
-#include "sio_mplex_thread.h"
+#include "sio_permplex.h"
 
 int socknew(struct sio_socket *serv);
 int readable(struct sio_socket *sock);
@@ -136,8 +136,8 @@ int main(void)
     opt.nonblock = 1;
     sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_mplex_thread *mpthr = sio_mplex_thread_create(SIO_MPLEX_SELECT);
-    struct sio_mplex *mplex = sio_mplex_thread_mplex_ref(mpthr);
+    struct sio_permplex *mpthr = sio_permplex_create(SIO_MPLEX_SELECT);
+    struct sio_mplex *mplex = sio_permplex_mplex_ref(mpthr);
     g_mplex = mplex;
 
     opt.mplex = mplex;

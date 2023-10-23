@@ -2,7 +2,7 @@
 #include <string.h>
 #include "sio_socket.h"
 #include "sio_errno.h"
-#include "sio_mplex_thread.h"
+#include "sio_permplex.h"
 
 struct sio_mplex *g_mplex = NULL;
 
@@ -95,12 +95,12 @@ int main()
     opt.nonblock = 1;
     sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_mplex_thread *mpthr = sio_mplex_thread_create(SIO_MPLEX_EPOLL);
+    struct sio_permplex *mpthr = sio_permplex_create(SIO_MPLEX_EPOLL);
     if (mpthr == NULL) {
         return -1;
     }
 
-    g_mplex = sio_mplex_thread_mplex_ref(mpthr);
+    g_mplex = sio_permplex_mplex_ref(mpthr);
 
     opt.mplex = g_mplex;
     sio_socket_setopt(serv, SIO_SOCK_MPLEX, &opt);
