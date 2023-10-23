@@ -16,8 +16,8 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count);
 
 void *sio_permplex_start_routine(void *arg)
 {
-    struct sio_permplex *mpt = (struct sio_permplex *)arg;
-    struct sio_mplex *mplex = mpt->mplex;
+    struct sio_permplex *pmplex = (struct sio_permplex *)arg;
+    struct sio_mplex *mplex = pmplex->mplex;
 
     struct sio_event events[128];
 
@@ -36,24 +36,24 @@ void *sio_permplex_start_routine(void *arg)
 static inline
 struct sio_permplex *sio_permplex_create_imp(struct sio_mplex *mplex)
 {
-    struct sio_permplex *mpt = malloc(sizeof(struct sio_permplex));
-    SIO_COND_CHECK_RETURN_VAL(!mpt, NULL);
+    struct sio_permplex *pmplex = malloc(sizeof(struct sio_permplex));
+    SIO_COND_CHECK_RETURN_VAL(!pmplex, NULL);
 
-    memset(mpt, 0, sizeof(struct sio_permplex));
-    mpt->mplex = mplex;
+    memset(pmplex, 0, sizeof(struct sio_permplex));
+    pmplex->mplex = mplex;
 
-    struct sio_thread *thread = sio_thread_create(sio_permplex_start_routine, mpt);
+    struct sio_thread *thread = sio_thread_create(sio_permplex_start_routine, pmplex);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!thread, NULL,
-        free(mpt));
+        free(pmplex));
 
-    mpt->thread = thread;
+    pmplex->thread = thread;
 
     int ret = sio_thread_start(thread);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         sio_thread_destory(thread),
-        free(mpt));
+        free(pmplex));
     
-    return mpt;
+    return pmplex;
 }
 
 struct sio_permplex *sio_permplex_create(enum SIO_MPLEX_TYPE type)
@@ -62,29 +62,29 @@ struct sio_permplex *sio_permplex_create(enum SIO_MPLEX_TYPE type)
     struct sio_mplex *mplex = sio_mplex_create(&attr);
     SIO_COND_CHECK_RETURN_VAL(!mplex, NULL);
 
-    struct sio_permplex *mpt = sio_permplex_create_imp(mplex);
-    SIO_COND_CHECK_RETURN_VAL(!mpt, NULL);
+    struct sio_permplex *pmplex = sio_permplex_create_imp(mplex);
+    SIO_COND_CHECK_RETURN_VAL(!pmplex, NULL);
     
-    return mpt;
+    return pmplex;
 }
 
-struct sio_mplex *sio_permplex_mplex_ref(struct sio_permplex *mpt)
+struct sio_mplex *sio_permplex_mplex_ref(struct sio_permplex *pmplex)
 {
-    SIO_COND_CHECK_RETURN_VAL(!mpt, NULL);
+    SIO_COND_CHECK_RETURN_VAL(!pmplex, NULL);
 
-    return mpt->mplex;
+    return pmplex->mplex;
 }
 
-int sio_permplex_destory(struct sio_permplex *mpt)
+int sio_permplex_destory(struct sio_permplex *pmplex)
 {
-    SIO_COND_CHECK_RETURN_VAL(!mpt, -1);
+    SIO_COND_CHECK_RETURN_VAL(!pmplex, -1);
 
-    sio_mplex_close(mpt->mplex);
+    sio_mplex_close(pmplex->mplex);
 
-    sio_thread_destory(mpt->thread);
-    sio_mplex_destory(mpt->mplex);
+    sio_thread_destory(pmplex->thread);
+    sio_mplex_destory(pmplex->mplex);
 
-    free(mpt);
+    free(pmplex);
     
     return 0;
 }
