@@ -61,7 +61,8 @@ sio_timer_t sio_timer_posix_create(struct sio_timer_pri *pri)
     return timer;
 }
 
-int sio_timer_posix_start(sio_timer_t timer, unsigned int udelay, unsigned int uperiod)
+static inline
+int sio_timer_posix_settime(timer_t timerid, unsigned int udelay, unsigned int uperiod)
 {
     struct itimerspec tspec = { 0 };
     udelay *= 1000;
@@ -71,11 +72,17 @@ int sio_timer_posix_start(sio_timer_t timer, unsigned int udelay, unsigned int u
     tspec.it_interval.tv_sec = uperiod / 1000000000;
     tspec.it_interval.tv_nsec = uperiod % 1000000000;
 
-    int ret = timer_settime(SIO_TIMER_POSIX_CAST(timer)->timerid, 0, &tspec, NULL);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        timer_delete(SIO_TIMER_POSIX_CAST(timer)->timerid));
+    return timer_settime(timerid, 0, &tspec, NULL);
+}
 
-    return 0;
+int sio_timer_posix_start(sio_timer_t timer, unsigned int udelay, unsigned int uperiod)
+{
+    return sio_timer_posix_settime(SIO_TIMER_POSIX_CAST(timer)->timerid, udelay, uperiod);
+}
+
+int sio_timer_posix_stop(sio_timer_t timer)
+{
+    return sio_timer_posix_settime(SIO_TIMER_POSIX_CAST(timer)->timerid, 0, 0);
 }
 
 int sio_timer_posix_destory(sio_timer_t timer)

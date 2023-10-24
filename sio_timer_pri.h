@@ -19,6 +19,7 @@ struct sio_timer_ops
 {
     sio_timer_t (*create)(struct sio_timer_pri *pri);
     int (*start)(sio_timer_t timer, unsigned int udelay, unsigned int uperiod);
+    int (*stop)(sio_timer_t timer);
     int (*destory)(sio_timer_t timer);
 };
 

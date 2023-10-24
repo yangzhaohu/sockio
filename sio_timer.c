@@ -17,13 +17,15 @@ struct sio_timer_ops g_timer_ops =
 #ifdef WIN32
 {
     .create = sio_timer_win_create,
-    .join = sio_timer_win_start,
+    .start = sio_timer_win_start,
+    .stop = sio_timer_win_stop,
     .destory = sio_timer_win_destory
 };
 #else
 {
     .create = sio_timer_posix_create,
     .start = sio_timer_posix_start,
+    .stop = sio_timer_posix_stop,
     .destory = sio_timer_posix_destory
 };
 #endif 
@@ -54,7 +56,15 @@ int sio_timer_start(struct sio_timer *timer, unsigned int udelay, unsigned int u
     SIO_COND_CHECK_RETURN_VAL(!timer, -1);
 
     const struct sio_timer_ops *ops = timer->ops;
-    return  ops->start(timer->timerid, udelay, uperiod);;
+    return  ops->start(timer->timerid, udelay, uperiod);
+}
+
+int sio_timer_stop(struct sio_timer *timer)
+{
+    SIO_COND_CHECK_RETURN_VAL(!timer, -1);
+
+    const struct sio_timer_ops *ops = timer->ops;
+    return  ops->stop(timer->timerid);
 }
 
 int sio_timer_destory(struct sio_timer *timer)

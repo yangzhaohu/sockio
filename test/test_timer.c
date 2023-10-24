@@ -26,6 +26,10 @@ int main()
             break;
         } else if (c == 's') {
             kill(getpid(), SIGUSR1);
+        } else if (c == 'b') {
+            sio_timer_start(timer, 1000 * 1000 * 2, 1000 * 1000 * 1);
+        } else if (c == 'e') {
+            sio_timer_stop(timer);
         }
     }
 
