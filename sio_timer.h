@@ -9,7 +9,7 @@ extern "C" {
 
 struct sio_timer *sio_timer_create(void *(*routine)(void *arg), void *arg);
 
-int sio_timer_start(struct sio_timer *timer, unsigned int udelay, unsigned int uperiod);
+int sio_timer_start(struct sio_timer *timer, unsigned long int udelay, unsigned long int uperiod);
 
 int sio_timer_stop(struct sio_timer *timer);
 

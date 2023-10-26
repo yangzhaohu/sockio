@@ -11,7 +11,7 @@ extern "C" {
 
 sio_timer_t sio_timer_posix_create(struct sio_timer_pri *pri);
 
-int sio_timer_posix_start(sio_timer_t timer, unsigned int udelay, unsigned int uperiod);
+int sio_timer_posix_start(sio_timer_t timer, unsigned long int udelay, unsigned long int uperiod);
 
 int sio_timer_posix_stop(sio_timer_t timer);
 

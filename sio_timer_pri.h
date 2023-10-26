@@ -18,7 +18,7 @@ enum sio_timer_mode
 struct sio_timer_ops
 {
     sio_timer_t (*create)(struct sio_timer_pri *pri);
-    int (*start)(sio_timer_t timer, unsigned int udelay, unsigned int uperiod);
+    int (*start)(sio_timer_t timer, unsigned long int udelay, unsigned long int uperiod);
     int (*stop)(sio_timer_t timer);
     int (*destory)(sio_timer_t timer);
 };
