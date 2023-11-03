@@ -4,7 +4,7 @@
 
 int main()
 {
-    struct sio_service *servmod = sio_service_create(SIO_SERVICE_RTSP);
+    struct sio_service *servmod = sio_service_create(SIO_SERVICE_DOIP);
 
     struct sio_location locat[] = {
         {
@@ -60,7 +60,7 @@ int main()
     sio_service_setlocat(servmod, locat, sizeof(locat) / sizeof(struct sio_location));
 
     union sio_service_opt opt = {
-        .addr = {"127.0.0.1", 8000}
+        .addr = {"127.0.0.1", 13400}
     };
     sio_service_setopt(servmod, SIO_SERVICE_ADDR, &opt);
 

@@ -5,6 +5,7 @@
 #include "sio_common.h"
 #include "moudle/http/sio_httpmod.h"
 #include "moudle/rtsp/sio_rtspmod.h"
+#include "moudle/doip/sio_doipmod.h"
 #include "sio_log.h"
 
 struct sio_service
@@ -34,6 +35,15 @@ struct sio_submod g_global_mod[SIO_SUBMOD_BUTT] = {
         .setlocate = sio_rtspmod_setlocate,
         .newconn = sio_rtspmod_newconn,
         .unstall = sio_rtspmod_destory
+    },
+    [SIO_SUBMOD_DOIP] = {
+        .mod_name = sio_doipmod_name,
+        .mod_version = sio_doipmod_version,
+        .mod_type = sio_doipmod_type,
+        .install = sio_doipmod_create,
+        .setlocate = sio_doipmod_setlocate,
+        .newconn = sio_doipmod_newconn,
+        .unstall = sio_doipmod_destory
     }
  };
 
@@ -78,6 +88,9 @@ enum sio_submod_type sio_service_modtype(enum sio_service_type type)
         break;
     case SIO_SERVICE_RTSP:
         modtype = SIO_SUBMOD_RTSP;
+        break;
+    case SIO_SERVICE_DOIP:
+        modtype = SIO_SUBMOD_DOIP;
         break;
 
     default:

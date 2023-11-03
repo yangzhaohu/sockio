@@ -50,6 +50,13 @@ SRCS := sio_global.cpp \
 		moudle/rtsp/rtpack/sio_avdev_jpeg.c \
 		moudle/rtsp/rtpack/sio_rtpack.c \
 		moudle/rtsp/rtpack/sio_rtpack_jpeg.c \
+		moudle/doip/doip_hdr.c \
+		moudle/doip/sio_doip_discover.c \
+		moudle/doip/sio_doip_node.c \
+		moudle/doip/sio_doip_handler.c \
+		moudle/doip/sio_doip_route.c \
+		moudle/doip/sio_doip_vinsync.c \
+		moudle/doip/sio_doipmod.c
 
 .PHONY: incre all clean help
 

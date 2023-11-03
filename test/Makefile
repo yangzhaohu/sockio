@@ -20,7 +20,8 @@ SRCS := test_http_parser.c \
 	test_udp.c \
 	test_udp2.c \
 	test_jpeg_parser.c \
-	test_timer.c
+	test_timer.c \
+	test_doip.c
 
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)

@@ -6,6 +6,9 @@
 
 // #pragma message(PRINT_MACRO(var))
 
+#define SIO_MIN(a, b) ((a < b) ? a : b)
+#define SIO_MAX(a, b) ((a > b) ? a : b)
+
 #define SIO_OFFSET_OF(type, member) ((unsigned long)&(((type*)0)->member))
 #define SIO_CONTAINER_OF(ptr, type, member)	((type *)((char *)(ptr) - SIO_OFFSET_OF(type, member)))
 

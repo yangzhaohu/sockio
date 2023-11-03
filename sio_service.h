@@ -5,7 +5,8 @@ enum sio_service_type
 {
     SIO_SERVICE_RAW = 1,
     SIO_SERVICE_HTTP,
-    SIO_SERVICE_RTSP
+    SIO_SERVICE_RTSP,
+    SIO_SERVICE_DOIP
 };
 
 enum sio_service_optcmd

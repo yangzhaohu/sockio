@@ -16,7 +16,7 @@ void *timer_routine(void *arg)
 int main()
 {
     struct sio_timer *timer = sio_timer_create(timer_routine, NULL);
-    sio_timer_start(timer, 1000 * 1000 * 4, 1000 * 1000 * 1);
+    sio_timer_start(timer, 1000 * 1000 * 300, 0);
 
     sio_global_sigaction(SIGUSR1);
 
