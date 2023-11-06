@@ -23,7 +23,7 @@ $(CXX) := $(CROSS_COMPILER)-$(CXX)
 endif
 endif
 
-all: http_parser-build pcre2-build
+all: http_parser-build pcre2-build openssl-build
 
 HTTP_PARSER := http_parser
 http_parser-build:
@@ -42,4 +42,40 @@ pcre2-build:
 	make -C $(PCRE2) install
 	$(shell mkdir -p $(DEPEND_INC_DIR)/$(PCRE2))
 	cp $(INSTALL_DIR)/$(PCRE2)/include/*  $(DEPEND_INC_DIR)/$(PCRE2)
-	cp $(INSTALL_DIR)/$(PCRE2)/lib/*.so*  $(DEPEND_LIB_DIR)
+	cp $(INSTALL_DIR)/$(PCRE2)/lib*/*.so*  $(DEPEND_LIB_DIR)
+
+OPENSSL := openssl
+openssl-build:
+	-make -C $(OPENSSL) clean
+	cd $(OPENSSL) && ./Configure shared no-asm --cross-compile-prefix= --prefix=$(INSTALL_DIR)/$(OPENSSL)
+	make -C $(OPENSSL) -j 4
+	make -C $(OPENSSL) install
+	$(shell mkdir -p $(DEPEND_INC_DIR)/$(OPENSSL))
+	cp $(INSTALL_DIR)/$(OPENSSL)/include/openssl/*  $(DEPEND_INC_DIR)/$(OPENSSL)
+	cp $(INSTALL_DIR)/$(OPENSSL)/lib/*.so*  $(DEPEND_LIB_DIR)
+
+download: http_parser-download pcre2-download openssl-download
+
+http_parser-download:
+	$(info "http_parser download")
+	$(info "from download https://github.com/nodejs/http-parser/archive/refs/tags/v2.9.4.tar.gz")
+	rm -rf $(HTTP_PARSER)
+	wget https://github.com/yangzhaohu/http-parser/archive/refs/tags/v2.9.4.tar.gz -O http-parser-2.9.4.tar.gz
+	tar -zxvf http-parser-2.9.4.tar.gz >/dev/null
+	mv http-parser-2.9.4 $(HTTP_PARSER)
+
+pcre2-download:
+	$(info "pcre2 download")
+	$(info "form download https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz")
+	rm -rf $(PCRE2)
+	wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz -O pcre2-10.42.tar.gz
+	tar -zxvf pcre2-10.42.tar.gz >/dev/null
+	mv pcre2-10.42 $(PCRE2)
+
+openssl-download:
+	$(info "openssl download")
+	$(info "form download https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz")
+	rm -rf $(OPENSSL)
+	wget https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz -O openssl-3.1.4.tar.gz
+	tar -zxvf openssl-3.1.4.tar.gz >/dev/null
+	mv openssl-3.1.4 $(OPENSSL)
