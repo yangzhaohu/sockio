@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include "sio_common.h"
 #include "sio_server.h"
 #include "sio_thread.h"
@@ -151,7 +150,7 @@ static int sio_socket_closeable(struct sio_socket *sock)
 static inline
 void *sio_sockflow_socket(void *memptr)
 {
-    char *mem = memptr + sizeof(struct sio_sockflow);
+    char *mem = (char *)memptr + sizeof(struct sio_sockflow);
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, mem);
     union sio_socket_opt opt = {
         .ops.readable = sio_socket_readable,
@@ -166,7 +165,7 @@ void *sio_sockflow_socket(void *memptr)
 static inline
 void sio_sockflow_desocket(void *memptr)
 {
-    struct sio_socket *sock = memptr + sizeof(struct sio_sockflow);
+    struct sio_socket *sock = (struct sio_socket *)((char *)memptr + sizeof(struct sio_sockflow));
     sio_socket_close(sock);
 }
 
@@ -180,7 +179,7 @@ struct sio_sockflow *sio_sockflow_get(struct sio_servflow_sockpool *spool)
 }
 
 #define SIO_SOCKFLOW_SOCKET_PTR(sockflow) \
-    (void *)sockflow + sizeof(struct sio_sockflow);
+    (void *)((char *)sockflow + sizeof(struct sio_sockflow));
 
 static inline
 int sio_sockflow_accept(struct sio_servflow *servflow, struct sio_sockflow *sockflow)

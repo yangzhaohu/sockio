@@ -16,7 +16,6 @@ SRCS := sio_global.cpp \
 		sio_iocp.c \
 		sio_socket.c \
 		sio_server.c \
-		sio_servflow.c \
 		sio_thread.c \
 		sio_thread_pthread.c \
 		sio_thread_win.c \
@@ -25,10 +24,6 @@ SRCS := sio_global.cpp \
 		sio_stack.c \
 		sio_queue.c \
 		sio_mempool.c \
-		sio_fifo.c \
-		sio_block.c \
-		sio_taskfifo.c \
-		sio_elepool.c \
 		sio_service.c \
 		sio_regex.c \
 		sio_timer_posix.c \

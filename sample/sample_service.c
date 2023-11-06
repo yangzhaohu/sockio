@@ -4,7 +4,7 @@
 
 int main()
 {
-    struct sio_service *servmod = sio_service_create(SIO_SERVICE_DOIP);
+    struct sio_service *servmod = sio_service_create(SIO_SERVICE_HTTP);
 
     struct sio_location locat[] = {
         {

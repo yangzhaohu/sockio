@@ -532,7 +532,7 @@ int sio_socket_peername(struct sio_socket *sock, struct sio_socket_addr *peer)
     SIO_COND_CHECK_RETURN_VAL(!sock || !peer, -1);
 
     struct sockaddr_in addr_in = { 0 };
-    socklen_t l = sizeof(addr_in);
+    unsigned int l = sizeof(addr_in);
     int ret = getpeername(sock->fd, (struct sockaddr *)&addr_in, &l);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
@@ -547,7 +547,7 @@ int sio_socket_sockname(struct sio_socket *sock, struct sio_socket_addr *addr)
     SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
 
     struct sockaddr_in addr_in = { 0 };
-    socklen_t l = sizeof(addr_in);
+    unsigned int l = sizeof(addr_in);
     int ret = getsockname(sock->fd, (struct sockaddr *)&addr_in, &l);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
@@ -740,7 +740,7 @@ int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0 || !peer, -1);
 
     struct sockaddr_in addr = { 0 };
-    socklen_t l = sizeof(addr);
+    unsigned int l = sizeof(addr);
     int ret = recvfrom(sock->fd, buf, len, 0, (struct sockaddr *)&addr, &l);
 
     if (ret == -1) {

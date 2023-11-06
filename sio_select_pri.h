@@ -4,7 +4,9 @@
 #ifdef WIN32
 #include <winsock2.h>
 #else
+#include <sys/socket.h>
 #include <sys/select.h>
+#include <arpa/inet.h>
 #endif
 
 #ifdef WIN32

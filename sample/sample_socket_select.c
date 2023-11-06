@@ -81,10 +81,9 @@ int closed(struct sio_socket *sock)
 }
 
 char *g_resp = "HTTP/1.1 200 OK\r\n"
-            "Connection: close\r\n"
+            "Connection: Keep-Alive\r\n"
             "Content-Type: text/html\r\n"
-            "Content-Length: 125\r\n"
-            "Connection: close\r\n\r\n"
+            "Content-Length: 125\r\n\r\n"
             "<html>"
             "<head><title>Hello</title></head>"
             "<body>"
@@ -95,6 +94,7 @@ char *g_resp = "HTTP/1.1 200 OK\r\n"
 
 int writeable(struct sio_socket *sock)
 {
+    printf("writeabled\n");
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
     sio_socket_write(sock, g_resp, strlen(g_resp));
     return 0;

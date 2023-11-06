@@ -94,7 +94,11 @@ sio_global_init::sio_global_init(/* args */)
 #ifdef WIN32
     sio_winsock_init();
 #endif
+
+#ifdef WIN32
+#else
     sio_global_sigmask(SIGALRM, SIG_BLOCK);
+#endif
 }
 
 sio_global_init::~sio_global_init()
