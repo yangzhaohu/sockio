@@ -17,10 +17,12 @@ OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)
 OBJS := $(OBJS:%.cpp=$(OBJ_OUTPUT)%.o)
 
 $(OBJ_OUTPUT)%.o : %.c
-	$(CC) -c $< $(INCLUDES) $(CFLAGS) -o $@
+	@set -e; mkdir -p $(dir $@);
+	$(CC) -MMD -c $< $(INCLUDES) $(CFLAGS) -o $@
 
 $(OBJ_OUTPUT)%.o : %.cpp
-	$(CXX) -c $< $(INCLUDES) $(CXXFLAGS) -o $@
+	@set -e; mkdir -p $(dir $@);
+	$(CXX) -MMD -c $< $(INCLUDES) $(CXXFLAGS) -o $@
 
 incre: $(OBJS)
 	$(CXX) $(OBJS) $(LIBS) $(CXXFLAGS) -o $(TARGET_OUT)/$(TARGET)
@@ -28,15 +30,5 @@ incre: $(OBJS)
 #中间目标依赖文件.d
 DEPS := $(SRCS:%.c=$(OBJ_OUTPUT)%.d)
 DEPS := $(DEPS:%.cpp=$(OBJ_OUTPUT)%.d)
-
-$(OBJ_OUTPUT)%.d: %.c
-	@set -e; mkdir -p $(dir $@); rm -f $@; $(CC) -MM $< $(INCLUDES) > $@.tmp; \
-	sed 's,.*\.o:,$@:,g' < $@.tmp | sed 's/\.\d/\.o/g' > $@; \
-	rm -f $@.tmp
-
-$(OBJ_OUTPUT)%.d: %.cpp
-	@set -e; mkdir -p $(dir $@); rm -f $@; $(CXX) -MM $< $(INCLUDES) > $@.tmp; \
-	sed 's,.*\.o:,$@:,g' < $@.tmp | sed 's/\.\d/\.o/g' > $@; \
-	rm -f $@.tmp
 
 -include $(DEPS)
