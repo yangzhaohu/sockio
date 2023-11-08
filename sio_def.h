@@ -1,12 +1,25 @@
 #ifndef SIO_DEF_H_
 #define SIO_DEF_H_
 
+#ifdef WIN32
+#include <basetsd.h>
+#else
+#include <stdint.h>
+#endif
+
 #define SIO_SOCK_RECV_BUFFSIZE 4096
 
-#ifdef _WIN32
-typedef SOCKET sio_socket_t;
+#ifdef WIN32
+typedef UINT_PTR sio_uptr_t;
+
+typedef UINT_PTR sio_fd_t;
+typedef sio_fd_t sio_socket_t;
+
 #else
-typedef int sio_socket_t;
+typedef uintptr_t sio_uptr_t;
+
+typedef int sio_fd_t;
+typedef sio_fd_t sio_socket_t;
 #endif
 
 typedef struct

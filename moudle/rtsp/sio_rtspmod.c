@@ -4,7 +4,6 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include "sio_common.h"
-#include "sio_def.h"
 #include "sio_server.h"
 #include "moudle/sio_locate.h"
 #include "http_parser/http_parser.h"

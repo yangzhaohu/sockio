@@ -1,7 +1,6 @@
 #include "sio_httpprot.h"
 #include <stdlib.h>
 #include <string.h>
-#include "sio_def.h"
 #include "sio_common.h"
 #include "http_parser/http_parser.h"
 #include "sio_log.h"

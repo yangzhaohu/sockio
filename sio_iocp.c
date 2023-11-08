@@ -8,7 +8,6 @@
 #include <mswsock.h>
 #endif
 #include "sio_common.h"
-#include "sio_def.h"
 #include "sio_mplex_pri.h"
 #include "sio_event.h"
 #include "sio_log.h"

@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "sio_common.h"
-#include "sio_def.h"
 #include "sio_server.h"
 #include "sio_list.h"
 #include "moudle/sio_locate.h"

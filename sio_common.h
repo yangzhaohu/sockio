@@ -1,6 +1,8 @@
 #ifndef SIO_COMMON_H_
 #define SIO_COMMON_H_
 
+#include "sio_def.h"
+
 #define PRINT_MACRO_HELPER(x) #x
 #define PRINT_MACRO(x) #x"="PRINT_MACRO_HELPER(x)
 
@@ -9,7 +11,7 @@
 #define SIO_MIN(a, b) ((a < b) ? a : b)
 #define SIO_MAX(a, b) ((a > b) ? a : b)
 
-#define SIO_OFFSET_OF(type, member) ((unsigned long)&(((type*)0)->member))
+#define SIO_OFFSET_OF(type, member) ((sio_uptr_t)&(((type*)0)->member))
 #define SIO_CONTAINER_OF(ptr, type, member)	((type *)((char *)(ptr) - SIO_OFFSET_OF(type, member)))
 
 #define SIO_COND_CHECK_CONTINUE(cond)           \
