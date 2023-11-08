@@ -64,7 +64,7 @@ struct sio_socket_owner
 
 struct sio_socket
 {
-    int fd;
+    sio_fd_t fd;
     struct sio_socket_state stat;
     struct sio_socket_attr attr;
     struct sio_socket_owner owner;
@@ -244,9 +244,9 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
 }
 
 static inline
-int sio_socket_sock(enum sio_socket_proto proto)
+sio_fd_t sio_socket_sock(enum sio_socket_proto proto)
 {
-    int fd;
+    sio_fd_t fd;
     if (proto == SIO_SOCK_TCP) {
         fd = socket(PF_INET, SOCK_STREAM, 0);
     } else if (proto == SIO_SOCK_UDP) {
@@ -449,7 +449,7 @@ struct sio_socket *sio_socket_create2(enum sio_socket_proto proto, char *placeme
     struct sio_socket *sock = sio_socket_create_imp(proto, placement);
     SIO_COND_CHECK_RETURN_VAL(!sock, NULL);
 
-    int fd = sio_socket_sock(proto);
+    sio_fd_t fd = sio_socket_sock(proto);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, NULL,
         SIO_LOGE("socket failed\n"),
         free(sock));
@@ -573,7 +573,7 @@ int sio_socket_bind(struct sio_socket *sock, struct sio_socket_addr *addr)
     SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
 
     struct sio_socket_attr *attr = &sock->attr;
-    int fd = -1;
+    sio_fd_t fd = -1;
     if (sock->fd == -1) {
         fd = sio_socket_sock(attr->proto);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
@@ -600,7 +600,7 @@ int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
         SIO_LOGE("socket is listenning\n"));
     
     struct sio_socket_attr *attr = &sock->attr;
-    int fd = -1;
+    sio_fd_t fd = -1;
     if (sock->fd == -1) {
         fd = sio_socket_sock(attr->proto);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
@@ -632,7 +632,7 @@ int sio_socket_accept_has_pend_imp(struct sio_socket *sock)
 
     SIO_COND_CHECK_RETURN_VAL(sio_socket_accept_pend_fd() != -1, 0);
 
-    int fd = accept(sock->fd, NULL, NULL);
+    sio_fd_t fd = accept(sock->fd, NULL, NULL);
     if (fd == -1) {
         SIO_COND_CHECK_RETURN_VAL(sio_socket_again(sio_sock_errno), SIO_ERRNO_AGAIN);
         return -1;
@@ -696,7 +696,7 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr)
     SIO_COND_CHECK_RETURN_VAL(sock->fd != -1, -1);
 
     struct sio_socket_attr *attr = &sock->attr;
-    int fd = sio_socket_sock(attr->proto);
+    sio_fd_t fd = sio_socket_sock(attr->proto);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
         SIO_LOGE("socket failed\n"));
 

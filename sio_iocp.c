@@ -21,7 +21,7 @@ struct sio_overlapped
     OVERLAPPED overlap;
     WSABUF wsabuf;
     void *ptr;
-    int fd;
+    sio_fd_t fd;
     unsigned int events;
     unsigned long olflags;
 };
@@ -73,7 +73,7 @@ void *sio_iocp_create()
 }
 
 static inline
-int sio_iocp_link_fd(void *iocp, int fd)
+int sio_iocp_link_fd(void *iocp, sio_fd_t fd)
 {
     void *ret = CreateIoCompletionPort((HANDLE)fd, iocp, 0, 0);
     SIO_COND_CHECK_RETURN_VAL(ret == NULL, -1);
@@ -82,7 +82,7 @@ int sio_iocp_link_fd(void *iocp, int fd)
 }
 
 static inline
-int sio_iocp_post_accept(struct sio_event *event, int fd)
+int sio_iocp_post_accept(struct sio_event *event, sio_fd_t fd)
 {
     struct sio_overlapped *ovlp = sio_iocp_overlapped_bufref(event);
     SIO_COND_CHECK_RETURN_VAL(ovlp == NULL, -1);
@@ -138,7 +138,7 @@ struct sio_mplex_ctx *sio_mplex_iocp_create(void)
     return ctx;
 }
 
-int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, int fd, struct sio_event *event)
+int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     int ret = 0;
     if (event->events & SIO_EVENTS_ASYNC_READ) {
@@ -202,7 +202,7 @@ struct sio_mplex_ctx *sio_mplex_iocp_create(void)
     return NULL;
 }
 
-int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, int fd, struct sio_event *event)
+int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     return -1;
 }

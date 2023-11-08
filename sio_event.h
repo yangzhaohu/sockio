@@ -1,6 +1,8 @@
 #ifndef SIO_EVENT_H_
 #define SIO_EVENT_H_
 
+#include "sio_def.h"
+
 enum sio_events_opt
 {
     SIO_EV_OPT_ADD,
@@ -36,7 +38,7 @@ struct sio_event_buffer
 
 struct sio_event_owner
 {
-    unsigned long int fd;
+    sio_fd_t fd;
     void *pri;
 };
 

@@ -1,17 +1,17 @@
 #ifndef SIO_THREAD_PTHREAD_H_
 #define SIO_THREAD_PTHREAD_H_
 
-struct sio_thread_pri;
+#include "sio_thread_pri.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-unsigned long int sio_thread_pthread_create(struct sio_thread_pri *pri);
+sio_uptr_t sio_thread_pthread_create(struct sio_thread_pri *pri);
 
-int sio_thread_pthread_join(unsigned long int tid);
+int sio_thread_pthread_join(sio_uptr_t tid);
 
-int sio_thread_pthread_destory(unsigned long int tid);
+int sio_thread_pthread_destory(sio_uptr_t tid);
 
 #ifdef __cplusplus
 }

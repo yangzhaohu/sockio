@@ -113,7 +113,7 @@ struct sio_mplex_ctx *sio_mplex_epoll_create(void)
     return ctx;
 }
 
-int sio_mplex_epoll_ctl(struct sio_mplex_ctx *ctx, int op, int fd, struct sio_event *event)
+int sio_mplex_epoll_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     int efd = sio_mplex_get_efd(ctx);
     return sio_mplex_epoll_ctl_imp(efd, op, fd, event);
@@ -194,7 +194,7 @@ struct sio_mplex_ctx *sio_mplex_epoll_create(void)
     return NULL;
 }
 
-int sio_mplex_epoll_ctl(struct sio_mplex_ctx *ctx, int op, int fd, struct sio_event *event)
+int sio_mplex_epoll_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     return -1;
 }

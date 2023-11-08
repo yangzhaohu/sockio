@@ -17,21 +17,21 @@ unsigned int __stdcall sio_thread_win_start_routine(void *arg)
     return 0;
 }
 
-unsigned long int sio_thread_win_create(struct sio_thread_pri *pri)
+sio_uptr_t sio_thread_win_create(struct sio_thread_pri *pri)
 {
-    unsigned int tid;
+    sio_uptr_t tid;
     tid = _beginthreadex(NULL, 0, sio_thread_win_start_routine, pri, 0, NULL);
     SIO_COND_CHECK_RETURN_VAL(tid == 0, -1);
 
     return tid;
 }
 
-int sio_thread_win_join(unsigned long int tid)
+int sio_thread_win_join(sio_uptr_t tid)
 {
     return WaitForSingleObject((HANDLE)tid, INFINITE);
 }
 
-int sio_thread_win_destory(unsigned long int tid)
+int sio_thread_win_destory(sio_uptr_t tid)
 {
     int ret = sio_thread_win_join(tid);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != WAIT_OBJECT_0, -1,

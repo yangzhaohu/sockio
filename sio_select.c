@@ -42,7 +42,7 @@ static inline
 int sio_mplex_select_notify_read(struct sio_select *slt);
 
 static inline 
-void sio_select_in_fds_set(struct sio_select_rwfds *rwfds, int fd, enum sio_events events)
+void sio_select_in_fds_set(struct sio_select_rwfds *rwfds, sio_fd_t fd, enum sio_events events)
 {
     if (events & SIO_EVENTS_IN) {
         SIO_FD_SET(fd, &rwfds->rfds);
@@ -58,7 +58,7 @@ void sio_select_in_fds_set(struct sio_select_rwfds *rwfds, int fd, enum sio_even
 }
 
 static inline
-void sio_select_in_event_set(struct sio_event *evs, int fd, struct sio_event *event)
+void sio_select_in_event_set(struct sio_event *evs, sio_fd_t fd, struct sio_event *event)
 {
 #ifndef WIN32
     evs[fd] = *event;
@@ -92,14 +92,14 @@ void sio_select_in_event_set(struct sio_event *evs, int fd, struct sio_event *ev
 }
 
 static inline
-void sio_select_in_set(struct sio_select_fin *in, int fd, struct sio_event *event)
+void sio_select_in_set(struct sio_select_fin *in, sio_fd_t fd, struct sio_event *event)
 {
     sio_select_in_event_set(in->evs, fd, event);
     sio_select_in_fds_set(&in->fds, fd, event->events);
 }
 
 static inline
-void sio_select_in_clr(struct sio_select_fin *in, int fd)
+void sio_select_in_clr(struct sio_select_fin *in, sio_fd_t fd)
 {
     struct sio_event event = { 0 };
     sio_select_in_event_set(in->evs, fd, &event);
@@ -107,7 +107,7 @@ void sio_select_in_clr(struct sio_select_fin *in, int fd)
 }
 
 static inline
-void sio_select_check_modify_maxfd(struct sio_select_fin *in, int fd)
+void sio_select_check_modify_maxfd(struct sio_select_fin *in, sio_fd_t fd)
 {
     int i = in->maxfd < fd ? fd : in->maxfd;
     struct sio_select_rwfds *rwfds = &in->fds;
@@ -122,7 +122,7 @@ void sio_select_check_modify_maxfd(struct sio_select_fin *in, int fd)
 }
 
 static inline
-void sio_select_event_set(struct sio_select *slt, int fd, struct sio_event *event)
+void sio_select_event_set(struct sio_select *slt, sio_fd_t fd, struct sio_event *event)
 {
     sio_mutex_lock(&slt->mutex);
     struct sio_select_fin *in = &slt->fin;
@@ -134,7 +134,7 @@ void sio_select_event_set(struct sio_select *slt, int fd, struct sio_event *even
 }
 
 static inline
-void sio_select_event_clr(struct sio_select *slt, int fd)
+void sio_select_event_clr(struct sio_select *slt, sio_fd_t fd)
 {
     sio_mutex_lock(&slt->mutex);
     struct sio_select_fin *in = &slt->fin;
@@ -151,7 +151,7 @@ void sio_select_event_clr(struct sio_select *slt, int fd)
 #ifdef WIN32
 
 static inline
-int sio_in_event_owner_index(struct sio_select *slt, int fd)
+int sio_in_event_owner_index(struct sio_select *slt, sio_fd_t fd)
 {
     struct sio_select_fin *in = &slt->fin;
     for (int i = 0; i < SIO_FD_SETSIZE; i++) {
@@ -166,7 +166,7 @@ int sio_in_event_owner_index(struct sio_select *slt, int fd)
 
 #define sio_out_event_get(fdset, evtype) \
     while (fdset->fd_count > 0 && resolved < count) { \
-        int fd = fdset->fd_array[fdset->fd_count - 1]; \
+        sio_fd_t fd = fdset->fd_array[fdset->fd_count - 1]; \
         int index = sio_in_event_owner_index(slt, fd); \
         if (index == -1) { \
             fdset->fd_count--; \
@@ -228,7 +228,7 @@ int sio_select_event(struct sio_select *slt, struct sio_event *event, int count)
 }
 
 static inline
-int sio_select_check_out_bounds(struct sio_select *slt, int fd)
+int sio_select_check_out_bounds(struct sio_select *slt, sio_fd_t fd)
 {
 #ifndef WIN32
     SIO_COND_CHECK_RETURN_VAL(fd >= SIO_FD_SETSIZE, -1);
@@ -320,11 +320,11 @@ struct sio_mplex_ctx *sio_mplex_select_create(void)
     return &slt->ctx;
 }
 
-int sio_mplex_select_ctl(struct sio_mplex_ctx *ctx, int op, int fd, struct sio_event *event)
+int sio_mplex_select_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     struct sio_select *slt = (struct sio_select *)ctx;
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(sio_select_check_out_bounds(slt, fd) == -1, -1,
-        SIO_LOGE("socket descriptor %d out of bounds\n", fd));
+        SIO_LOGE("socket descriptor %llu out of bounds\n", (sio_uint64_t)fd));
 
     if (op == SIO_EV_OPT_ADD || op == SIO_EV_OPT_MOD) {
         sio_select_event_set(slt, fd, event);
