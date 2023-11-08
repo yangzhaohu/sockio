@@ -15,7 +15,6 @@ LIBS := -L../target -lsockio -Wl,-rpath=. -Wl,-rpath-link=../depend/lib
 #CXXFLAGS += $(FLAGS)
 
 SRCS := sample_server.c \
-		sample_servflow.c \
 		sample_socket_select.c \
 		sample_socket_destory.c \
 		sample_epoll_wait_wakeup.c \

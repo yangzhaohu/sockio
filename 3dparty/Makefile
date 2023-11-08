@@ -62,7 +62,8 @@ http_parser-download:
 	rm -rf $(HTTP_PARSER)
 	wget https://github.com/yangzhaohu/http-parser/archive/refs/tags/v2.9.4.tar.gz -O http-parser-2.9.4.tar.gz
 	tar -zxvf http-parser-2.9.4.tar.gz >/dev/null
-	mv http-parser-2.9.4 $(HTTP_PARSER)
+	cp -r http-parser-2.9.4 $(HTTP_PARSER)
+	rm -rf http-parser-2.9.4
 
 pcre2-download:
 	$(info "pcre2 download")
@@ -70,7 +71,8 @@ pcre2-download:
 	rm -rf $(PCRE2)
 	wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz -O pcre2-10.42.tar.gz
 	tar -zxvf pcre2-10.42.tar.gz >/dev/null
-	mv pcre2-10.42 $(PCRE2)
+	cp -r pcre2-10.42 $(PCRE2)
+	rm -rf pcre2-10.42
 
 openssl-download:
 	$(info "openssl download")
@@ -78,4 +80,5 @@ openssl-download:
 	rm -rf $(OPENSSL)
 	wget https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz -O openssl-3.1.4.tar.gz
 	tar -zxvf openssl-3.1.4.tar.gz >/dev/null
-	mv openssl-3.1.4 $(OPENSSL)
+	cp -r openssl-3.1.4 $(OPENSSL)
+	rm -rf openssl-3.1.4
