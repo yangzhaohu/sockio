@@ -43,7 +43,7 @@ int sio_doipmod_name(const char **name)
     return 0;
 }
 
-int sio_doipmod_type()
+int sio_doipmod_type(void)
 {
     return SIO_SUBMOD_DOIP;
 }

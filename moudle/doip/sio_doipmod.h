@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 int sio_doipmod_name(const char **name);
-int sio_doipmod_type();
+int sio_doipmod_type(void);
 int sio_doipmod_version(const char **version);
 
 sio_submod_t sio_doipmod_create(void);

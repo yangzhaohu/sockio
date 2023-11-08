@@ -111,7 +111,7 @@ int sio_rtspmod_name(const char **name)
     return 0;
 }
 
-int sio_rtspmod_type()
+int sio_rtspmod_type(void)
 {
     return SIO_SUBMOD_RTSP;
 }

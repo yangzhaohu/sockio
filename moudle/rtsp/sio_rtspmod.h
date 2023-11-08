@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 int sio_rtspmod_name(const char **name);
-int sio_rtspmod_type();
+int sio_rtspmod_type(void);
 int sio_rtspmod_version(const char **version);
 
 sio_submod_t sio_rtspmod_create(void);

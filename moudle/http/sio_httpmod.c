@@ -57,7 +57,7 @@ int sio_httpmod_name(const char **name)
     return 0;
 }
 
-int sio_httpmod_type()
+int sio_httpmod_type(void)
 {
     return SIO_SUBMOD_HTTP;
 }
