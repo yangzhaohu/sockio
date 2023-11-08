@@ -28,21 +28,24 @@ all: http_parser-build pcre2-build openssl-build
 HTTP_PARSER := http_parser
 http_parser-build:
 	-make -C $(HTTP_PARSER) clean
+	make -C $(HTTP_PARSER) libpackage -j 4
 	make -C $(HTTP_PARSER) library -j 4
 	make -C $(HTTP_PARSER) PREFIX=$(INSTALL_DIR)/$(HTTP_PARSER) install
 	$(shell mkdir -p $(DEPEND_INC_DIR)/$(HTTP_PARSER))
 	cp $(INSTALL_DIR)/$(HTTP_PARSER)/include/*  $(DEPEND_INC_DIR)/$(HTTP_PARSER)
 	cp $(INSTALL_DIR)/$(HTTP_PARSER)/lib/*.so*  $(DEPEND_LIB_DIR)
+	cp $(HTTP_PARSER)/*.a  $(DEPEND_LIB_DIR)
 
 PCRE2 := pcre2
 pcre2-build:
 	-make -C $(PCRE2) clean
-	cd $(PCRE2) && ./configure --host=$(CROSS_COMPILER) CC=$(CC) CXX=$(CXX) --prefix=$(INSTALL_DIR)/$(PCRE2)
+	cd $(PCRE2) && ./configure --host=$(CROSS_COMPILER) CC=$(CC) CXX=$(CXX) CFLAGS='-fPIC -O3' --enable-static --prefix=$(INSTALL_DIR)/$(PCRE2)
 	make -C $(PCRE2) -j 4
 	make -C $(PCRE2) install
 	$(shell mkdir -p $(DEPEND_INC_DIR)/$(PCRE2))
 	cp $(INSTALL_DIR)/$(PCRE2)/include/*  $(DEPEND_INC_DIR)/$(PCRE2)
 	cp $(INSTALL_DIR)/$(PCRE2)/lib*/*.so*  $(DEPEND_LIB_DIR)
+	cp $(INSTALL_DIR)/$(PCRE2)/lib*/*.a  $(DEPEND_LIB_DIR)
 
 OPENSSL := openssl
 openssl-build:

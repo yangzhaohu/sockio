@@ -7,7 +7,9 @@ $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS :=
 INCLUDES := -I. -Iinclude -Idepend/include
-LIBS := -Ldepend/lib -ldl -lrt -lhttp_parser -lpcre2-8 -lpcre2-posix
+STATICLIB := -Wl,-Bstatic -lhttp_parser -lpcre2-posix -lpcre2-8
+DYNAMICLIB := -Wl,-Bdynamic -ldl -lrt -lpthread
+LIBS := -Ldepend/lib $(STATICLIB) $(DYNAMICLIB)
 
 SRCS := sio_global.cpp \
 		sio_mplex.c \

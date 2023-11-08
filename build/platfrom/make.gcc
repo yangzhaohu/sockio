@@ -11,7 +11,7 @@ FLAGS += -Wall -Werror -Wno-multichar
 CFLAGS += $(FLAGS)
 CXXFLAGS += $(FLAGS)
 
-LIBS += -lpthread
+LIBS +=
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)
 OBJS := $(OBJS:%.cpp=$(OBJ_OUTPUT)%.o)
