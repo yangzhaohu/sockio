@@ -63,7 +63,7 @@ http_parser-download:
 	$(info "http_parser download")
 	$(info "from download https://github.com/nodejs/http-parser/archive/refs/tags/v2.9.4.1.tar.gz")
 	rm -rf $(HTTP_PARSER)
-	wget https://github.com/yangzhaohu/http-parser/archive/refs/tags/v2.9.4.1.tar.gz -O http-parser-2.9.4.1.tar.gz
+	wget https://github.com/yangzhaohu/http-parser/archive/refs/tags/v2.9.4.1.tar.gz --no-check-certificate -O http-parser-2.9.4.1.tar.gz
 	tar -zxvf http-parser-2.9.4.1.tar.gz >/dev/null
 	cp -r http-parser-2.9.4.1 $(HTTP_PARSER)
 	rm -rf http-parser-2.9.4.1
@@ -72,7 +72,7 @@ pcre2-download:
 	$(info "pcre2 download")
 	$(info "form download https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz")
 	rm -rf $(PCRE2)
-	wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz -O pcre2-10.42.tar.gz
+	wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz --no-check-certificate -O pcre2-10.42.tar.gz
 	tar -zxvf pcre2-10.42.tar.gz >/dev/null
 	cp -r pcre2-10.42 $(PCRE2)
 	rm -rf pcre2-10.42
@@ -81,7 +81,7 @@ openssl-download:
 	$(info "openssl download")
 	$(info "form download https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz")
 	rm -rf $(OPENSSL)
-	wget https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz -O openssl-3.1.4.tar.gz
+	wget https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz --no-check-certificate -O openssl-3.1.4.tar.gz
 	tar -zxvf openssl-3.1.4.tar.gz >/dev/null
 	cp -r openssl-3.1.4 $(OPENSSL)
 	rm -rf openssl-3.1.4

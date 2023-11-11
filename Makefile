@@ -1,4 +1,4 @@
-TARGET := libsockio.so
+TARGET := libsockio
 TARGET_OUT := target/
 $(shell mkdir -p $(TARGET_OUT))
 
@@ -6,10 +6,28 @@ OBJ_OUTPUT := out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS :=
-INCLUDES := -I. -Iinclude -Idepend/include
-STATICLIB := -Wl,-Bstatic -lhttp_parser -lpcre2-posix -lpcre2-8
-DYNAMICLIB := -Wl,-Bdynamic -ldl -lrt -lpthread
-LIBS := -Ldepend/lib $(STATICLIB) $(DYNAMICLIB)
+INCLUDES :=
+LIBPATH :=
+STATICLIB :=
+DYNAMICLIB :=
+
+ifdef compiler
+ifeq ($(compiler), gcc)
+FLAGS +=
+INCLUDES += -I. -Iinclude -Idepend/include
+LIBPATH += -Ldepend/lib
+STATICLIB += -Wl,-Bstatic -lhttp_parser -lpcre2-posix -lpcre2-8
+DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -lpthread
+else
+FLAGS :=
+INCLUDES += /I. /Iinclude /Idepend/include
+LIBPATH += /LIBPATH:"depend/lib"
+STATICLIB += libhttp_parser.lib pcre2-posix-static.lib pcre2-8-static.lib
+DYNAMICLIB += 
+endif
+endif
+
+LIBS := $(STATICLIB) $(DYNAMICLIB)
 
 SRCS := sio_global.cpp \
 		sio_mplex.c \
@@ -26,34 +44,11 @@ SRCS := sio_global.cpp \
 		sio_stack.c \
 		sio_queue.c \
 		sio_mempool.c \
-		sio_service.c \
 		sio_regex.c \
 		sio_timer_posix.c \
+		sio_timer_win.c \
 		sio_timer.c \
-		utils/sio_dlopen.c \
-		proto/sio_httpprot.c \
-		proto/sio_rtspprot.c \
-		moudle/http/sio_httpmod.c \
-		moudle/http/sio_httpmod_html.c \
-		moudle/locate/sio_locate.c \
-		moudle/locate/sio_locatmod.c \
-		moudle/rtsp/sio_rtspmod.c \
-		moudle/rtsp/sio_rtpool.c \
-		moudle/rtsp/sio_rtpvod.c \
-		moudle/rtsp/sio_rtplive.c \
-		moudle/rtsp/sio_rtpstream.c \
-		moudle/rtsp/sio_rtspipe.c \
-		moudle/rtsp/rtpack/sio_avdev.c \
-		moudle/rtsp/rtpack/sio_avdev_jpeg.c \
-		moudle/rtsp/rtpack/sio_rtpack.c \
-		moudle/rtsp/rtpack/sio_rtpack_jpeg.c \
-		moudle/doip/doip_hdr.c \
-		moudle/doip/sio_doip_discover.c \
-		moudle/doip/sio_doip_node.c \
-		moudle/doip/sio_doip_handler.c \
-		moudle/doip/sio_doip_route.c \
-		moudle/doip/sio_doip_vinsync.c \
-		moudle/doip/sio_doipmod.c
+		utils/sio_dlopen.c
 
 .PHONY: incre all clean help
 
@@ -71,7 +66,7 @@ help:
 	echo "	 <compiler>:gcc mingw cl";
 
 
-all: clean incre
+all: clean build
 
 clean:
 	rm -rf $(OBJ_OUTPUT)/* $(TARGET_OUT)/$(TARGET) $(TARGET_OUT)/$(TARGET).*

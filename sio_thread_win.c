@@ -7,6 +7,7 @@
 #endif
 #include "sio_common.h"
 #include "sio_thread_pri.h"
+#include "sio_log.h"
 
 #ifdef WIN32
 

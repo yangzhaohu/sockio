@@ -3,6 +3,7 @@
 #include <string.h>
 #include "sio_common.h"
 #include "sio_timer_posix.h"
+#include "sio_timer_win.h"
 #include "sio_log.h"
 
 struct sio_timer

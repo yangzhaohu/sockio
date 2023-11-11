@@ -1,17 +1,30 @@
+CC  := cl
+CXX := cl
+AR := lib
 
-TARGET_OUT := D:
+# runtime library
+FLAGS += /MD
 
-CFLAGS += $(FLAGS)
-CXXFLAGS += $(FLAGS)
+CFLAGS += $(FLAGS) /TC
+CXXFLAGS += $(FLAGS) /TP
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.obj)
 OBJS := $(OBJS:%.cpp=$(OBJ_OUTPUT)%.obj)
 
+SYMBOlS := symbols.def
+
 $(OBJ_OUTPUT)%.obj : %.c
-	cl /c $< /nologo $(CFLAGS) /Fo: $@
+	@set -e; mkdir -p $(dir $@);
+	$(CC) /c $< $(INCLUDES) /nologo $(CFLAGS) /Fo: $@
 
-$(OBJ_OUTPUT)/%.obj : %.cpp
-	cl /c $< /nologo $(CXXFLAGS) /Fo: $@
+$(OBJ_OUTPUT)%.obj : %.cpp
+	@set -e; mkdir -p $(dir $@);
+	$(CXX) /c $< $(INCLUDES) /nologo $(CXXFLAGS) /Fo: $@
 
-incre: $(OBJS)
-	cl $(OBJS) mswsock.lib ws2_32.lib /nologo /Fe: $(TARGET_OUT)/$(TARGET)
+build: linklib linkdll
+
+linklib: $(OBJS)
+	$(AR) $(OBJS) /nologo /out:$(TARGET_OUT)/$(TARGET)_static.lib
+
+linkdll: $(OBJS)
+	$(CXX) $(OBJS) $(LIBS) mswsock.lib ws2_32.lib /nologo /DEF: $(SYMBOlS) /link $(LIBPATH) /dll /out:$(TARGET_OUT)/$(TARGET).lib

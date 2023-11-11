@@ -1,0 +1,5 @@
+; libsockio.def
+; this is comment
+
+EXPORTS
+    sio_socket_create

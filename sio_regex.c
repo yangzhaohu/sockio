@@ -1,4 +1,7 @@
 #include "sio_regex.h"
+#ifdef WIN32
+#define PCRE2_STATIC
+#endif
 #include "pcre2/pcre2posix.h"
 #include "sio_log.h"
 

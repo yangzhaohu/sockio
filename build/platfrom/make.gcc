@@ -24,8 +24,8 @@ $(OBJ_OUTPUT)%.o : %.cpp
 	@set -e; mkdir -p $(dir $@);
 	$(CXX) -MMD -c $< $(INCLUDES) $(CXXFLAGS) -o $@
 
-incre: $(OBJS)
-	$(CXX) $(OBJS) $(LIBS) $(CXXFLAGS) -o $(TARGET_OUT)/$(TARGET)
+build: $(OBJS)
+	$(CXX) $(OBJS) $(LIBPATH) $(LIBS) $(CXXFLAGS) -o $(TARGET_OUT)/$(TARGET).so
 
 #中间目标依赖文件.d
 DEPS := $(SRCS:%.c=$(OBJ_OUTPUT)%.d)
