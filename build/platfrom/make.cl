@@ -3,7 +3,7 @@ CXX := cl
 AR := lib
 
 # runtime library
-FLAGS += /MD /Fd
+FLAGS += /DWIN32 /MD /Fd
 
 CFLAGS += $(FLAGS) /TC
 CXXFLAGS += $(FLAGS) /TP

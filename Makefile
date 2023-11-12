@@ -54,9 +54,9 @@ SRCS := sio_global.cpp \
 
 ifdef compiler
 ifeq ($(compiler), gcc)
-FLAGS += -fPIC -shared -DLINUX -g -Wl,-z,defs -Wl,-rpath=.
+FLAGS += -fPIC -shared -g -Wall -Werror -Wno-multichar -Wl,-z,defs -Wl,-rpath=.
 else
-FLAGS += /DWIN32
+FLAGS +=
 endif
 include build/platfrom/make.$(compiler)
 endif
