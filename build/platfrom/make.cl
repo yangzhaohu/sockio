@@ -1,6 +1,7 @@
 CC  := cl
 CXX := cl
 AR := lib
+LINK := link
 
 # runtime library
 FLAGS += /DWIN32 /MD /Fd
@@ -27,4 +28,4 @@ linklib: $(OBJS)
 	$(AR) $(OBJS) /nologo /out:$(TARGET_OUT)/$(TARGET)_static.lib
 
 linkdll: $(OBJS)
-	$(CXX) $(OBJS) $(LIBS) /nologo /DEF: $(SYMBOlS) /link $(LIBPATH) /dll /out:$(TARGET_OUT)/$(TARGET).dll
+	$(LINK) $(OBJS) $(LIBS) /nologo /DEF:$(SYMBOlS) $(LIBPATH) /dll /out:$(TARGET_OUT)/$(TARGET).dll
