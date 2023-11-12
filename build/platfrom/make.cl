@@ -28,4 +28,4 @@ linklib: $(OBJS)
 	$(AR) $(OBJS) /nologo /out:$(TARGET_OUT)/$(TARGET)_static.lib
 
 linkdll: $(OBJS)
-	$(LINK) $(OBJS) $(LIBS) /nologo /DEF:$(SYMBOlS) $(LIBPATH) /dll /out:$(TARGET_OUT)/$(TARGET).dll
+	$(LINK) $(OBJS) $(LIBS) /nologo /DEF:$(SYMBOlS) $(LIBPATH) $(LFLAGS) /out:$(TARGET_OUT)/$(TARGET).dll

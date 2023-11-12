@@ -6,6 +6,7 @@ OBJ_OUTPUT := out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS :=
+LFLAGS :=
 INCLUDES :=
 LIBPATH :=
 STATICLIB :=
@@ -21,7 +22,7 @@ DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -lpthread
 else
 FLAGS :=
 INCLUDES += /I. /Iinclude /Idepend/include
-LIBPATH += /LIBPATH:"depend/lib"
+LIBPATH += /LIBPATH:depend/lib
 STATICLIB += libhttp_parser.lib pcre2-posix-static.lib pcre2-8-static.lib
 DYNAMICLIB += mswsock.lib ws2_32.lib
 endif
@@ -54,9 +55,11 @@ SRCS := sio_global.cpp \
 
 ifdef compiler
 ifeq ($(compiler), gcc)
-FLAGS += -fPIC -shared -g -Wall -Werror -Wno-multichar -Wl,-z,defs -Wl,-rpath=.
+FLAGS += -fPIC -Wl,-z,defs -shared -g -Wall -Werror -Wno-multichar
+LFLAGS += -fPIC -Wl,-z,defs -shared -Wl,-rpath=.
 else
 FLAGS +=
+LFLAGS += /dll
 endif
 include build/platfrom/make.$(compiler)
 endif
