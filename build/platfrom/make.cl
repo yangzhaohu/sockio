@@ -29,3 +29,6 @@ linklib: $(OBJS)
 
 linkdll: $(OBJS)
 	$(LINK) $(OBJS) $(LIBS) /nologo /DEF:$(SYMBOlS) $(LIBPATH) $(LFLAGS) /out:$(TARGET_OUT)/$(TARGET).dll
+
+clean:
+	@set -e; rm -rf $(OBJS) $(TARGET_OUT)/$(TARGET)_static.lib $(TARGET_OUT)/$(TARGET).dll $(TARGET_OUT)/$(TARGET).lib

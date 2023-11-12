@@ -27,6 +27,9 @@ $(OBJ_OUTPUT)%.o : %.cpp
 build: $(OBJS)
 	$(CXX) $(OBJS) $(LIBPATH) $(LIBS) $(LFLAGS) -o $(TARGET_OUT)/$(TARGET).so
 
+clean:
+	@set -e; rm -rf $(OBJS) $(TARGET_OUT)/$(TARGET).so
+
 #中间目标依赖文件.d
 DEPS := $(SRCS:%.c=$(OBJ_OUTPUT)%.d)
 DEPS := $(DEPS:%.cpp=$(OBJ_OUTPUT)%.d)

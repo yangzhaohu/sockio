@@ -70,7 +70,3 @@ help:
 
 
 all: clean build
-
-clean:
-	rm -rf $(OBJ_OUTPUT)/* $(TARGET_OUT)/$(TARGET) $(TARGET_OUT)/$(TARGET).*
-
