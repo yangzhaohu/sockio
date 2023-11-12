@@ -3,7 +3,7 @@ CXX := cl
 AR := lib
 
 # runtime library
-FLAGS += /MD
+FLAGS += /MD /Fd
 
 CFLAGS += $(FLAGS) /TC
 CXXFLAGS += $(FLAGS) /TP
@@ -27,4 +27,4 @@ linklib: $(OBJS)
 	$(AR) $(OBJS) /nologo /out:$(TARGET_OUT)/$(TARGET)_static.lib
 
 linkdll: $(OBJS)
-	$(CXX) $(OBJS) $(LIBS) mswsock.lib ws2_32.lib /nologo /DEF: $(SYMBOlS) /link $(LIBPATH) /dll /out:$(TARGET_OUT)/$(TARGET).lib
+	$(CXX) $(OBJS) $(LIBS) /nologo /DEF: $(SYMBOlS) /link $(LIBPATH) /dll /out:$(TARGET_OUT)/$(TARGET).dll
