@@ -9,19 +9,15 @@ $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS := -fPIE -g
 INCLUDES := -I../ -I../depend/include
-LIBS := -L../target -lsockio  -ldl -lpcre2-8 -lpcre2-posix
+LIBS := -L../target -lsockio -ldl
 
 CFLAGS += $(FLAGS)
 CXXFLAGS += $(FLAGS)
 
-SRCS := test_http_parser.c \
-	pcre2demo.c \
-	test_rtspprot.c \
+SRCS := pcre2demo.c \
 	test_udp.c \
 	test_udp2.c \
-	test_jpeg_parser.c \
 	test_timer.c \
-	test_doip.c \
 	test_mplex_close.c
 
 

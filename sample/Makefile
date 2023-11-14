@@ -18,8 +18,7 @@ SRCS := sample_server.c \
 		sample_socket_select.c \
 		sample_socket_destory.c \
 		sample_epoll_wait_wakeup.c \
-		sample_socket_sendbuff.c \
-		sample_service.c
+		sample_socket_sendbuff.c
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)
 OBJS := $(OBJS:%.cpp=$(OBJ_OUTPUT)%.o)
