@@ -870,7 +870,15 @@ int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
 
-    return sio_socket_shutdown_imp(sock, how);
+    int ret = sio_socket_shutdown_imp(sock, how);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        SIO_LOGE("socket shutdown failed"));
+
+    struct sio_socket_state *stat = &sock->stat;
+    stat->listening = 0;
+    stat->connected = 0;
+
+    return 0;
 }
 
 static inline
