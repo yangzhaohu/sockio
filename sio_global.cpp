@@ -23,6 +23,26 @@ void sio_winsock_init(void)
         SIO_LOGE("WSAStartup failed with error: %d\n", err));
 }
 
+int sio_global_sigaction(int sig)
+{
+    return -1;
+}
+
+int sio_global_sigmask(int sig, int how)
+{
+    return -1;
+}
+
+int sio_global_sigwait(int sig)
+{
+    return -1;
+}
+
+int sio_global_sigwaitinfo(int sig, void *sigptr)
+{
+    return -1;
+}
+
 #else
 static inline
 void sio_signal_proc(int sig)
