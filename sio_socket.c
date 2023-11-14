@@ -44,6 +44,7 @@ struct sio_socket_state
     enum sio_socket_shuthow shut;
     int placement:1;
     int listening:1;
+    int connected:1;
 };
 
 struct sio_socket_ops_pri
@@ -430,6 +431,9 @@ struct sio_socket *sio_socket_create_imp(enum sio_socket_proto proto, char *plac
     return sock;
 }
 
+static inline
+int sio_socket_mplex_imp(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);
+
 unsigned int sio_socket_struct_size()
 {
     return sizeof(struct sio_socket);
@@ -596,12 +600,12 @@ int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
 
     struct sio_socket_state *stat = &sock->stat;
 
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(stat->listening == 1, 0,
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(stat->listening == 1, -1,
         SIO_LOGE("socket is listenning\n"));
     
     struct sio_socket_attr *attr = &sock->attr;
-    sio_fd_t fd = -1;
-    if (sock->fd == -1) {
+    sio_fd_t fd = sock->fd;
+    if (fd == -1) {
         fd = sio_socket_sock(attr->proto);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
             SIO_LOGE("socket socket failed\n"));
@@ -684,26 +688,34 @@ int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock)
 
 #ifdef LINUX
 #define sio_socket_connect_err_check()                              \
-    errno != EINPROGRESS;
+    sio_sock_errno != EINPROGRESS;
 #elif defined(WIN32)
 #define sio_socket_connect_err_check()                              \
-    WSAGetLastError() != WSAEWOULDBLOCK;
+    sio_sock_errno != WSAEWOULDBLOCK;
 #endif
 
 int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
-    SIO_COND_CHECK_RETURN_VAL(sock->fd != -1, -1);
+
+    struct sio_socket_state *stat = &sock->stat;
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(stat->connected == 1, -1,
+        SIO_LOGE("socket is already connected\n"));
 
     struct sio_socket_attr *attr = &sock->attr;
-    sio_fd_t fd = sio_socket_sock(attr->proto);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
-        SIO_LOGE("socket failed\n"));
+    sio_fd_t fd = sock->fd;
+    if (fd == -1) {
+        fd = sio_socket_sock(attr->proto);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
+            SIO_LOGE("socket failed\n"));
+    }
 
     struct sockaddr_in addr_in = { 0 };
     sio_socket_addr_in(sock, addr, &addr_in);
 
     int ret = connect(fd, (struct sockaddr *)&addr_in, sizeof(addr_in));
+    SIO_COND_CHECK_CALLOPS(ret != 0,
+        SIO_LOGE("connect err: %d\n", sio_sock_errno));
     int err = sio_socket_connect_err_check();
     
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && err == 1, -1, 
@@ -711,6 +723,12 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr)
 
     sock->fd = fd;
     attr->mean = SIO_SOCK_MEAN_SOCKET;
+
+    stat->connected = 1;
+
+    if (sock->mp) {
+        sio_socket_mplex_imp(sock, SIO_EV_OPT_ADD, SIO_EVENTS_OUT);
+    }
 
     return 0;
 }
@@ -801,11 +819,9 @@ int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
     return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
-int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events)
+static inline
+int sio_socket_mplex_imp(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
-    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1 || !sock->mp, -1);
-
     if (sock->attr.nonblock) {
         events |= SIO_EVENTS_ET;
     }
@@ -815,8 +831,15 @@ int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_e
     ev.owner.fd = sock->fd;
     ev.owner.pri = sock;
 
-    int ret = sio_mplex_ctl(sock->mp, op, sock->fd, &ev);
-    return ret;
+    return sio_mplex_ctl(sock->mp, op, sock->fd, &ev);
+}
+
+int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+    SIO_COND_CHECK_RETURN_VAL(sock->fd == -1 || !sock->mp, -1);
+
+    return sio_socket_mplex_imp(sock, op, events);
 }
 
 static inline
