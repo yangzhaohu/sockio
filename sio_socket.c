@@ -1,21 +1,11 @@
 #include "sio_socket.h"
 #include <string.h>
 #include <stdlib.h>
-#ifdef WIN32
-// #define WIN32_LEAN_AND_MEAN
-// #include <windows.h>
-#include <winsock2.h>
-#include <io.h>
-// #include <getopt.h>
-#else
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
+#ifndef WIN32
 #include <fcntl.h>
-#include <errno.h>
 #endif
 #include "sio_common.h"
+#include "sio_socket_pri.h"
 #include "sio_event.h"
 #include "sio_mplex.h"
 #include "sio_errno.h"
@@ -97,18 +87,6 @@ __thread int tls_sock_readerr = 0;
 #define SIO_SOCK_SHUT_RD SHUT_RD
 #define SIO_SOCK_SHUT_WR SHUT_WR
 #define SIO_SOCK_SHUT_RDWR SHUT_RDWR
-#endif
-
-#ifdef WIN32
-#define CLOSE(fd) closesocket(fd)
-#else
-#define CLOSE(fd) close(fd)
-#endif
-
-#ifdef WIN32
-#define sio_sock_errno WSAGetLastError()
-#else
-#define sio_sock_errno errno
 #endif
 
 #ifdef WIN32

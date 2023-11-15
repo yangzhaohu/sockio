@@ -6,7 +6,6 @@
 #else
 #include <sys/socket.h>
 #include <sys/select.h>
-#include <arpa/inet.h>
 #endif
 
 #ifdef WIN32
@@ -47,7 +46,7 @@ typedef fd_set sio_fd_set;
 #define SIO_FD_CLR      FD_CLR
 #define SIO_FD_ISSET    FD_ISSET
 
-struct sio_select_rwfds
+struct sio_rwfds
 {
     sio_fd_set rfds;
     sio_fd_set wfds;

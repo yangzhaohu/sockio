@@ -18,7 +18,8 @@ SRCS := pcre2demo.c \
 	test_udp.c \
 	test_udp2.c \
 	test_timer.c \
-	test_mplex_close.c
+	test_mplex_close.c \
+	test_connect_mplex.c
 
 
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)
