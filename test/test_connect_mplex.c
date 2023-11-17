@@ -65,21 +65,17 @@ int main()
         .port = 80
     };
     char timebuf[256] = { 0 };
-    sio_timezone_format(timebuf, 256);
     SIO_LOGI("sock connect begin\n");
     int ret = sio_socket_connect(sock, &addr);
-    sio_timezone_format(timebuf, 256);
     SIO_LOGI("sock connect ret: %d\n", ret);
 
     getc(stdin);
 
-    sio_timezone_format(timebuf, 256);
     SIO_LOGI("socket shutdown\n");
     sio_socket_shutdown(sock, SIO_SOCK_SHUTRDWR);
 
     getc(stdin);
 
-    sio_timezone_format(timebuf, 256);
     SIO_LOGI("pmplex destory\n");
     sio_permplex_destory(pmplex);
 

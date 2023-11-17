@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-int sio_timezone_format(char *buf, int len);
+const char *sio_timezone();
 
 #ifdef __cplusplus
 }

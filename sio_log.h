@@ -7,6 +7,14 @@
 #define SIO_LOG_LEVEL_WAR     4    // warn
 #define SIO_LOG_LEVEL_ERR     5    // error
 
+// #define SIO_LOG_PREFIX(prefix) #prefix
+
+// #define SIO_LOGT(format, ...) sio_logg(SIO_LOG_LEVEL_TRC, SIO_LOG_PREFIX([%s])format, sio_timezone(), ##__VA_ARGS__)
+// #define SIO_LOGD(format, ...) sio_logg(SIO_LOG_LEVEL_DEB, SIO_LOG_PREFIX([%s])format, sio_timezone(), ##__VA_ARGS__)
+// #define SIO_LOGI(format, ...) sio_logg(SIO_LOG_LEVEL_ERR, SIO_LOG_PREFIX([%s])format, sio_timezone(), ##__VA_ARGS__)
+// #define SIO_LOGW(format, ...) sio_logg(SIO_LOG_LEVEL_WAR, SIO_LOG_PREFIX([%s])format, sio_timezone(), ##__VA_ARGS__)
+// #define SIO_LOGE(format, ...) sio_logg(SIO_LOG_LEVEL_ERR, SIO_LOG_PREFIX([%s])format, sio_timezone(), ##__VA_ARGS__)
+
 #define SIO_LOGT(format, ...) sio_logg(SIO_LOG_LEVEL_TRC, format, ##__VA_ARGS__)
 #define SIO_LOGD(format, ...) sio_logg(SIO_LOG_LEVEL_DEB, format, ##__VA_ARGS__)
 #define SIO_LOGI(format, ...) sio_logg(SIO_LOG_LEVEL_ERR, format, ##__VA_ARGS__)

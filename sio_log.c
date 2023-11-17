@@ -14,9 +14,7 @@ void sio_logg_setlevel(int level)
 
 int sio_logg(int level, const char *format, ...)
 {
-    char timebuf[256] = { 0 };
-    sio_timezone_format(timebuf, 256);
-    printf("[%s] ", timebuf);
+    printf("[%s] ", sio_timezone());
     va_list args;
     va_start(args, format);
     int ret = vprintf(format, args);
