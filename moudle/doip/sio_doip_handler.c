@@ -81,7 +81,7 @@ int sio_doip_handler(struct sio_socket *sock, struct sio_doip_contbl *contbl, st
     struct doip_hdr *hdr = (struct doip_hdr *)msg->data;
     unsigned short type = ntohs(hdr->type);
     unsigned int length = ntohl(hdr->length);
-    printf("doiphdr:\n"
+    SIO_LOGI("doiphdr:\n"
         "\t ver: %02x\n"
         "\t iver: %02x\n"
         "\t type: %04d\n"

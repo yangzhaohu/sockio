@@ -23,12 +23,12 @@ struct sio_socket_ops g_sock_ops =
 
 int socknew(struct sio_socket *serv, const char *buf, int len)
 {
-    printf("socket new connect comein\n");
+    SIO_LOGI("socket new connect comein\n");
     int ret = sio_socket_accept_has_pend(serv);
     if (ret == SIO_ERRNO_AGAIN) {
         return 0;
     } else if (ret != 0) {
-        printf("server close\n");
+        SIO_LOGI("server close\n");
         sio_socket_destory(serv);
         return -1;
     }
@@ -44,7 +44,7 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
     opt.nonblock = 1;
     ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
     if (ret == -1) {
-        printf("socket nonlock set failed\n");
+        SIO_LOGI("socket nonlock set failed\n");
     }
 
     g_sock = sock;
@@ -59,10 +59,10 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
 int readable(struct sio_socket *sock, const char *buf, int len)
 {
     if (len == 0) {
-        printf("socket close\n");
+        SIO_LOGI("socket close\n");
         return 0;
     }
-    printf("recv %d: %s\n", len, buf);
+    SIO_LOGI("recv %d: %s\n", len, buf);
 
     return 0;
 }
@@ -74,7 +74,7 @@ int main()
 
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {
-        printf("serv listen failed\n");
+        SIO_LOGI("serv listen failed\n");
         return -1;
     }
 
@@ -97,11 +97,11 @@ int main()
 
     sio_socket_mplex(serv, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
-    printf("please enter\n");
+    SIO_LOGI("please enter\n");
 
     // client socket connect
     getc(stdin);
-    printf("step1: connect\n");
+    SIO_LOGI("step1: connect\n");
 
     struct sio_socket *client = sio_socket_create(SIO_SOCK_TCP, NULL);
     sio_socket_connect(client, &addr);
@@ -118,17 +118,17 @@ int main()
 
     // send data
     getc(stdin);
-    printf("step2: send test data\n");
+    SIO_LOGI("step2: send test data\n");
     sio_socket_write(client, "hello server\n", strlen("hello server\n"));
 
     // destory client
     getc(stdin);
-    printf("step3: destory client\n");
+    SIO_LOGI("step3: destory client\n");
     sio_socket_destory(client);
 
     // delay mplex
     getc(stdin);
-    printf("step4: server accept remote socket delay mplex\n");
+    SIO_LOGI("step4: server accept remote socket delay mplex\n");
     opt.mplex = g_mplex;
     sio_socket_setopt(g_sock, SIO_SOCK_MPLEX, &opt);
     sio_socket_mplex(g_sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_server.h"
+#include "sio_log.h"
 
 char *g_resp = "HTTP/1.1 200 OK\r\n"
             "Connection: close\r\n"
@@ -31,7 +32,7 @@ static int socket_writeable(struct sio_socket *sock)
 
 static int socket_close(struct sio_socket *sock)
 {
-    printf("client socket close\n");
+    SIO_LOGI("client socket close\n");
     sio_socket_destory(sock);
 
     return 0;

@@ -1,13 +1,15 @@
 #include <stdio.h>
+#include <string.h>
 #include "sio_socket.h"
 #include "sio_permplex.h"
+#include "sio_log.h"
 
 int readable(struct sio_socket *sock)
 {
     char data[512] = { 0 };
     int len = sio_socket_read(sock, data, 512);
     if (len > 0 )
-        printf("recv %d: %s\n", len, data);
+        SIO_LOGI("recv %d: %s\n", len, data);
 
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
 
@@ -16,14 +18,18 @@ int readable(struct sio_socket *sock)
 
 int writeable(struct sio_socket *sock)
 {
-    printf("writeabled\n");
+    char timebuf[256] = { 0 };
+    SIO_LOGI("writeabled\n");
+    int ret = sio_socket_write(sock, "1234", strlen(""));
+
+    SIO_LOGI("write ret: %d\n", ret);
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
     return 0;
 }
 
 int closed(struct sio_socket *sock)
 {
-    printf("close\n");
+    SIO_LOGI("close\n");
     sio_socket_destory(sock);
 
     return 0;
@@ -54,22 +60,27 @@ int main()
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
     struct sio_socket_addr addr = {
-        .addr = "110.242.68.66",
-        // .addr = "69.171.242.11",
+        // .addr = "110.242.68.66",
+        .addr = "199.16.156.11",
         .port = 80
     };
-    printf("sock connect begin\n");
+    char timebuf[256] = { 0 };
+    sio_timezone_format(timebuf, 256);
+    SIO_LOGI("sock connect begin\n");
     int ret = sio_socket_connect(sock, &addr);
-    printf("sock connect ret: %d\n", ret);
+    sio_timezone_format(timebuf, 256);
+    SIO_LOGI("sock connect ret: %d\n", ret);
 
     getc(stdin);
 
-    printf("socket shutdown\n");
+    sio_timezone_format(timebuf, 256);
+    SIO_LOGI("socket shutdown\n");
     sio_socket_shutdown(sock, SIO_SOCK_SHUTRDWR);
 
     getc(stdin);
 
-    printf("pmplex destory\n");
+    sio_timezone_format(timebuf, 256);
+    SIO_LOGI("pmplex destory\n");
     sio_permplex_destory(pmplex);
 
     return 0;

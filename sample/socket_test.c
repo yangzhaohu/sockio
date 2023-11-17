@@ -35,11 +35,11 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
     opt.nonblock = 1;
     int ret = sio_socket_opt(sock, SIO_SOCK_NONBLOCK, &opt);
     if (ret == -1)
-        printf("socket nonlock set failed\n");
+        SIO_LOGI("socket nonlock set failed\n");
     opt.reuseaddr = 1;
     sio_socket_opt(sock, SIO_SOCK_REUSEADDR, &opt);
     if (ret == -1)
-        printf("socket reuseaddr set failed\n");
+        SIO_LOGI("socket reuseaddr set failed\n");
 
     // char buff[256];
     // sio_socket_read(sock, buff, 256);
@@ -53,10 +53,10 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
 int readable(struct sio_socket *sock, const char *buf, int len)
 {
     if (len == 0) {
-        printf("close\n");
+        SIO_LOGI("close\n");
         return 0;
     }
-    printf("recv %d: %s\n", len, buf);
+    SIO_LOGI("recv %d: %s\n", len, buf);
 
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
 
@@ -65,7 +65,7 @@ int readable(struct sio_socket *sock, const char *buf, int len)
 
 int writeable(struct sio_socket *sock, const char *buf, int len)
 {
-    printf("send: hello client\n");
+    SIO_LOGI("send: hello client\n");
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
     sio_socket_write(sock, "hello client", strlen("hello client"));
     return 0;
@@ -86,7 +86,7 @@ int main(void)
 
     err = WSAStartup(wVersionRequested, &wsaData);
     if (err != 0) {
-        printf("WSAStartup failed with error: %d\n", err);
+        SIO_LOGI("WSAStartup failed with error: %d\n", err);
         return -1;
     }
 #endif
@@ -101,7 +101,7 @@ int main(void)
 
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {
-        printf("serv listen failed\n");
+        SIO_LOGI("serv listen failed\n");
         return -1;
     }
 

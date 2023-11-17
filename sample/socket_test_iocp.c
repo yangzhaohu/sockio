@@ -15,7 +15,7 @@ void win_sock_init(void)
     version = MAKEWORD(2, 2);
     int err = WSAStartup(version, &data);
     if (err != 0) {
-        printf("WSAStartup failed with error: %d\n", err);
+        SIO_LOGI("WSAStartup failed with error: %d\n", err);
     }
 }
 
@@ -83,12 +83,12 @@ int socknew(struct sio_socket *serv, const char *data, int len)
 int readable(struct sio_socket *sock, const char *data, int len)
 {
     if (len <= 0) {
-        printf("close\n");
+        SIO_LOGI("close\n");
         return 0;
     }
 
     g_sock = sock;
-    printf("recv %d: %s\n", len, data);
+    SIO_LOGI("recv %d: %s\n", len, data);
     sio_socket_async_read(sock, (char *)data, 512);
     return 0;
 }
@@ -120,7 +120,7 @@ int main(void)
     // listen 
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {
-        printf("serv listen failed\n");
+        SIO_LOGI("serv listen failed\n");
         return -1;
     }
 

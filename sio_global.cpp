@@ -47,7 +47,7 @@ int sio_global_sigwaitinfo(int sig, void *sigptr)
 static inline
 void sio_signal_proc(int sig)
 {
-    printf("sio_signal_proc sig: %d\n", sig);
+    SIO_LOGI("sio_signal_proc sig: %d\n", sig);
 }
 
 int sio_global_sigaction(int sig)

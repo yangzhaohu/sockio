@@ -29,8 +29,8 @@ void socket_addrinfo_print(int socket)
     socklen_t alen = sizeof(l_addr);
     getsockname(socket, (struct sockaddr *)&l_addr, &alen);
     getpeername(socket, (struct sockaddr *)&r_addr, &alen);
-    printf("\t local %s:%d \t", inet_ntoa(l_addr.sin_addr), l_addr.sin_port);
-    printf("\t remot %s:%d \n", inet_ntoa(r_addr.sin_addr), r_addr.sin_port);
+    SIO_LOGI("\t local %s:%d \t", inet_ntoa(l_addr.sin_addr), l_addr.sin_port);
+    SIO_LOGI("\t remot %s:%d \n", inet_ntoa(r_addr.sin_addr), r_addr.sin_port);
 }
 
 int server_accept(int server)
@@ -42,7 +42,7 @@ int server_accept(int server)
     if (client < 0) {
         return -1;
     }
-    printf("client: %d connected, ip: %s, port: %d\n", client, inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port);
+    SIO_LOGI("client: %d connected, ip: %s, port: %d\n", client, inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port);
     socket_addrinfo_print(client);
 
     struct fddesri *fddes = malloc(sizeof(struct fddesri));
@@ -52,7 +52,7 @@ int server_accept(int server)
     event.owner.ptr = fddes;
 
     if (sio_mplex_ctl(g_mp, EPOLL_CTL_ADD, client, &event)) {
-        printf("client epoll ctl failed\n");
+        SIO_LOGI("client epoll ctl failed\n");
         return -1;
     }
     
@@ -61,7 +61,7 @@ int server_accept(int server)
     // event.data.fd = client;
 
     // if (epoll_ctl(g_epfd, EPOLL_CTL_ADD, client, &event) == -1) {
-    //     printf("client epoll ctl failed\n");
+    //     SIO_LOGI("client epoll ctl failed\n");
     //     return -1;
     // }
 
@@ -87,14 +87,14 @@ void socket_thread(void *args)
                 } else {
                     int len = recv(fd, buffer, 63, 0);
                     if (len <= 0 ) {
-                        printf("socket: %d closed\n", fd);
+                        SIO_LOGI("socket: %d closed\n", fd);
                         socket_addrinfo_print(fd);
                         close(fd);
                     } else {
-                        printf("socket: %d", fd);
+                        SIO_LOGI("socket: %d", fd);
                         socket_addrinfo_print(fd);
                         buffer[len] = 0;
-                        printf("\nrecv: %s\n\n", buffer);
+                        SIO_LOGI("\nrecv: %s\n\n", buffer);
                     }
                 }
             }
@@ -109,7 +109,7 @@ int main()
     // open
     int server = socket(PF_INET, SOCK_STREAM, 0);
     if (server == -1) {
-        printf("server socket open failed\n");
+        SIO_LOGI("server socket open failed\n");
         return -1;
     }
     
@@ -119,28 +119,28 @@ int main()
     addr.sin_port = htons(8000);
     int rc = inet_pton(AF_INET, "0.0.0.0", &addr.sin_addr);
     if (rc == 0 || rc == -1) {
-        printf("ip trans failed\n");
+        SIO_LOGI("ip trans failed\n");
         return -1;
     }
     rc = bind(server, (struct sockaddr *)&addr, sizeof(addr));
     if (rc == -1) {
-        printf("server addr binb failed\n");
+        SIO_LOGI("server addr binb failed\n");
         return -1;
     }
 
     // listen
     rc = listen(server, SOMAXCONN);
     if (rc == -1) {
-        printf("server listen failed\n");
+        SIO_LOGI("server listen failed\n");
         return -1;
     }
 
-    printf("server id: %d\n", server);
+    SIO_LOGI("server id: %d\n", server);
     g_server = server;
 
     g_mp = sio_mplex_create(0);
     if (!g_mp) {
-        printf("sio_mplex create failed\n");
+        SIO_LOGI("sio_mplex create failed\n");
         return -1;
     }
 
@@ -151,13 +151,13 @@ int main()
     event.owner.ptr = fddes;
 
     if (sio_mplex_ctl(g_mp, EPOLL_CTL_ADD, server, &event)) {
-        printf("sio_mplex ctl failed\n");
+        SIO_LOGI("sio_mplex ctl failed\n");
         return -1;
     }
 
     g_epfd = epoll_create(128);
     if (g_epfd < 0) {
-        printf("epoll create failed\n");
+        SIO_LOGI("epoll create failed\n");
         close(server);
         return -1;
     }
@@ -167,7 +167,7 @@ int main()
     // event.data.fd = server;
 
     // if (epoll_ctl(g_epfd, EPOLL_CTL_ADD, server, &event) == -1) {
-    //     printf("epoll ctl failed\n");
+    //     SIO_LOGI("epoll ctl failed\n");
     //     close(server);
     //     return -1;
     // }
@@ -180,7 +180,7 @@ int main()
 
     // pthread_create(&tid, NULL, socket_thread, NULL);
 
-    printf("enter exit\n");
+    SIO_LOGI("enter exit\n");
     getc(stdin);
     g_exit = 1;
     close(server);

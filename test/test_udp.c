@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
+#include "sio_log.h"
 
 int main()
 {
@@ -13,11 +14,11 @@ int main()
     sio_socket_bind(sock2, &addr2);
 
     int l = sio_socket_writeto(sock, "hello sock2", strlen("hello sock2"), &addr2);
-    printf("send: %s\n    to: %s:%d\n", "hello sock2", addr2.addr, addr2.port);
+    SIO_LOGI("send: %s\n    to: %s:%d\n", "hello sock2", addr2.addr, addr2.port);
 
     char buf[256] = { 0 };
     l = sio_socket_readfrom(sock2, buf, 255, &addr);
-    printf("recv: %s\n    form: %s:%d\n", buf, addr.addr, addr.port);
+    SIO_LOGI("recv: %s\n    form: %s:%d\n", buf, addr.addr, addr.port);
 
     getc(stdin);
 

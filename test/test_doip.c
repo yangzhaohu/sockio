@@ -122,8 +122,8 @@ int test_equip_route_ack_process(char *buf, unsigned int len)
     unsigned short sa = ntohs(route->sa);
     unsigned short la = ntohs(route->la);
     unsigned char code = route->code;
-    printf("route active sa: %d route la: %d\n", sa, la);
-    printf("route active code: %d\n", code);
+    SIO_LOGI("route active sa: %d route la: %d\n", sa, la);
+    SIO_LOGI("route active code: %d\n", code);
 
     return code;
 }
@@ -132,7 +132,7 @@ static inline
 int test_equip_status_ack_process(char *buf, unsigned int len)
 {
     struct doip_status_ack *status = (struct doip_status_ack *)(buf + sizeof(struct doip_hdr));
-    printf("entity status: \n"
+    SIO_LOGI("entity status: \n"
         "type:    %d\n"
         "maxconn: %d\n"
         "curconn: %d\n"
@@ -228,7 +228,7 @@ static int test_equip_socket_readable(struct sio_socket *sock)
 
 static int test_equip_socket_closeable(struct sio_socket *sock)
 {
-    printf("socket close\n");
+    SIO_LOGI("socket close\n");
     sio_socket_destory(sock);
     return 0;
 }
@@ -242,7 +242,7 @@ static int test_equip_socket_readable_from(struct sio_socket *sock)
         return ret;
     }
 
-    printf("recv form: %s:%d\n\n", peer.addr, peer.port);
+    SIO_LOGI("recv form: %s:%d\n\n", peer.addr, peer.port);
     test_equip_udp_packet_handler(buf, 256, &peer);
 
     return 0;
@@ -307,7 +307,7 @@ static void test_equip_doip_route_req(struct sio_socket *tcpsock)
     struct doip_route *route = (struct doip_route *)(buf + sizeof(struct doip_hdr));
     route->sa = htons(TEST_EQUIP_LA);
 
-    printf("route active request...\n");
+    SIO_LOGI("route active request...\n");
     sio_socket_write(tcpsock, buf, sizeof(struct doip_hdr) + sizeof(struct doip_route));
 }
 
@@ -315,7 +315,7 @@ static void test_equip_doip_status_req(struct sio_socket *tcpsock)
 {
     char buf[128] = { 0 };
     doip_gene_hdr_status(buf);
-    printf("entity status request...\n");
+    SIO_LOGI("entity status request...\n");
     sio_socket_write(tcpsock, buf, sizeof(struct doip_hdr));
 }
 
@@ -462,7 +462,7 @@ static inline
 int test_equip_ctrllink_ela()
 {
     if (TEST_EQUIP_ENTITY_LA == 0) {
-        printf("enter entity la:");
+        SIO_LOGI("enter entity la:");
         scanf("%lu", &TEST_EQUIP_ENTITY_LA);
     }
     return TEST_EQUIP_ENTITY_LA;
@@ -483,7 +483,7 @@ int main()
             test_equip_ls_entity();
             break;
         case 'i':
-            printf("enter new entity la: ");
+            SIO_LOGI("enter new entity la: ");
             scanf("%lu", &TEST_EQUIP_ENTITY_LA);
             break;
         case 'c':

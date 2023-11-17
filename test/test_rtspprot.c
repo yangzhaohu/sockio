@@ -12,7 +12,7 @@ int main()
 {
     struct sio_rtspprot *prot = sio_rtspprot_create();
     int l = sio_rtspprot_process(prot, resp, strlen(resp));
-    printf("l: %d, len: %d\n", l, (int)strlen(resp));
+    SIO_LOGI("l: %d, len: %d\n", l, (int)strlen(resp));
 
     getc(stdin);
 

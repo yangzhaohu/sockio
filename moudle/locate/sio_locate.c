@@ -183,7 +183,7 @@ int sio_locate_clean_imp(struct sio_locate *locate)
     struct sio_list_head *pos;
     sio_list_foreach_del(pos, &locate->head) {
         node = (struct sio_locate_node *)pos;
-        printf("del: %s\n", node->location.loname);
+        SIO_LOGI("del: %s\n", node->location.loname);
         sio_list_del(pos);
         free(node);
         node = NULL;

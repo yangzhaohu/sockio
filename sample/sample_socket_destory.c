@@ -3,6 +3,7 @@
 #include "sio_socket.h"
 #include "sio_errno.h"
 #include "sio_permplex.h"
+#include "sio_log.h"
 
 struct sio_mplex *g_mplex = NULL;
 
@@ -30,11 +31,11 @@ int socknew(struct sio_socket *serv)
         if (ret == SIO_ERRNO_AGAIN) {
             break;
         } else if (ret != 0) {
-            printf("server close\n");
+            SIO_LOGI("server close\n");
             sio_socket_destory(serv);
             return -1;
         }
-        printf("new socket connect\n");
+        SIO_LOGI("new socket connect\n");
 
         struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
         sio_socket_accept(serv, sock);
@@ -46,7 +47,7 @@ int socknew(struct sio_socket *serv)
         opt.nonblock = 1;
         ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
         if (ret == -1) {
-            printf("socket nonlock set failed\n");
+            SIO_LOGI("socket nonlock set failed\n");
         }
 
         g_sock = sock;
@@ -64,14 +65,14 @@ int readable(struct sio_socket *sock)
 {
     char data[512] = { 0 };
     int len = sio_socket_read(sock, data, 512);
-    printf("recv %d: %s\n", len, data);
+    SIO_LOGI("recv %d: %s\n", len, data);
 
     return 0;
 }
 
 int closed(struct sio_socket *sock)
 {
-    printf("close\n");
+    SIO_LOGI("close\n");
     sio_socket_destory(sock);
 
     return 0;
@@ -84,7 +85,7 @@ int main()
 
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {
-        printf("serv listen failed\n");
+        SIO_LOGI("serv listen failed\n");
         return -1;
     }
 
@@ -114,19 +115,19 @@ int main()
     sio_socket_connect(client2, &addr);
 
     getc(stdin);
-    printf("the client is not mplex and can be safely destroyed\n");
+    SIO_LOGI("the client is not mplex and can be safely destroyed\n");
     sio_socket_destory(client);
 
     getc(stdin);
-    printf("The g_sock is mplexing. use shutdown in the mplex callback secure destruction\n");
+    SIO_LOGI("The g_sock is mplexing. use shutdown in the mplex callback secure destruction\n");
     sio_socket_shutdown(g_sock, SIO_SOCK_SHUTRDWR);
 
     getc(stdin);
-    printf("The serv is mplexing. use shutdown in the mplex callback secure destruction\n");
+    SIO_LOGI("The serv is mplexing. use shutdown in the mplex callback secure destruction\n");
     sio_socket_shutdown(serv, SIO_SOCK_SHUTRDWR);
 
     getc(stdin);
-    printf("exit\n");
+    SIO_LOGI("exit\n");
 
     return 0;
 }

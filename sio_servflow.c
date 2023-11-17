@@ -208,7 +208,7 @@ static int sio_server_newconn(struct sio_server *serv)
 
     struct sio_sockflow *sockflow = sio_sockflow_get(spool);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(sockflow == NULL, -1,
-        printf("sio_sockflow_get failed\n"));
+        SIO_LOGI("sio_sockflow_get failed\n"));
 
     int ret = sio_sockflow_accept(servflow, sockflow);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);

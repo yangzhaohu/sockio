@@ -180,7 +180,7 @@ int sio_httpprot_process(struct sio_httpprot *httpprot, const char *data, unsign
 
     int ret = http_parser_execute(&httpprot->parser, &g_http_parser_cb, data, len);
     if (ret == 0 || httpprot->parser.http_errno != 0) {
-        printf("ret: %d, err: %d\n", ret, httpprot->parser.http_errno);
+        SIO_LOGI("ret: %d, err: %d\n", ret, httpprot->parser.http_errno);
     }
     return ret;
 }

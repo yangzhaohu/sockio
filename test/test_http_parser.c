@@ -53,13 +53,13 @@ int main()
 {
     struct sio_httpprot *http = sio_httpprot_create(SIO_HTTP_RESPONSE);
     int ret = sio_httpprot_process(http, g_resp, 96);
-    printf("g_resp len: %d, ret: %d\n", (int)strlen(g_resp), ret);
+    SIO_LOGI("g_resp len: %d, ret: %d\n", (int)strlen(g_resp), ret);
     ret = sio_httpprot_process(http, g_resp + 96, strlen(g_resp) - 96);
-    printf("g_resp2 len: %d, ret: %d\n", (int)strlen(g_resp), ret);
+    SIO_LOGI("g_resp2 len: %d, ret: %d\n", (int)strlen(g_resp), ret);
 
     getc(stdin);
 
-    printf("-----------------------\r\n\r\n");
+    SIO_LOGI("-----------------------\r\n\r\n");
     struct sio_httpprot *http2 = sio_httpprot_create(SIO_HTTP_RESPONSE);
     sio_httpprot_process(http2, g_body1, strlen(g_body1));
     getc(stdin);

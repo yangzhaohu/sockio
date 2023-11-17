@@ -54,7 +54,7 @@ int sio_doip_discover_handler(struct sio_socket *sock, struct sio_socket_addr *p
     
     unsigned short type = ntohs(hdr->type);
     unsigned int length = ntohs(hdr->length);
-    printf("disvocer doiphdr:\n"
+    SIO_LOGI("disvocer doiphdr:\n"
         "\t ver: %02x\n"
         "\t iver: %02x\n"
         "\t type: %04d\n"
@@ -95,7 +95,7 @@ int sio_doip_discover_readable(struct sio_socket *sock)
     int len = sio_socket_readfrom(sock, buf, 512, &peer);
     SIO_COND_CHECK_RETURN_VAL(len <= 0, -1);
 
-    printf("recv form: %s:%d\n\n", peer.addr, peer.port);
+    SIO_LOGI("recv form: %s:%d\n\n", peer.addr, peer.port);
 
     sio_doip_discover_handler(sock, &peer, buf, len);
 
@@ -111,7 +111,7 @@ int sio_doip_discover_writeable(struct sio_socket *sock)
 static inline
 int sio_doip_discover_closeable(struct sio_socket *sock)
 {
-    printf("socket close\n");
+    SIO_LOGI("socket close\n");
     sio_socket_destory(sock);
     return 0;
 }

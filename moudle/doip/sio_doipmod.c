@@ -57,7 +57,7 @@ int sio_doipmod_version(const char **version)
 static inline
 void *sio_doip_inittimer_routine(void *arg)
 {
-    printf("inittimer trigger\n");
+    SIO_LOGI("inittimer trigger\n");
     struct sio_doip_conn *dcon = (struct sio_doip_conn *)arg;
     struct sio_doip_contbl *contbl = &dcon->contbl;
 
@@ -69,7 +69,7 @@ void *sio_doip_inittimer_routine(void *arg)
 static inline
 void *sio_doip_genetimer_routine(void *arg)
 {
-    printf("genetimer trigger\n");
+    SIO_LOGI("genetimer trigger\n");
     struct sio_doip_conn *dcon = (struct sio_doip_conn *)arg;
     struct sio_doip_contbl *contbl = &dcon->contbl;
 

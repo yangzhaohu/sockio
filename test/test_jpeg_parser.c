@@ -17,12 +17,12 @@ int main()
     struct sio_jpeg_meta jpeg = { 0 };
     sio_jpeg_parser(&jpeg, jpegdata, len);
 
-    printf("start: %02x %02x\n", jpeg.start[0], jpeg.start[1]);
-    printf("end: %02x\n", jpeg.end[0]);
-    printf("qtbl1: %02x %02x\n", jpeg.qtbl1[0], jpeg.qtbl1[1]);
-    printf("qtbl2: %02x %02x\n", jpeg.qtbl2[0], jpeg.qtbl2[1]);
-    printf("width: %d\n", jpeg.sof.width);
-    printf("height: %d\n", jpeg.sof.height);
+    SIO_LOGI("start: %02x %02x\n", jpeg.start[0], jpeg.start[1]);
+    SIO_LOGI("end: %02x\n", jpeg.end[0]);
+    SIO_LOGI("qtbl1: %02x %02x\n", jpeg.qtbl1[0], jpeg.qtbl1[1]);
+    SIO_LOGI("qtbl2: %02x %02x\n", jpeg.qtbl2[0], jpeg.qtbl2[1]);
+    SIO_LOGI("width: %d\n", jpeg.sof.width);
+    SIO_LOGI("height: %d\n", jpeg.sof.height);
 
     getc(stdin);
 

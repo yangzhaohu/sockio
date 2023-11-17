@@ -125,7 +125,7 @@ int sio_httpmod_protodata(void *handler, enum sio_httpprot_data type, const sio_
         if (len > 4096) {
             sio_socket_write(httpconn->sock, g_resp, strlen(g_resp));
             sio_socket_close(httpconn->sock);
-            printf("url too large\n");
+            SIO_LOGI("url too large\n");
             return -1;
         }
         ds[SIO_HTTPDS_URL].dsstr.data = data->data;

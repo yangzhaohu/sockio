@@ -214,7 +214,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
         struct sio_socket_attr *attr = &sock->attr;
         struct sio_socket_owner *owner = &sock->owner;
         struct sio_socket_ops_pri *ops = &owner->ops;
-        // printf("socket fd: %d, event: %d\n", sock->fd, event->events);
+        // SIO_LOGI("socket fd: %d, event: %d\n", sock->fd, event->events);
 
         sio_socket_event_dispatch_once(event);
     }
@@ -361,7 +361,7 @@ int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_socket_o
     // socklen_t sent = sizeof(size);
     // size = 0;
     // ret = getsockopt(sock->fd, SOL_SOCKET, SO_SNDBUF, &size, &sent);
-    // printf("sent buf: %d\n", size);
+    // SIO_LOGI("sent buf: %d\n", size);
     // SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 #else
     int ret = -1;
@@ -850,7 +850,7 @@ int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how)
 
     int ret = sio_socket_shutdown_imp(sock, how);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        SIO_LOGE("socket shutdown failed"));
+        SIO_LOGE("socket shutdown failed\n"));
 
     struct sio_socket_state *stat = &sock->stat;
     stat->listening = 0;

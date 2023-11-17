@@ -2,6 +2,7 @@
 #include <string.h>
 #include "sio_socket.h"
 #include "sio_permplex.h"
+#include "sio_log.h"
 
 static int socket_readable(struct sio_socket *sock)
 {
@@ -9,7 +10,7 @@ static int socket_readable(struct sio_socket *sock)
     struct sio_socket_addr addr = { 0 };
     int ret = sio_socket_readfrom(sock, buf, 255, &addr);
     if (ret > 0) {
-        printf("recv: %s\n    form: %s:%d\n\n", buf, addr.addr, addr.port);
+        SIO_LOGI("recv: %s\n    form: %s:%d\n\n", buf, addr.addr, addr.port);
     }
 
     return 0;
@@ -22,7 +23,7 @@ static int socket_writeable(struct sio_socket *sock)
 
 static int socket_closeable(struct sio_socket *sock)
 {
-    printf("socket close\n");
+    SIO_LOGI("socket close\n");
     sio_socket_destory(sock);
     return 0;
 }
@@ -71,10 +72,10 @@ int main()
         }
         if (ch == '2') {
             sio_socket_writeto(sock, "hello sock2", strlen("hello sock2"), &addr2);
-            printf("send: %s\n    to: %s:%d\n", "hello sock2", addr2.addr, addr2.port);
+            SIO_LOGI("send: %s\n    to: %s:%d\n", "hello sock2", addr2.addr, addr2.port);
         } else if (ch == '1'){
             sio_socket_writeto(sock2, "hello sock1", strlen("hello sock1"), &addr);
-            printf("send: %s\n    to: %s:%d\n", "hello sock1", addr.addr, addr.port);
+            SIO_LOGI("send: %s\n    to: %s:%d\n", "hello sock1", addr.addr, addr.port);
         }
     }
 

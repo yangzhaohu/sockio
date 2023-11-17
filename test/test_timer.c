@@ -5,11 +5,12 @@
 #include <signal.h>
 #include "sio_global.h"
 #include "sio_timer.h"
+#include "sio_log.h"
 
 static inline
 void *timer_routine(void *arg)
 {
-    printf("timer trigger\n");
+    SIO_LOGI("timer trigger\n");
     return NULL;
 }
 

@@ -31,6 +31,8 @@ endif
 LIBS := $(STATICLIB) $(DYNAMICLIB)
 
 SRCS := sio_global.cpp \
+		sio_log.c \
+		sio_time.c \
 		sio_mplex.c \
 		sio_select.c \
 		sio_epoll.c \

@@ -3,6 +3,7 @@
 #include "sio_socket.h"
 #include "sio_mplex.h"
 #include "sio_permplex.h"
+#include "sio_log.h"
 
 int socknew(struct sio_socket *serv);
 int readable(struct sio_socket *sock);
@@ -29,7 +30,7 @@ int socknew(struct sio_socket *serv)
 {
     int ret = sio_socket_accept_has_pend(serv);
     if (ret == -1) {
-        printf("server close\n");
+        SIO_LOGI("server close\n");
         return -1;
     }
 
@@ -44,13 +45,13 @@ int socknew(struct sio_socket *serv)
     opt.nonblock = 1;
     ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
     if (ret == -1) {
-        printf("socket nonlock set failed\n");
+        SIO_LOGI("socket nonlock set failed\n");
     }
 
     opt.reuseaddr = 1;
     sio_socket_setopt(sock, SIO_SOCK_REUSEADDR, &opt);
     if (ret == -1) {
-        printf("socket reuseaddr set failed\n");
+        SIO_LOGI("socket reuseaddr set failed\n");
     }
 
     opt.mplex = g_mplex;
@@ -65,7 +66,7 @@ int readable(struct sio_socket *sock)
     char data[512] = { 0 };
     int len = sio_socket_read(sock, data, 512);
     if (len > 0 )
-        printf("recv %d: %s\n", len, data);
+        SIO_LOGI("recv %d: %s\n", len, data);
 
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
 
@@ -74,7 +75,7 @@ int readable(struct sio_socket *sock)
 
 int closed(struct sio_socket *sock)
 {
-    printf("close\n");
+    SIO_LOGI("close\n");
     sio_socket_destory(sock);
 
     return 0;
@@ -94,7 +95,7 @@ char *g_resp = "HTTP/1.1 200 OK\r\n"
 
 int writeable(struct sio_socket *sock)
 {
-    printf("writeabled\n");
+    SIO_LOGI("writeabled\n");
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
     sio_socket_write(sock, g_resp, strlen(g_resp));
     return 0;
@@ -115,7 +116,7 @@ int main(void)
 
     err = WSAStartup(wVersionRequested, &wsaData);
     if (err != 0) {
-        printf("WSAStartup failed with error: %d\n", err);
+        SIO_LOGI("WSAStartup failed with error: %d\n", err);
         return -1;
     }
 #endif
@@ -124,7 +125,7 @@ int main(void)
 
     struct sio_socket_addr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {
-        printf("serv listen failed\n");
+        SIO_LOGI("serv listen failed\n");
         return -1;
     }
 
