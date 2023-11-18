@@ -32,6 +32,7 @@ struct sio_socket_state
 {
     // enum sio_events events;
     enum sio_socksh shut;
+    enum sio_sockwhat what;
     int placement:1;
     int listening:1;
     int connected:1;
@@ -39,6 +40,7 @@ struct sio_socket_state
 
 struct sio_socket_ops_pri
 {
+    int (*connected)(struct sio_socket *sock, enum sio_sockwhat what);
     int (*readable)(struct sio_socket *sock);
     int (*writeable)(struct sio_socket *sock);
     int (*acceptasync)(struct sio_socket *sock, struct sio_socket *newsock);
@@ -167,6 +169,7 @@ __thread int tls_sock_readerr = 0;
         SIO_COND_CHECK_BREAK(sio_socket_again(err));                        \
         if (err == SIO_ERRNO_CLOSE) {                                       \
             sio_sock_mplex_event_del(sock);                                 \
+            sio_socket_state_shut_set(sock, SIO_SOCK_SHUTRDWR);             \
             ops->closeable(sock);                                           \
             break;                                                          \
         }                                                                   \
@@ -177,6 +180,7 @@ __thread int tls_sock_readerr = 0;
     if (event->events & (SIO_EVENTS_IN | SIO_EVENTS_HUP)) {                     \
         if (event->events & SIO_EVENTS_HUP) {                                   \
             sio_sock_mplex_event_del(sock);                                     \
+            sio_socket_state_shut_set(sock, SIO_SOCK_SHUTRDWR);                 \
             sio_socket_ops_call(ops->closeable, sock);                          \
             continue;                                                           \
         }                                                                       \
@@ -199,7 +203,20 @@ __thread int tls_sock_readerr = 0;
             sock, __sock);                                                      \
     }                                                                           \
     if (event->events & SIO_EVENTS_OUT) {                                       \
-        sio_socket_ops_call(ops->writeable, sock);                              \
+        if (stat->what == SIO_SOCK_CONNECT) {                                   \
+            int errval = 0;                                                     \
+            socklen_t errl = sizeof(int);                                       \
+            int ret = getsockopt(sock->fd,                                      \
+                SOL_SOCKET, SO_ERROR, &errval, &errl);                          \
+            if (ret == 0 && errval == 0) {                                      \
+                stat->what = SIO_SOCK_ESTABLISHED;                              \
+            } else {                                                            \
+                sio_sock_mplex_event_del(sock);                                 \
+            }                                                                   \
+            sio_socket_ops_call(ops->connected, sock, stat->what);              \
+        } else {                                                                \
+            sio_socket_ops_call(ops->writeable, sock);                          \
+        }                                                                       \
     }
 
 
@@ -212,6 +229,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
             continue;
         }
         struct sio_socket_attr *attr = &sock->attr;
+        struct sio_socket_state *stat = &sock->stat;
         struct sio_socket_owner *owner = &sock->owner;
         struct sio_socket_ops_pri *ops = &owner->ops;
         // SIO_LOGI("socket fd: %d, event: %d\n", sock->fd, event->events);
@@ -275,6 +293,7 @@ void sio_socket_set_ops(struct sio_socket *sock, struct sio_sockops ops)
         owner->ops.writeable = ops.writetoable;
     }
 
+    owner->ops.connected = ops.connected;
     owner->ops.acceptasync = ops.acceptasync;
     owner->ops.readasync = ops.readasync;
     owner->ops.writeasync = ops.writeasync;
@@ -399,6 +418,7 @@ struct sio_socket *sio_socket_create_imp(enum sio_sockprot proto, char *placemen
 
     struct sio_socket_state *stat = &sock->stat;
     stat->placement = plmt;
+    stat->what = SIO_SOCK_NONE;
 
     struct sio_socket_attr *attr = &sock->attr;
     attr->proto = proto;
@@ -437,6 +457,9 @@ struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement)
         free(sock));
 
     sock->fd = fd;
+
+    struct sio_socket_state *stat = &sock->stat;
+    stat->what = SIO_SOCK_OPEN;
 
     return sock;
 }
@@ -703,6 +726,7 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
     attr->mean = SIO_SOCK_MEAN_SOCKET;
 
     stat->connected = 1;
+    stat->what = SIO_SOCK_CONNECT;
 
     if (sock->mp) {
         sio_socket_mplex_imp(sock, SIO_EV_OPT_ADD, SIO_EVENTS_OUT);
@@ -826,19 +850,22 @@ int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socksh how)
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, 0);
     SIO_COND_CHECK_RETURN_VAL(how < SIO_SOCK_SHUTRD || how > SIO_SOCK_SHUTRDWR, -1);
 
-    int shut = 0;
+    enum sio_socksh shut = sio_socket_state_shut_get(sock);
+    how = ~shut & how;
+    SIO_COND_CHECK_RETURN_VAL(how == 0, 0);
+
+    int shuthow = 0;
     if (how == SIO_SOCK_SHUTRD) {
-        shut = SIO_SOCK_SHUT_RD;
+        shuthow = SIO_SOCK_SHUT_RD;
     } else if (how == SIO_SOCK_SHUTWR) {
-        shut = SIO_SOCK_SHUT_WR;
+        shuthow = SIO_SOCK_SHUT_WR;
     } else {
-        shut = SIO_SOCK_SHUT_RDWR;
+        shuthow = SIO_SOCK_SHUT_RDWR;
     }
 
-    int ret = shutdown(sock->fd, shut);
+    int ret = shutdown(sock->fd, shuthow);
     if (ret == 0) {
-        struct sio_socket_state *stat = &sock->stat;
-        stat->shut |= how;
+        sio_socket_state_shut_set(sock, shut | how);
     }
 
     return ret;

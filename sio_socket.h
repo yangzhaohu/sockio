@@ -19,6 +19,16 @@ enum sio_sockprot
     SIO_SOCK_UDP
 };
 
+enum sio_sockwhat
+{
+    SIO_SOCK_NONE,
+    SIO_SOCK_OPEN,
+    SIO_SOCK_CONNECT,
+    SIO_SOCK_LISTEN,
+    SIO_SOCK_ESTABLISHED,
+    SIO_SOCK_CLOSE
+};
+
 struct sio_sockaddr
 {
     char addr[48];
@@ -27,6 +37,7 @@ struct sio_sockaddr
 
 struct sio_sockops
 {
+    int (*connected)(struct sio_socket *sock, enum sio_sockwhat what);
     int (*readable)(struct sio_socket *sock);
     int (*readfromable)(struct sio_socket *sock);
     int (*writeable)(struct sio_socket *sock);

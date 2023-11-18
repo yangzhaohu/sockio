@@ -4,6 +4,17 @@
 #include "sio_permplex.h"
 #include "sio_log.h"
 
+int connected(struct sio_socket *sock, enum sio_sockwhat what)
+{
+    if (what == SIO_SOCK_ESTABLISHED) {
+        SIO_LOGI("connect succeed\n");
+    } else {
+        SIO_LOGI("connect timeout\n");
+    }
+
+    return 0;
+}
+
 int readable(struct sio_socket *sock)
 {
     char data[512] = { 0 };
@@ -20,7 +31,7 @@ int writeable(struct sio_socket *sock)
 {
     char timebuf[256] = { 0 };
     SIO_LOGI("writeabled\n");
-    int ret = sio_socket_write(sock, "1234", strlen(""));
+    int ret = sio_socket_write(sock, "1234", strlen("1234"));
 
     SIO_LOGI("write ret: %d\n", ret);
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
@@ -30,13 +41,14 @@ int writeable(struct sio_socket *sock)
 int closed(struct sio_socket *sock)
 {
     SIO_LOGI("close\n");
-    sio_socket_destory(sock);
+    // sio_socket_destory(sock);
 
     return 0;
 }
 
 struct sio_sockops g_sock_ops = 
 {
+    .connected = connected,
     .readable = readable,
     .writeable = writeable,
     .closeable = closed
@@ -78,6 +90,7 @@ int main()
 
     SIO_LOGI("pmplex destory\n");
     sio_permplex_destory(pmplex);
+    sio_socket_destory(sock);
 
     return 0;
 }
