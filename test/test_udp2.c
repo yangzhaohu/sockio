@@ -7,7 +7,7 @@
 static int socket_readable(struct sio_socket *sock)
 {
     char buf[256] = { 0 };
-    struct sio_socket_addr addr = { 0 };
+    struct sio_sockaddr addr = { 0 };
     int ret = sio_socket_readfrom(sock, buf, 255, &addr);
     if (ret > 0) {
         SIO_LOGI("recv: %s\n    form: %s:%d\n\n", buf, addr.addr, addr.port);
@@ -30,7 +30,7 @@ static int socket_closeable(struct sio_socket *sock)
 
 int set_sock_mplex(struct sio_socket *sock, struct sio_permplex *pmplex)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.ops.readfromable = socket_readable;
     opt.ops.closeable = socket_closeable;
     int ret = sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
@@ -52,13 +52,13 @@ int main()
     struct sio_permplex *pmplex = sio_permplex_create(SIO_MPLEX_EPOLL);
 
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_UDP, NULL);
-    struct sio_socket_addr addr = { "127.0.0.1", 8090};
+    struct sio_sockaddr addr = { "127.0.0.1", 8090};
     sio_socket_bind(sock, &addr);
 
     set_sock_mplex(sock, pmplex);
 
     struct sio_socket *sock2 = sio_socket_create(SIO_SOCK_UDP, NULL);
-    struct sio_socket_addr addr2 = { "127.0.0.1", 8091};
+    struct sio_sockaddr addr2 = { "127.0.0.1", 8091};
     sio_socket_bind(sock2, &addr2);
 
     set_sock_mplex(sock2, pmplex);

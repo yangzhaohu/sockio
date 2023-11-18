@@ -5,35 +5,35 @@
 
 struct sio_server;
 
-enum sio_server_optcmd
+enum sio_servoptc
 {
     SIO_SERV_PRIVATE,
     SIO_SERV_OPS
 };
 
-struct sio_server_ops
+struct sio_servops
 {
     int (*accept)(struct sio_server *serv);
 };
 
-union sio_server_opt
+union sio_servopt
 {
     void *private;
-    struct sio_server_ops ops;
+    struct sio_servops ops;
 };
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct sio_server *sio_server_create(enum sio_socket_proto type);
+struct sio_server *sio_server_create(enum sio_sockprot type);
 
-struct sio_server *sio_server_create2(enum sio_socket_proto type, unsigned char threads);
+struct sio_server *sio_server_create2(enum sio_sockprot type, unsigned char threads);
 
-int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt);
-int sio_server_getopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt);
+int sio_server_setopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt);
+int sio_server_getopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt);
 
-int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr);
+int sio_server_listen(struct sio_server *serv, struct sio_sockaddr *addr);
 
 int sio_server_accept(struct sio_server *serv, struct sio_socket *sock);
 

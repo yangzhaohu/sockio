@@ -19,7 +19,7 @@ struct sio_doip_disc g_disc;
 #define SIO_DOIP_DISC g_disc
 
 static inline
-int sio_doip_anno_reply(struct sio_socket *sock, struct sio_socket_addr *peer)
+int sio_doip_anno_reply(struct sio_socket *sock, struct sio_sockaddr *peer)
 {
     const int size = sizeof(struct doip_hdr) + sizeof(struct doip_anno);
     char buf[size];
@@ -37,7 +37,7 @@ int sio_doip_anno_reply(struct sio_socket *sock, struct sio_socket_addr *peer)
 }
 
 static inline
-int sio_doip_discover_handler(struct sio_socket *sock, struct sio_socket_addr *peer, char *buf, int len)
+int sio_doip_discover_handler(struct sio_socket *sock, struct sio_sockaddr *peer, char *buf, int len)
 {
     struct doip_hdr *hdr = (struct doip_hdr *)buf;
     int err = doip_hdr_version_preamble(hdr);
@@ -91,7 +91,7 @@ static inline
 int sio_doip_discover_readable(struct sio_socket *sock)
 {
     char buf[512] = { 0 };
-    struct sio_socket_addr peer = { 0 };
+    struct sio_sockaddr peer = { 0 };
     int len = sio_socket_readfrom(sock, buf, 512, &peer);
     SIO_COND_CHECK_RETURN_VAL(len <= 0, -1);
 
@@ -118,7 +118,7 @@ int sio_doip_discover_closeable(struct sio_socket *sock)
 
 int sio_doip_discover_sock_mplex(struct sio_socket *sock, struct sio_permplex *pmplex)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.ops.readfromable = sio_doip_discover_readable;
     opt.ops.closeable = sio_doip_discover_closeable;
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
@@ -135,7 +135,7 @@ int sio_doip_discover_sock_mplex(struct sio_socket *sock, struct sio_permplex *p
     return 0;
 }
 
-int sio_doip_discover_init(struct sio_socket_addr *addr)
+int sio_doip_discover_init(struct sio_sockaddr *addr)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_UDP, NULL);
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);

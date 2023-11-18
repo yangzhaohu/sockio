@@ -145,7 +145,7 @@ struct sio_doip_conn *sio_doipmod_doipconn_create()
 static inline
 struct sio_doip_conn *sio_doipmod_get_doipconn_from_conn(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_doip_conn *rconn = opt.private;
@@ -249,7 +249,7 @@ int sio_doip_init()
     sio_doip_node_setla(1024);
     sio_doip_node_setgid("123456");
 
-    struct sio_socket_addr addr = {"127.0.0.1", 13400};
+    struct sio_sockaddr addr = {"127.0.0.1", 13400};
     sio_doip_discover_init(&addr);
 
     return 0;
@@ -274,7 +274,7 @@ sio_submod_t sio_doipmod_create(void)
 int sio_doipmod_newconn(sio_submod_t mod, struct sio_server *server)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .ops.readable = sio_doipmod_socket_readable,
         .ops.writeable = sio_doipmod_socket_writeable,
         .ops.closeable = sio_doipmod_socket_closeable

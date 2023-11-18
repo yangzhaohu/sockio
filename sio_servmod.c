@@ -50,7 +50,7 @@ struct sio_mod g_global_mod[SIO_SUBMOD_BUTT] = {
 static inline
 int sio_socket_readable(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_servmod *servmod = opt.private;
@@ -76,7 +76,7 @@ int sio_socket_writeable(struct sio_socket *sock)
 static inline
 int sio_socket_closeable(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_servmod *servmod = opt.private;
@@ -103,7 +103,7 @@ struct sio_socket *sio_servmod_conn_socket(struct sio_server *serv)
     sio_conn_setopt(conn, SIO_CONN_SERVER, &optc);
 
     struct sio_socket *sock = sio_conn_socket_ref(conn);
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .ops.readable = sio_socket_readable,
         .ops.writeable = sio_socket_writeable,
         .ops.closeable = sio_socket_closeable
@@ -121,14 +121,14 @@ int sio_servmod_newconn(struct sio_server *serv)
 {
     struct sio_socket *sock = sio_servmod_conn_socket(serv);
 
-    union sio_server_opt opts = { 0 };
+    union sio_servopt opts = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);
 
     struct sio_servmod *servmod = opts.private;
     struct sio_mod *mod = servmod->mod;
     struct sio_submod *submod = &mod->submod;
 
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .private = servmod
     };
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
@@ -150,7 +150,7 @@ struct sio_server *sio_servmod_createserv()
     struct sio_server *serv = sio_server_create(SIO_SOCK_TCP);
     SIO_COND_CHECK_RETURN_VAL(!serv, NULL);
 
-    union sio_server_opt ops = {
+    union sio_servopt ops = {
         .ops.accept = sio_servmod_newconn
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
@@ -170,7 +170,7 @@ struct sio_servmod *sio_servmod_create(enum sio_submod_type type)
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!serv, NULL,
         free(servmod));
     
-    union sio_server_opt ops = {
+    union sio_servopt ops = {
         .private = servmod
     };
     sio_server_setopt(serv, SIO_SERV_PRIVATE, &ops);
@@ -255,7 +255,7 @@ int sio_servmod_dowork(struct sio_servmod *servmod)
         return -1;
     }
 
-    struct sio_socket_addr addr = { 0 };
+    struct sio_sockaddr addr = { 0 };
     memcpy(addr.addr, opt->addr.addr, strlen(opt->addr.addr));
     addr.port = opt->addr.port;
 

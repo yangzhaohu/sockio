@@ -41,7 +41,7 @@ struct sio_server_mlb
 struct sio_server_owner
 {
     void *pri;
-    struct sio_server_ops ops;
+    struct sio_servops ops;
 };
 
 struct sio_server
@@ -55,7 +55,7 @@ struct sio_server
 static int sio_socket_accpet(struct sio_socket *sock);
 void *sio_work_thread_start_routine(void *arg);
 
-static struct sio_socket_ops g_serv_ops = 
+static struct sio_sockops g_serv_ops = 
 {
     .readable = sio_socket_accpet
 };
@@ -121,7 +121,7 @@ int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock)
     struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
     SIO_COND_CHECK_RETURN_VAL(!mplex, -1);
 
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .mplex = mplex
     };
     int ret = sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
@@ -137,7 +137,7 @@ int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock)
 }
 
 static inline
-struct sio_server *sio_server_create_imp(enum sio_socket_proto type, unsigned char threads)
+struct sio_server *sio_server_create_imp(enum sio_sockprot type, unsigned char threads)
 {
     SIO_COND_CHECK_RETURN_VAL(threads == 0, NULL);
 
@@ -150,7 +150,7 @@ struct sio_server *sio_server_create_imp(enum sio_socket_proto type, unsigned ch
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock, NULL,
         free(serv));
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.private = serv;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
     opt.ops = g_serv_ops;
@@ -181,24 +181,24 @@ void sio_server_get_private(struct sio_server *serv, void **private)
 }
 
 static inline
-void sio_server_set_ops(struct sio_server *serv, struct sio_server_ops *ops)
+void sio_server_set_ops(struct sio_server *serv, struct sio_servops *ops)
 {
     // serv->ops = *ops;
     struct sio_server_owner *owner = &serv->owner;
     owner->ops = *ops;
 }
 
-struct sio_server *sio_server_create(enum sio_socket_proto type)
+struct sio_server *sio_server_create(enum sio_sockprot type)
 {
     return sio_server_create_imp(type, 1);
 }
 
-struct sio_server *sio_server_create2(enum sio_socket_proto type, unsigned char threads)
+struct sio_server *sio_server_create2(enum sio_sockprot type, unsigned char threads)
 {
     return sio_server_create_imp(type, threads);
 }
 
-int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt)
+int sio_server_setopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
     SIO_COND_CHECK_RETURN_VAL(!opt, -1);
@@ -220,7 +220,7 @@ int sio_server_setopt(struct sio_server *serv, enum sio_server_optcmd cmd, union
     return ret;
 }
 
-int sio_server_getopt(struct sio_server *serv, enum sio_server_optcmd cmd, union sio_server_opt *opt)
+int sio_server_getopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv || !opt, -1);
 
@@ -238,7 +238,7 @@ int sio_server_getopt(struct sio_server *serv, enum sio_server_optcmd cmd, union
     return ret;
 }
 
-int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr)
+int sio_server_listen(struct sio_server *serv, struct sio_sockaddr *addr)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv || !addr, -1);
 
@@ -246,7 +246,7 @@ int sio_server_listen(struct sio_server *serv, struct sio_socket_addr *addr)
     int ret = sio_socket_listen(sock, addr);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.nonblock = 1;
     ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
@@ -281,7 +281,7 @@ int sio_server_accept_cb(struct sio_server *serv)
 
 static int sio_socket_accpet(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
     struct sio_server *serv = opt.private;
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);

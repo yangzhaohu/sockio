@@ -12,12 +12,12 @@ struct sio_mplex *g_mplex = NULL;
 
 struct sio_socket *g_sock = NULL;
 
-struct sio_socket_ops g_serv_ops = 
+struct sio_sockops g_serv_ops = 
 {
     .read = socknew
 };
 
-struct sio_socket_ops g_sock_sock = 
+struct sio_sockops g_sock_sock = 
 {
     .read = readable,
     .write = writeable
@@ -31,13 +31,13 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
     }
     g_sock = sock;
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.nonblock = 1;
-    int ret = sio_socket_opt(sock, SIO_SOCK_NONBLOCK, &opt);
+    int ret = sio_sockopt(sock, SIO_SOCK_NONBLOCK, &opt);
     if (ret == -1)
         SIO_LOGI("socket nonlock set failed\n");
     opt.reuseaddr = 1;
-    sio_socket_opt(sock, SIO_SOCK_REUSEADDR, &opt);
+    sio_sockopt(sock, SIO_SOCK_REUSEADDR, &opt);
     if (ret == -1)
         SIO_LOGI("socket reuseaddr set failed\n");
 
@@ -99,16 +99,16 @@ int main(void)
     };
     struct sio_socket *serv = sio_socket_create(&config);
 
-    struct sio_socket_addr addr = {"127.0.0.1", 8000};
+    struct sio_sockaddr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {
         SIO_LOGI("serv listen failed\n");
         return -1;
     }
 
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.nonblock = 1;
-    sio_socket_opt(serv, SIO_SOCK_NONBLOCK, &opt);
+    sio_sockopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
     struct sio_mplex_attr attr = { SIO_MPLEX_SELECT };
     struct sio_mplex *mplex = sio_mplex_create(&attr);

@@ -50,7 +50,7 @@ struct sio_submod g_global_mod[SIO_SUBMOD_BUTT] = {
 static inline
 int sio_service_newconn(struct sio_server *serv)
 {
-    union sio_server_opt opts = { 0 };
+    union sio_servopt opts = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);
 
     struct sio_service *service = opts.private;
@@ -69,7 +69,7 @@ struct sio_server *sio_service_createserv()
     struct sio_server *serv = sio_server_create(SIO_SOCK_TCP);
     SIO_COND_CHECK_RETURN_VAL(!serv, NULL);
 
-    union sio_server_opt ops = {
+    union sio_servopt ops = {
         .ops.accept = sio_service_newconn
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
@@ -116,7 +116,7 @@ struct sio_service *sio_service_create(enum sio_service_type type)
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!serv, NULL,
         free(service));
     
-    union sio_server_opt ops = {
+    union sio_servopt ops = {
         .private = service
     };
     sio_server_setopt(serv, SIO_SERV_PRIVATE, &ops);
@@ -201,7 +201,7 @@ int sio_service_dowork(struct sio_service *service)
         return -1;
     }
 
-    struct sio_socket_addr addr = { 0 };
+    struct sio_sockaddr addr = { 0 };
     memcpy(addr.addr, opt->addr.addr, strlen(opt->addr.addr));
     addr.port = opt->addr.port;
 

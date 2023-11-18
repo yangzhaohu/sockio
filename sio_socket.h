@@ -6,26 +6,26 @@
 struct sio_socket;
 struct sio_mplex;
 
-enum sio_socket_shuthow
+enum sio_socksh
 {
     SIO_SOCK_SHUTRD = 1,
     SIO_SOCK_SHUTWR = 2,
     SIO_SOCK_SHUTRDWR = SIO_SOCK_SHUTRD | SIO_SOCK_SHUTWR
 };
 
-enum sio_socket_proto
+enum sio_sockprot
 {
     SIO_SOCK_TCP,
     SIO_SOCK_UDP
 };
 
-struct sio_socket_addr
+struct sio_sockaddr
 {
     char addr[48];
     int port;
 };
 
-struct sio_socket_ops
+struct sio_sockops
 {
     int (*readable)(struct sio_socket *sock);
     int (*readfromable)(struct sio_socket *sock);
@@ -37,7 +37,7 @@ struct sio_socket_ops
     int (*closeable)(struct sio_socket *sock);
 };
 
-enum sio_socket_optcmd
+enum sio_sockoptc
 {
     /* set pointer to private data */
     SIO_SOCK_PRIVATE,
@@ -57,10 +57,10 @@ enum sio_socket_optcmd
     SIO_SOCK_KEEPALIVE
 };
 
-union sio_socket_opt
+union sio_sockopt
 {
     void *private;
-    struct sio_socket_ops ops;
+    struct sio_sockops ops;
     struct sio_mplex *mplex;
     int rcvbuf;
     int sndbuf;
@@ -76,36 +76,36 @@ extern "C" {
 
 unsigned int sio_socket_struct_size();
 
-struct sio_socket *sio_socket_create(enum sio_socket_proto proto, char *placement);
-struct sio_socket *sio_socket_create2(enum sio_socket_proto proto, char *placement);
+struct sio_socket *sio_socket_create(enum sio_sockprot proto, char *placement);
+struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement);
 
-int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt);
-int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt);
+int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt);
+int sio_socket_getopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt);
 
-int sio_socket_peername(struct sio_socket *sock, struct sio_socket_addr *peer);
-int sio_socket_sockname(struct sio_socket *sock, struct sio_socket_addr *addr);
+int sio_socket_peername(struct sio_socket *sock, struct sio_sockaddr *peer);
+int sio_socket_sockname(struct sio_socket *sock, struct sio_sockaddr *addr);
 
-int sio_socket_bind(struct sio_socket *sock, struct sio_socket_addr *addr);
-int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr);
+int sio_socket_bind(struct sio_socket *sock, struct sio_sockaddr *addr);
+int sio_socket_listen(struct sio_socket *sock, struct sio_sockaddr *addr);
 
 int sio_socket_accept_has_pend(struct sio_socket *sock);
 int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock);
 
 int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock);
 
-int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr);
+int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr);
 
 int sio_socket_read(struct sio_socket *sock, char *buf, int len);
-int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_socket_addr *peer);
+int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_sockaddr *peer);
 int sio_socket_async_read(struct sio_socket *sock, char *buf, int len);
 
 int sio_socket_write(struct sio_socket *sock, const char *buf, int len);
-int sio_socket_writeto(struct sio_socket *sock, const char *buf, int len, struct sio_socket_addr *peer);
+int sio_socket_writeto(struct sio_socket *sock, const char *buf, int len, struct sio_sockaddr *peer);
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len);
 
 int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);
 
-int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how);
+int sio_socket_shutdown(struct sio_socket *sock, enum sio_socksh how);
 int sio_socket_close(struct sio_socket *sock);
 int sio_socket_destory(struct sio_socket *sock);
 

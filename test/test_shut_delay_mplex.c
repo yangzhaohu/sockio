@@ -11,12 +11,12 @@ struct sio_socket *g_sock = NULL;
 int socknew(struct sio_socket *serv, const char *buf, int len);
 int readable(struct sio_socket *sock, const char *buf, int len);
 
-struct sio_socket_ops g_serv_ops = 
+struct sio_sockops g_serv_ops = 
 {
     .read = socknew
 };
 
-struct sio_socket_ops g_sock_ops = 
+struct sio_sockops g_sock_ops = 
 {
     .read = readable
 };
@@ -37,7 +37,7 @@ int socknew(struct sio_socket *serv, const char *buf, int len)
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
     sio_socket_accept(serv, sock);
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.ops = g_sock_ops;
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
@@ -72,13 +72,13 @@ int main()
     // server create
     struct sio_socket *serv = sio_socket_create(SIO_SOCK_TCP, NULL);
 
-    struct sio_socket_addr addr = {"127.0.0.1", 8000};
+    struct sio_sockaddr addr = {"127.0.0.1", 8000};
     if (sio_socket_listen(serv, &addr) == -1) {
         SIO_LOGI("serv listen failed\n");
         return -1;
     }
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.ops = g_serv_ops;
     sio_socket_setopt(serv, SIO_SOCK_OPS, &opt);
 

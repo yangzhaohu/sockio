@@ -233,7 +233,7 @@ void sio_httpmod_httpconn_destory(struct sio_http_conn *httpconn)
 static inline
 int sio_httpmod_socket_readable(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_http_conn *hconn = opt.private;
@@ -267,7 +267,7 @@ int sio_httpmod_socket_writeable(struct sio_socket *sock)
 static inline
 int sio_httpmod_socket_closeable(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_http_conn *hconn = opt.private;
@@ -318,7 +318,7 @@ int sio_httpmod_modhook(sio_submod_t mod, struct sio_submod *submod)
 int sio_httpmod_newconn(sio_submod_t mod, struct sio_server *server)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .ops.readable = sio_httpmod_socket_readable,
         .ops.writeable = sio_httpmod_socket_writeable,
         .ops.closeable = sio_httpmod_socket_closeable

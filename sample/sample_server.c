@@ -41,7 +41,7 @@ static int socket_close(struct sio_socket *sock)
 static int server_newconn(struct sio_server *serv)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .ops.readable = socket_readable,
         .ops.writeable = socket_writeable,
         .ops.closeable = socket_close
@@ -66,12 +66,12 @@ int main()
 {
     struct sio_server *serv = sio_server_create(SIO_SOCK_TCP);
 
-    union sio_server_opt ops = {
+    union sio_servopt ops = {
         .ops.accept = server_newconn
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 
-    struct sio_socket_addr addr = {"127.0.0.1", 8000};
+    struct sio_sockaddr addr = {"127.0.0.1", 8000};
     sio_server_listen(serv, &addr);
 
 #define SOCKET_CONNECT_TEST_COUNT 16

@@ -35,7 +35,7 @@ int closed(struct sio_socket *sock)
     return 0;
 }
 
-struct sio_socket_ops g_sock_ops = 
+struct sio_sockops g_sock_ops = 
 {
     .readable = readable,
     .writeable = writeable,
@@ -49,7 +49,7 @@ int main()
 
     struct sio_socket *sock = sio_socket_create2(SIO_SOCK_TCP, NULL);
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.ops = g_sock_ops;
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
@@ -59,7 +59,7 @@ int main()
     opt.nonblock = 1;
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_socket_addr addr = {
+    struct sio_sockaddr addr = {
         // .addr = "110.242.68.66",
         .addr = "199.16.156.11",
         .port = 80

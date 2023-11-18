@@ -24,7 +24,7 @@ struct test_doip_entity
     unsigned char far;
     unsigned char ess;
 
-    struct sio_socket_addr addr;
+    struct sio_sockaddr addr;
     struct sio_socket *tcpsock;
 
     struct sio_timer *alivetimer;
@@ -74,7 +74,7 @@ int test_equip_entity_alivetimer_init(struct test_doip_entity *entity)
 }
 
 static inline
-int test_equip_entity_update(struct doip_hdr *hdr, unsigned int len, struct sio_socket_addr *peer)
+int test_equip_entity_update(struct doip_hdr *hdr, unsigned int len, struct sio_sockaddr *peer)
 {
     struct doip_anno *anno = (struct doip_anno *)((char *)hdr + sizeof(struct doip_hdr));
     unsigned short la = ntohs(anno->la);
@@ -88,7 +88,7 @@ int test_equip_entity_update(struct doip_hdr *hdr, unsigned int len, struct sio_
     memcpy(entity->gid, anno->gid, 6);
     memcpy(entity->eid, anno->eid, 6);
     memcpy(entity->vin, anno->vin, 17);
-    memcpy(&entity->addr, peer, sizeof(struct sio_socket_addr));
+    memcpy(&entity->addr, peer, sizeof(struct sio_sockaddr));
     entity->ela = la;
     entity->far = anno->far;
     entity->ess = anno->ss;
@@ -99,7 +99,7 @@ int test_equip_entity_update(struct doip_hdr *hdr, unsigned int len, struct sio_
 }
 
 static inline
-unsigned short test_equip_udp_packet_handler(char *buf, unsigned int len, struct sio_socket_addr *peer)
+unsigned short test_equip_udp_packet_handler(char *buf, unsigned int len, struct sio_sockaddr *peer)
 {
     struct doip_hdr *hdr = (struct doip_hdr *)buf;
     unsigned short type = ntohs(hdr->type);
@@ -169,7 +169,7 @@ int test_equip_tcp_packet_handler(struct test_doip_entity *entity, char *buf, un
 
 static int test_equip_socket_readable(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
     struct test_doip_entity *entity = opt.private;
     struct test_doipmsg *dmsg = &entity->dmsg;
@@ -236,7 +236,7 @@ static int test_equip_socket_closeable(struct sio_socket *sock)
 static int test_equip_socket_readable_from(struct sio_socket *sock)
 {
     char buf[256] = { 0 };
-    struct sio_socket_addr peer = { 0 };
+    struct sio_sockaddr peer = { 0 };
     int ret = sio_socket_readfrom(sock, buf, 256, &peer);
     if (ret <= 0) {
         return ret;
@@ -266,7 +266,7 @@ int test_equip_connect_entity(int fd, unsigned short la)
 
     entity->tcpsock = sio_socket_create(SIO_SOCK_TCP, NULL);
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.ops.readable = test_equip_socket_readable;
     opt.ops.closeable = test_equip_socket_closeable;
     int ret = sio_socket_setopt(entity->tcpsock, SIO_SOCK_OPS, &opt);
@@ -295,7 +295,7 @@ static void test_equip_doip_identify_req()
     char buf[128] = { 0 };
     doip_gene_hdr_identify(buf);
 
-    struct sio_socket_addr peer = {"0.0.0.0", 13400};
+    struct sio_sockaddr peer = {"0.0.0.0", 13400};
     sio_socket_writeto(TEST_EQUIP_UDP, buf, sizeof(struct doip_hdr), &peer);
 }
 
@@ -357,7 +357,7 @@ int test_equip_udpsock_init()
     TEST_EQUIP->udpsock = sio_socket_create(SIO_SOCK_UDP, NULL);
     SIO_COND_CHECK_RETURN_VAL(TEST_EQUIP_UDP == NULL, -1);
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     opt.ops.readfromable = test_equip_socket_readable_from;
     opt.ops.closeable = test_equip_socket_closeable;
     int ret = sio_socket_setopt(TEST_EQUIP_UDP, SIO_SOCK_OPS, &opt);
@@ -365,7 +365,7 @@ int test_equip_udpsock_init()
     opt.nonblock = 1;
     ret = sio_socket_setopt(TEST_EQUIP_UDP, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_socket_addr addr = {"127.0.0.1", 13401};
+    struct sio_sockaddr addr = {"127.0.0.1", 13401};
     sio_socket_bind(TEST_EQUIP_UDP, &addr);
 
     struct sio_mplex *mplex = sio_permplex_mplex_ref(TEST_EQUIP_PERMPLEX);

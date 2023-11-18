@@ -23,7 +23,7 @@ enum sio_socket_mean
 
 struct sio_socket_attr
 {
-    enum sio_socket_proto proto;
+    enum sio_sockprot proto;
     enum sio_socket_mean mean;
     int nonblock;
 };
@@ -31,7 +31,7 @@ struct sio_socket_attr
 struct sio_socket_state
 {
     // enum sio_events events;
-    enum sio_socket_shuthow shut;
+    enum sio_socksh shut;
     int placement:1;
     int listening:1;
     int connected:1;
@@ -223,7 +223,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
 }
 
 static inline
-sio_fd_t sio_socket_sock(enum sio_socket_proto proto)
+sio_fd_t sio_socket_sock(enum sio_sockprot proto)
 {
     sio_fd_t fd;
     if (proto == SIO_SOCK_TCP) {
@@ -238,7 +238,7 @@ sio_fd_t sio_socket_sock(enum sio_socket_proto proto)
 }
 
 static inline 
-unsigned short sio_socket_domain(enum sio_socket_proto proto)
+unsigned short sio_socket_domain(enum sio_sockprot proto)
 {
     unsigned short domain = PF_INET;
     if (SIO_SOCK_TCP <= proto && SIO_SOCK_UDP <= proto) {
@@ -263,7 +263,7 @@ void sio_socket_get_private(struct sio_socket *sock, void **private)
 }
 
 static inline
-void sio_socket_set_ops(struct sio_socket *sock, struct sio_socket_ops ops)
+void sio_socket_set_ops(struct sio_socket *sock, struct sio_sockops ops)
 {
     struct sio_socket_attr *attr = &sock->attr;
     struct sio_socket_owner *owner = &sock->owner;
@@ -282,7 +282,7 @@ void sio_socket_set_ops(struct sio_socket *sock, struct sio_socket_ops ops)
 }
 
 static inline
-void sio_socket_get_ops(struct sio_socket *sock, struct sio_socket_ops *ops)
+void sio_socket_get_ops(struct sio_socket *sock, struct sio_sockops *ops)
 {
     struct sio_socket_attr *attr = &sock->attr;
     struct sio_socket_owner *owner = &sock->owner;
@@ -346,7 +346,7 @@ int sio_socket_set_addrreuse(struct sio_socket *sock, int reuse)
 }
 
 static inline
-int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_socket_optcmd cmd)
+int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_sockoptc cmd)
 {
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
 
@@ -371,7 +371,7 @@ int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_socket_o
 }
 
 static inline 
-void sio_socket_addr_in(struct sio_socket *sock, struct sio_socket_addr *addr, struct sockaddr_in *addr_in)
+void sio_socket_addr_in(struct sio_socket *sock, struct sio_sockaddr *addr, struct sockaddr_in *addr_in)
 {
     unsigned short domain = sio_socket_domain(sock->attr.proto);
     
@@ -382,7 +382,7 @@ void sio_socket_addr_in(struct sio_socket *sock, struct sio_socket_addr *addr, s
 }
 
 static inline
-struct sio_socket *sio_socket_create_imp(enum sio_socket_proto proto, char *placement)
+struct sio_socket *sio_socket_create_imp(enum sio_sockprot proto, char *placement)
 {
     int plmt = 0;
     struct sio_socket *sock = (struct sio_socket *)placement;
@@ -417,14 +417,14 @@ unsigned int sio_socket_struct_size()
     return sizeof(struct sio_socket);
 }
 
-struct sio_socket *sio_socket_create(enum sio_socket_proto proto, char *placement)
+struct sio_socket *sio_socket_create(enum sio_sockprot proto, char *placement)
 {
     SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
 
     return sio_socket_create_imp(proto, placement);
 }
 
-struct sio_socket *sio_socket_create2(enum sio_socket_proto proto, char *placement)
+struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement)
 {
     SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
 
@@ -441,7 +441,7 @@ struct sio_socket *sio_socket_create2(enum sio_socket_proto proto, char *placeme
     return sock;
 }
 
-int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt)
+int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 
@@ -482,7 +482,7 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
     return ret;
 }
 
-int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union sio_socket_opt *opt)
+int sio_socket_getopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 
@@ -508,7 +508,7 @@ int sio_socket_getopt(struct sio_socket *sock, enum sio_socket_optcmd cmd, union
     return ret;
 }
 
-int sio_socket_peername(struct sio_socket *sock, struct sio_socket_addr *peer)
+int sio_socket_peername(struct sio_socket *sock, struct sio_sockaddr *peer)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !peer, -1);
 
@@ -523,7 +523,7 @@ int sio_socket_peername(struct sio_socket *sock, struct sio_socket_addr *peer)
     return 0;
 }
 
-int sio_socket_sockname(struct sio_socket *sock, struct sio_socket_addr *addr)
+int sio_socket_sockname(struct sio_socket *sock, struct sio_sockaddr *addr)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
 
@@ -539,7 +539,7 @@ int sio_socket_sockname(struct sio_socket *sock, struct sio_socket_addr *addr)
 }
 
 static inline
-int sio_socket_bind_imp(struct sio_socket *sock, int fd, struct sio_socket_addr *addr)
+int sio_socket_bind_imp(struct sio_socket *sock, int fd, struct sio_sockaddr *addr)
 {
     struct sockaddr_in addr_in = { 0 };
     sio_socket_addr_in(sock, addr, &addr_in);
@@ -550,7 +550,7 @@ int sio_socket_bind_imp(struct sio_socket *sock, int fd, struct sio_socket_addr 
     return 0;
 }
 
-int sio_socket_bind(struct sio_socket *sock, struct sio_socket_addr *addr)
+int sio_socket_bind(struct sio_socket *sock, struct sio_sockaddr *addr)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
 
@@ -572,7 +572,7 @@ int sio_socket_bind(struct sio_socket *sock, struct sio_socket_addr *addr)
     return ret;
 }
 
-int sio_socket_listen(struct sio_socket *sock, struct sio_socket_addr *addr)
+int sio_socket_listen(struct sio_socket *sock, struct sio_sockaddr *addr)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
 
@@ -672,7 +672,7 @@ int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock)
     sio_sock_errno != WSAEWOULDBLOCK;
 #endif
 
-int sio_socket_connect(struct sio_socket *sock, struct sio_socket_addr *addr)
+int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !addr, -1);
 
@@ -729,7 +729,7 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int len)
     return ret;
 }
 
-int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_socket_addr *peer)
+int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_sockaddr *peer)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0 || !peer, -1);
@@ -772,7 +772,7 @@ int sio_socket_write(struct sio_socket *sock, const char *buf, int len)
     return send(sock->fd, buf, len, 0);
 }
 
-int sio_socket_writeto(struct sio_socket *sock, const char *buf, int len, struct sio_socket_addr *peer)
+int sio_socket_writeto(struct sio_socket *sock, const char *buf, int len, struct sio_sockaddr *peer)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0 || !peer, -1);
@@ -821,7 +821,7 @@ int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_e
 }
 
 static inline
-int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socket_shuthow how)
+int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socksh how)
 {
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, 0);
     SIO_COND_CHECK_RETURN_VAL(how < SIO_SOCK_SHUTRD || how > SIO_SOCK_SHUTRDWR, -1);
@@ -844,7 +844,7 @@ int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socket_shuthow how
     return ret;
 }
 
-int sio_socket_shutdown(struct sio_socket *sock, enum sio_socket_shuthow how)
+int sio_socket_shutdown(struct sio_socket *sock, enum sio_socksh how)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
 

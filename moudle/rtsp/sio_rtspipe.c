@@ -36,13 +36,13 @@ int sio_rtspipe_udp(struct sio_socket **rtpsock, struct sio_socket **rtcpsock)
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!rtcp, -1,
         sio_socket_destory(rtp));
 
-    struct sio_socket_addr addr = {"127.0.0.1", port};
+    struct sio_sockaddr addr = {"127.0.0.1", port};
     int ret = sio_socket_bind(rtp, &addr);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
         sio_socket_destory(rtp),
         sio_socket_destory(rtcp));
     
-    struct sio_socket_addr addr2 = {"127.0.0.1", port + 1};
+    struct sio_sockaddr addr2 = {"127.0.0.1", port + 1};
     ret = sio_socket_bind(rtcp, &addr2);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
         sio_socket_destory(rtp),
@@ -60,10 +60,10 @@ static inline
 int sio_rtspipe_rtpack_readable_from(struct sio_socket *sock)
 {
     char data[2048] = { 0 };
-    struct sio_socket_addr peer = { 0 };
+    struct sio_sockaddr peer = { 0 };
     int len = sio_socket_readfrom(sock, data, 2048, &peer);
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_rtspipe *rtpipe = opt.private;
@@ -122,7 +122,7 @@ int sio_rtspipe_open_videochn(struct sio_rtspipe *rtpipe, int rtp, int rtcp)
     struct sio_socket *rtpsock = rtpipe->sock[SIO_RTSPIPE_VIDEO][SIO_RTSPCHN_RTP];
     // struct sio_socket *rtcpsock = rtpipe->sock[SIO_RTSPIPE_VIDEO][SIO_RTSPCHN_RTCP];
 
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .ops.readfromable = sio_rtspipe_rtpack_readable_from,
         .ops.writetoable = sio_rtspipe_rtpack_writeable_to
     };
@@ -203,7 +203,7 @@ int sio_rtspipe_getchn(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enum
     SIO_COND_CHECK_RETURN_VAL(pipe < SIO_RTSPIPE_VIDEO || pipe >= SIO_RTSPIPE_BUTT ||
         chn < SIO_RTSPCHN_RTP || chn >= SIO_RTSPCHN_BUTT, -1);
 
-    struct sio_socket_addr addr = { 0 };
+    struct sio_sockaddr addr = { 0 };
     sio_socket_sockname(rtpipe->sock[pipe][chn], &addr);
 
     return addr.port;
@@ -237,7 +237,7 @@ int sio_rtspipe_rtpsend(struct sio_rtspipe *rtpipe, enum sio_rtspipe_t pipe, enu
         ret = sio_socket_write(sock, tcphdr, 4);
         ret = sio_socket_write(sock, data, len);
     } else {
-        struct sio_socket_addr peer = {
+        struct sio_sockaddr peer = {
             .addr = "127.0.0.1",
             .port = chndst
         };

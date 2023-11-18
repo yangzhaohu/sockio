@@ -125,7 +125,7 @@ int sio_rtspmod_version(const char **version)
 static inline
 struct sio_rtsp_conn *sio_rtspmod_get_rtspconn_from_conn(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_rtsp_conn *rconn = opt.private;
@@ -796,7 +796,7 @@ int sio_rtspmod_setlocate(sio_submod_t mod, const struct sio_location *locations
 int sio_rtspmod_newconn(sio_submod_t mod, struct sio_server *server)
 {
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .ops.readable = sio_rtspmod_socket_readable,
         .ops.writeable = sio_rtspmod_socket_writeable,
         .ops.closeable = sio_rtspmod_socket_closeable

@@ -72,7 +72,7 @@ int sio_servflow_sockpool_index(struct sio_servflow_sockpool *spool)
 
 static int sio_socket_readable(struct sio_socket *sock)
 {
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_sockflow *sockflow = opt.private;
@@ -135,7 +135,7 @@ static int sio_socket_closeable(struct sio_socket *sock)
 {
     sio_socket_close(sock);
 
-    union sio_socket_opt opt = { 0 };
+    union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_sockflow *sockflow = opt.private;
@@ -152,7 +152,7 @@ void *sio_sockflow_socket(void *memptr)
 {
     char *mem = (char *)memptr + sizeof(struct sio_sockflow);
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, mem);
-    union sio_socket_opt opt = {
+    union sio_sockopt opt = {
         .ops.readable = sio_socket_readable,
         .ops.writeable = sio_socket_writeable,
         .ops.closeable = sio_socket_closeable
@@ -188,7 +188,7 @@ int sio_sockflow_accept(struct sio_servflow *servflow, struct sio_sockflow *sock
     int ret = sio_server_accept(servflow->serv, sock);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, ret);
 
-    union sio_socket_opt opt;
+    union sio_sockopt opt;
     opt.nonblock = 1;
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
@@ -201,7 +201,7 @@ int sio_sockflow_accept(struct sio_servflow *servflow, struct sio_sockflow *sock
 
 static int sio_server_newconn(struct sio_server *serv)
 {
-    union sio_server_opt opt = { 0 };
+    union sio_servopt opt = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opt);
     struct sio_servflow *servflow = opt.private;
     struct sio_servflow_sockpool *spool = &servflow->spool;
@@ -225,9 +225,9 @@ static int sio_server_newconn(struct sio_server *serv)
 }
 
 static inline
-enum sio_socket_proto sio_servflow_sockproto(enum sio_servflow_proto type)
+enum sio_sockprot sio_servflow_sockproto(enum sio_servflow_proto type)
 {
-    enum sio_socket_proto proto = SIO_SOCK_TCP;
+    enum sio_sockprot proto = SIO_SOCK_TCP;
     switch (type) {
     case SIO_SERVFLOW_TCP:
         proto = SIO_SOCK_TCP;
@@ -243,11 +243,11 @@ enum sio_socket_proto sio_servflow_sockproto(enum sio_servflow_proto type)
 static inline
 struct sio_server *sio_servflow_server_create(enum sio_servflow_proto type, unsigned char threads)
 {
-    enum sio_socket_proto proto = sio_servflow_sockproto(type);
+    enum sio_sockprot proto = sio_servflow_sockproto(type);
     struct sio_server *serv = sio_server_create2(proto, threads);
     SIO_COND_CHECK_RETURN_VAL(!serv, NULL);
 
-    union sio_server_opt ops = {
+    union sio_servopt ops = {
         .ops.accept = sio_server_newconn
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
@@ -316,7 +316,7 @@ struct sio_servflow *sio_servflow_create_imp(enum sio_servflow_proto type, sio_t
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!serv, NULL,
         free(servflow));
 
-    union sio_server_opt ops = {
+    union sio_servopt ops = {
         .private = servflow
     };
     sio_server_setopt(serv, SIO_SERV_PRIVATE, &ops);
@@ -377,7 +377,7 @@ int sio_servflow_listen(struct sio_servflow *flow, struct sio_servflow_addr *add
 {
     SIO_COND_CHECK_RETURN_VAL(!flow || !addr, -1);
 
-    struct sio_socket_addr skaddr = { 0 };
+    struct sio_sockaddr skaddr = { 0 };
     memcpy(skaddr.addr, addr->addr, sizeof(addr->addr));
     skaddr.port = addr->port;
 
