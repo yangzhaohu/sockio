@@ -1,9 +1,10 @@
 #include "sio_time.h"
 #include <stdio.h>
-#ifndef WIN32
-#include <sys/time.h>
-#include <time.h>
+#ifdef WIN32
+#include <windows.h>
 #else
+#include <time.h>
+#include <sys/time.h>
 #endif
 
 #define SIO_TIME_FORMAT_BUFSIZE 64
@@ -18,6 +19,18 @@ __thread char g_time[SIO_TIME_FORMAT_BUFSIZE] = { 0 };
 
 int sio_timezone_format(char *buf, int len)
 {
+#ifdef WIN32
+    SYSTEMTIME t;
+    GetLocalTime(&t);
+    int l = snprintf(buf, len - 1, "%d-%02d-%02d %02d:%02d:%02d.%03ld",
+        1900 + t.wYear,
+        t.wMonth,
+        t.wDay,
+        t.wHour,
+        t.wMinute,
+        t.wSecond,
+        t.wMilliseconds / 1000);
+#else
     struct timeval tv;
     struct tm *t;
 
@@ -33,6 +46,7 @@ int sio_timezone_format(char *buf, int len)
         t->tm_min,
         t->tm_sec,
         tv.tv_usec / 1000);
+#endif
 
     return l;
 }

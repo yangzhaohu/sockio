@@ -7,9 +7,9 @@
 static int g_level = SIO_LOG_LEVEL_INF;
 
 #ifdef WIN32
-__declspec(thread) pid_t g_tid = -1;
+__declspec(thread) int g_tid = -1;
 #else
-__thread int  g_tid = -1;
+__thread int g_tid = -1;
 #endif
 
 #define SIO_LOGG_LEVEL g_level

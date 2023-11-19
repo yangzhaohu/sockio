@@ -16,13 +16,12 @@
 
 #ifdef WIN32
 #define CLOSE(fd) closesocket(fd)
+#define sio_sock_errno WSAGetLastError()
+
+typedef int socklen_t;
+
 #else
 #define CLOSE(fd) close(fd)
-#endif
-
-#ifdef WIN32
-#define sio_sock_errno WSAGetLastError()
-#else
 #define sio_sock_errno errno
 #endif
 

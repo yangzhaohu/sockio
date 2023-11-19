@@ -197,7 +197,7 @@ __thread int tls_sock_readerr = 0;
             int errval = 0;                                                     \
             socklen_t errl = sizeof(int);                                       \
             int ret = getsockopt(sock->fd,                                      \
-                SOL_SOCKET, SO_ERROR, &errval, &errl);                          \
+                SOL_SOCKET, SO_ERROR, (void *)&errval, &errl);                  \
             if (ret == 0 && errval == 0) {                                      \
                 stat->what = SIO_SOCK_ESTABLISHED;                              \
             }                                                                   \
