@@ -736,12 +736,20 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
     return 0;
 }
 
+static inline
+int sio_socket_read_imp(struct sio_socket *sock, char *buf, int len, struct sockaddr_in *addr)
+{
+    unsigned int l = sizeof(struct sockaddr_in);
+    return recvfrom(sock->fd, buf, len, 0, (struct sockaddr *)addr, &l);
+}
+
 int sio_socket_read(struct sio_socket *sock, char *buf, int len)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
 
-    int ret = recv(sock->fd, buf, len, 0);
+    struct sockaddr_in addr = { 0 };
+    int ret = sio_socket_read_imp(sock, buf, len, &addr);
 
     if (ret == 0) {
         sio_socket_readerr_set(SIO_ERRNO_CLOSE);
@@ -760,8 +768,7 @@ int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0 || !peer, -1);
 
     struct sockaddr_in addr = { 0 };
-    unsigned int l = sizeof(addr);
-    int ret = recvfrom(sock->fd, buf, len, 0, (struct sockaddr *)&addr, &l);
+    int ret = sio_socket_read_imp(sock, buf, len, &addr);
 
     if (ret == -1) {
         int err = sio_sock_errno;
