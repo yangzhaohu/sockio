@@ -22,8 +22,6 @@ int readable(struct sio_socket *sock)
     if (len > 0 )
         SIO_LOGI("recv %d: %s\n", len, data);
 
-    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
-
     return 0;
 }
 
@@ -34,7 +32,6 @@ int writeable(struct sio_socket *sock)
     int ret = sio_socket_write(sock, "1234", strlen("1234"));
 
     SIO_LOGI("write ret: %d\n", ret);
-    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
     return 0;
 }
 
@@ -72,8 +69,8 @@ int main()
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
     struct sio_sockaddr addr = {
-        // .addr = "110.242.68.66",
-        .addr = "199.16.156.11",
+        .addr = "110.242.68.66",
+        // .addr = "199.16.156.11",
         .port = 80
     };
     char timebuf[256] = { 0 };

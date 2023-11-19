@@ -33,6 +33,7 @@ struct sio_socket_state
     // enum sio_events events;
     enum sio_socksh shut;
     enum sio_sockwhat what;
+    enum sio_events events;
     int placement:1;
     int listening:1;
     int connected:1;
@@ -210,15 +211,18 @@ __thread int tls_sock_readerr = 0;
                 SOL_SOCKET, SO_ERROR, &errval, &errl);                          \
             if (ret == 0 && errval == 0) {                                      \
                 stat->what = SIO_SOCK_ESTABLISHED;                              \
-            } else {                                                            \
-                sio_sock_mplex_event_del(sock);                                 \
             }                                                                   \
+            sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,                          \
+                    stat->events | SIO_EVENTS_IN);                              \
             sio_socket_ops_call(ops->connected, sock, stat->what);              \
         } else {                                                                \
             sio_socket_ops_call(ops->writeable, sock);                          \
         }                                                                       \
     }
 
+
+static inline
+int sio_socket_mplex_imp(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);
 
 extern int sio_socket_event_dispatch(struct sio_event *events, int count)
 {
@@ -428,9 +432,6 @@ struct sio_socket *sio_socket_create_imp(enum sio_sockprot proto, char *placemen
 
     return sock;
 }
-
-static inline
-int sio_socket_mplex_imp(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);
 
 unsigned int sio_socket_struct_size()
 {
@@ -841,7 +842,11 @@ int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_e
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1 || !sock->mp, -1);
 
-    return sio_socket_mplex_imp(sock, op, events);
+    int ret = sio_socket_mplex_imp(sock, op, events);
+    SIO_COND_CHECK_CALLOPS(ret == 0,
+        sock->stat.events = events);
+
+    return ret;
 }
 
 static inline
@@ -875,11 +880,11 @@ int sio_socket_shutdown(struct sio_socket *sock, enum sio_socksh how)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
 
+    struct sio_socket_state *stat = &sock->stat;
     int ret = sio_socket_shutdown_imp(sock, how);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && stat->what < SIO_SOCK_CONNECT, -1,
         SIO_LOGE("socket shutdown failed\n"));
 
-    struct sio_socket_state *stat = &sock->stat;
     stat->listening = 0;
     stat->connected = 0;
 
