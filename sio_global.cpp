@@ -2,9 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef WIN32
+#include <windows.h>
 #include <winsock2.h>
 #else
 #include <signal.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 #endif
 #include "sio_common.h"
 #include "sio_log.h"
@@ -126,3 +129,14 @@ sio_global_init::~sio_global_init()
 }
 
 static sio_global_init g_global_init;
+
+
+int sio_gettid()
+{
+#ifdef WIN32
+    int tid = GetCurrentThreadId();
+#else
+    pid_t tid = syscall(SYS_gettid);
+#endif
+    return tid;
+}

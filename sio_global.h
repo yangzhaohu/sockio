@@ -13,6 +13,8 @@ int sio_global_sigwait(int sig);
 
 int sio_global_sigwaitinfo(int sig, void *sigptr);
 
+int sio_gettid();
+
 #ifdef __cplusplus
 }
 #endif
