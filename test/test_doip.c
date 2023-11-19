@@ -358,7 +358,7 @@ int test_equip_udpsock_init()
     SIO_COND_CHECK_RETURN_VAL(TEST_EQUIP_UDP == NULL, -1);
 
     union sio_sockopt opt = { 0 };
-    opt.ops.readfromable = test_equip_socket_readable_from;
+    opt.ops.readable = test_equip_socket_readable_from;
     opt.ops.closeable = test_equip_socket_closeable;
     int ret = sio_socket_setopt(TEST_EQUIP_UDP, SIO_SOCK_OPS, &opt);
 

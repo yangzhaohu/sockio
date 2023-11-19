@@ -123,8 +123,8 @@ int sio_rtspipe_open_videochn(struct sio_rtspipe *rtpipe, int rtp, int rtcp)
     // struct sio_socket *rtcpsock = rtpipe->sock[SIO_RTSPIPE_VIDEO][SIO_RTSPCHN_RTCP];
 
     union sio_sockopt opt = {
-        .ops.readfromable = sio_rtspipe_rtpack_readable_from,
-        .ops.writetoable = sio_rtspipe_rtpack_writeable_to
+        .ops.readable = sio_rtspipe_rtpack_readable_from,
+        .ops.writeable = sio_rtspipe_rtpack_writeable_to
     };
     sio_socket_setopt(rtpsock, SIO_SOCK_OPS, &opt);
 

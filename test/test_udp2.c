@@ -31,7 +31,7 @@ static int socket_closeable(struct sio_socket *sock)
 int set_sock_mplex(struct sio_socket *sock, struct sio_permplex *pmplex)
 {
     union sio_sockopt opt = { 0 };
-    opt.ops.readfromable = socket_readable;
+    opt.ops.readable = socket_readable;
     opt.ops.closeable = socket_closeable;
     int ret = sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 

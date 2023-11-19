@@ -119,7 +119,7 @@ int sio_doip_discover_closeable(struct sio_socket *sock)
 int sio_doip_discover_sock_mplex(struct sio_socket *sock, struct sio_permplex *pmplex)
 {
     union sio_sockopt opt = { 0 };
-    opt.ops.readfromable = sio_doip_discover_readable;
+    opt.ops.readable = sio_doip_discover_readable;
     opt.ops.closeable = sio_doip_discover_closeable;
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 

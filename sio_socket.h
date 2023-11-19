@@ -39,9 +39,7 @@ struct sio_sockops
 {
     int (*connected)(struct sio_socket *sock, enum sio_sockwhat what);
     int (*readable)(struct sio_socket *sock);
-    int (*readfromable)(struct sio_socket *sock);
     int (*writeable)(struct sio_socket *sock);
-    int (*writetoable)(struct sio_socket *sock);
     int (*acceptasync)(struct sio_socket *sock, struct sio_socket *newsock);
     int (*readasync)(struct sio_socket *sock, const char *data, int len);
     int (*writeasync)(struct sio_socket *sock, const char *data, int len);
