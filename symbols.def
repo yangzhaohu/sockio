@@ -3,4 +3,39 @@
 
 EXPORTS
 ; sio_socket
+    sio_socket_struct_size
     sio_socket_create
+    sio_socket_create2
+    sio_socket_setopt
+    sio_socket_getopt
+    sio_socket_peername
+    sio_socket_sockname
+    sio_socket_bind
+    sio_socket_listen
+    sio_socket_accept_has_pend
+    sio_socket_accept
+    sio_socket_async_accept
+    sio_socket_connect
+    sio_socket_read
+    sio_socket_readfrom
+    sio_socket_async_read
+    sio_socket_write
+    sio_socket_writeto
+    sio_socket_async_write
+    sio_socket_mplex
+    sio_socket_shutdown
+    sio_socket_close
+    sio_socket_destory
+; sio_mplex
+    sio_mplex_create
+    sio_mplex_ctl
+    sio_mplex_wait
+    sio_mplex_close
+    sio_mplex_destory
+; sio_permplex
+    sio_permplex_create
+    sio_permplex_mplex_ref
+    sio_permplex_destory
+; sio_logg
+    sio_logg_setlevel
+    sio_logg
