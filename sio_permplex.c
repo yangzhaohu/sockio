@@ -19,9 +19,8 @@ void *sio_permplex_start_routine(void *arg)
     struct sio_permplex *pmplex = (struct sio_permplex *)arg;
     struct sio_mplex *mplex = pmplex->mplex;
 
-    struct sio_event events[128];
-
     while (1) {
+        struct sio_event events[128] = { 0 };
         int count = sio_mplex_wait(mplex, events, 128);
         if (count > 0) {
             sio_socket_event_dispatch(events, count);

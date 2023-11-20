@@ -80,7 +80,7 @@ void sio_select_set_evs(struct sio_event *evs, sio_fd_t fd, struct sio_event *ev
 
     int i = 0;
     for (; i < SIO_FD_SETSIZE; i++) {
-        if (evs[i].owner.fd == fd) {
+        if (evs[i].owner.fd == fd || evs[i].owner.fd == 0) {
             break;
         }
     }

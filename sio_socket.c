@@ -729,12 +729,18 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int len)
     struct sockaddr_in addr = { 0 };
     int ret = sio_socket_read_imp(sock, buf, len, &addr);
 
+    // SIO_LOGI("socket read ret: %d, errno: %d\n", ret, sio_sock_errno);
     if (ret == 0) {
         sio_socket_readerr_set(SIO_ERRNO_CLOSE);
     } else if (ret == -1) {
         int err = sio_sock_errno;
+#ifdef WIN32
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(err == WSAESHUTDOWN, 0,
+            sio_socket_readerr_set(SIO_ERRNO_CLOSE));
+#else
         sio_socket_readerr_set(err);
         SIO_COND_CHECK_RETURN_VAL(sio_socket_again(err), SIO_ERRNO_AGAIN);
+#endif
     }
 
     return ret;
