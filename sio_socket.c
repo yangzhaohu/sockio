@@ -373,7 +373,7 @@ int sio_socket_set_sock_timeout(struct sio_socket *sock, int ms, enum sio_sockop
 {
     int optname = cmd == SIO_SOCK_SNDTIMEO ? SO_SNDTIMEO : SO_RCVTIMEO;
 #ifdef WIN32
-    int ret = setsockopt(sock->fd, SOL_SOCKET, optname, &ms, sizeof(ms));
+    int ret = setsockopt(sock->fd, SOL_SOCKET, optname, (void *)&ms, sizeof(ms));
 #else
     struct timeval timeout = {
         .tv_sec = ms / 1000,
