@@ -63,7 +63,11 @@ enum sio_sockoptc
     /* set socket reuseaddr */
     SIO_SOCK_REUSEADDR,
     /* set socket keepalive */
-    SIO_SOCK_KEEPALIVE
+    SIO_SOCK_KEEPALIVE,
+    /* set socket send timeout */
+    SIO_SOCK_SNDTIMEO,
+    /* set socket recv timeout, the socket will become non blocking */
+    SIO_SOCK_RCVTIMEO
 };
 
 union sio_sockopt
@@ -76,6 +80,7 @@ union sio_sockopt
     int nonblock;
     int reuseaddr;
     int keepalive;
+    int timeout; // ms
 };
 
 

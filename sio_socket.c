@@ -356,9 +356,6 @@ int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_sockoptc
     int ret = setsockopt(sock->fd, SOL_SOCKET, optname, &size, sizeof(size));
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
-    ret = setsockopt(sock->fd, SOL_SOCKET, optname, &size, sizeof(size));
-    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
-
     // socklen_t sent = sizeof(size);
     // size = 0;
     // ret = getsockopt(sock->fd, SOL_SOCKET, SO_SNDBUF, &size, &sent);
@@ -366,6 +363,23 @@ int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_sockoptc
     // SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 #else
     int ret = -1;
+#endif
+
+    return ret;
+}
+
+static inline
+int sio_socket_set_sock_timeout(struct sio_socket *sock, int ms, enum sio_sockoptc cmd)
+{
+    int optname = cmd == SIO_SOCK_SNDTIMEO ? SO_SNDTIMEO : SO_RCVTIMEO;
+#ifdef WIN32
+    int ret = setsockopt(sock->fd, SOL_SOCKET, optname, &ms, sizeof(ms));
+#else
+    struct timeval timeout = {
+        .tv_sec = ms / 1000,
+        .tv_usec = (ms % 1000) * 1000
+    };
+    int ret = setsockopt(sock->fd, SOL_SOCKET, optname, &timeout, sizeof(timeout));
 #endif
 
     return ret;
@@ -474,6 +488,11 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
         break;
     case SIO_SOCK_SNDBUF:
         ret = sio_socket_set_buffsize(sock, opt->sndbuf, cmd);
+        break;
+
+    case SIO_SOCK_SNDTIMEO:
+    case SIO_SOCK_RCVTIMEO:
+        ret = sio_socket_set_sock_timeout(sock, opt->timeout, cmd);
         break;
 
     default:
