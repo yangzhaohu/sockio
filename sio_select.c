@@ -19,7 +19,7 @@
 struct sio_evfds
 {
     sio_socket_t maxfd;
-    struct sio_event evs[FD_SETSIZE];
+    struct sio_event evs[SIO_FD_SETSIZE];
     struct sio_rwfds fds;
 };
 
