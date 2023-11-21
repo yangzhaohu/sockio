@@ -252,17 +252,17 @@ void sio_socket_get_private(struct sio_socket *sock, void **private)
 }
 
 static inline
-void sio_socket_set_ops(struct sio_socket *sock, struct sio_sockops ops)
+void sio_socket_set_ops(struct sio_socket *sock, struct sio_sockops *ops)
 {
     struct sio_socket_owner *owner = &sock->owner;
 
-    owner->ops.connected = ops.connected;
-    owner->ops.readable = ops.readable;
-    owner->ops.writeable = ops.writeable;
-    owner->ops.acceptasync = ops.acceptasync;
-    owner->ops.readasync = ops.readasync;
-    owner->ops.writeasync = ops.writeasync;
-    owner->ops.closeable = ops.closeable;
+    owner->ops.connected = ops->connected;
+    owner->ops.readable = ops->readable;
+    owner->ops.writeable = ops->writeable;
+    owner->ops.acceptasync = ops->acceptasync;
+    owner->ops.readasync = ops->readasync;
+    owner->ops.writeasync = ops->writeasync;
+    owner->ops.closeable = ops->closeable;
 }
 
 static inline
@@ -446,7 +446,7 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
         break;
 
     case SIO_SOCK_OPS:
-        sio_socket_set_ops(sock, opt->ops);
+        sio_socket_set_ops(sock, &opt->ops);
         break;
 
     case SIO_SOCK_MPLEX:
