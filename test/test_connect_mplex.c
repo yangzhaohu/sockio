@@ -69,8 +69,8 @@ int main()
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
     struct sio_sockaddr addr = {
-        .addr = "110.242.68.66",
-        // .addr = "199.16.156.11",
+        // .addr = "110.242.68.66",
+        .addr = "199.16.156.11",
         .port = 80
     };
     char timebuf[256] = { 0 };

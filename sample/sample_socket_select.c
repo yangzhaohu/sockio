@@ -16,7 +16,8 @@ struct sio_socket *g_sock = NULL;
 
 struct sio_sockops g_serv_ops = 
 {
-    .readable = socknew
+    .readable = socknew,
+    .closeable = closed
 };
 
 struct sio_sockops g_sock_ops = 
@@ -29,9 +30,8 @@ struct sio_sockops g_sock_ops =
 int socknew(struct sio_socket *serv)
 {
     int ret = sio_socket_accept_has_pend(serv);
-    if (ret == -1) {
-        SIO_LOGI("server close\n");
-        return -1;
+    if (ret != 0) {
+        return ret;
     }
 
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
@@ -101,26 +101,8 @@ int writeable(struct sio_socket *sock)
     return 0;
 }
 
-#ifdef _WIN32
-#include <winsock2.h>
-#endif
-
 int main(void)
 {
-#ifdef _WIN32
-    WORD wVersionRequested;
-    WSADATA wsaData;
-    int err;
-
-    wVersionRequested = MAKEWORD(2, 2);
-
-    err = WSAStartup(wVersionRequested, &wsaData);
-    if (err != 0) {
-        SIO_LOGI("WSAStartup failed with error: %d\n", err);
-        return -1;
-    }
-#endif
-
     struct sio_socket *serv = sio_socket_create(SIO_SOCK_TCP, NULL);
 
     struct sio_sockaddr addr = {"127.0.0.1", 8000};
@@ -137,21 +119,22 @@ int main(void)
     opt.nonblock = 1;
     sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_permplex *mpthr = sio_permplex_create(SIO_MPLEX_SELECT);
-    struct sio_mplex *mplex = sio_permplex_mplex_ref(mpthr);
+    struct sio_permplex *pmplex = sio_permplex_create(SIO_MPLEX_SELECT);
+    struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
     g_mplex = mplex;
 
     opt.mplex = mplex;
     sio_socket_setopt(serv, SIO_SOCK_MPLEX, &opt);
+    // SIO_LOGI("sample_socket_select set in\n");
+    // getc(stdin);
     sio_socket_mplex(serv, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
-    
+
     getc(stdin);
-    sio_socket_destory(serv);
+    sio_socket_shutdown(serv, SIO_SOCK_SHUTRDWR);
     getc(stdin);
 
-#ifdef _WIN32
-    WSACleanup();
-#endif
+    getc(stdin);
+    sio_permplex_destory(pmplex);
     
     return 0;
 }
