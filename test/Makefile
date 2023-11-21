@@ -20,6 +20,7 @@ CFLAGS += $(FLAGS)
 CXXFLAGS += $(FLAGS)
 
 SRCS := test_mplex_close.c \
+	test_socket_select.c \
 	test_udp.c \
 	test_connect_mplex.c \
 	test_udp2.c \
