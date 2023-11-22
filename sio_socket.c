@@ -52,7 +52,7 @@ struct sio_socket
     struct sio_socket_attr attr;
     struct sio_socket_owner owner;
     struct sio_mplex *mp;
-    char extbuf[64];      // extension buffer, additional purposes, such as acceptex of iocp
+    char extbuf[128];      // extension buffer, additional purposes, such as acceptex of iocp
 };
 
 #ifdef WIN32

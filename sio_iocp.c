@@ -34,7 +34,9 @@ struct sio_overlapped *sio_iocp_overlapped_bufref(struct sio_event *event)
     char *ptr = event->buf.ptr;
     int len = event->buf.len;
     len -= sizeof(struct sio_overlapped);
-    SIO_COND_CHECK_RETURN_VAL(ptr == NULL || len <= 0, NULL);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ptr == NULL || len <= 0, NULL,
+        SIO_LOGE("enough buffer space for overlap access. minimal space %u",
+            sizeof(struct sio_overlapped)));
     ptr += len;
     event->buf.len = len;
     memset(ptr, 0, sizeof(struct sio_overlapped));
@@ -76,7 +78,8 @@ static inline
 int sio_iocp_link_fd(void *iocp, sio_fd_t fd)
 {
     void *ret = CreateIoCompletionPort((HANDLE)fd, iocp, 0, 0);
-    SIO_COND_CHECK_RETURN_VAL(ret == NULL, -1);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == NULL, -1,
+        SIO_LOGE("iocp bind failed\n"));
 
     return 0;
 }
@@ -94,7 +97,8 @@ int sio_iocp_post_accept(struct sio_event *event, sio_fd_t fd)
     int ret = AcceptEx(ovlp->fd, fd, addrbuf, 0, 
         sizeof(struct sockaddr_in) + 16, sizeof(struct sockaddr_in) + 16, &recvsize, (LPOVERLAPPED)ovlp);
 
-    SIO_COND_CHECK_RETURN_VAL(ret == 0 && WSAGetLastError() != ERROR_IO_PENDING, -1);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == 0 && WSAGetLastError() != ERROR_IO_PENDING, -1,
+        SIO_LOGE("iocp post accept failed\n"));
 
     return 0;
 }
@@ -118,7 +122,8 @@ int sio_iocp_post_recv(struct sio_event *event)
 
     int ret = WSARecv(ovlp->fd, &ovlp->wsabuf, 1, NULL, &ovlp->olflags, &ovlp->overlap, NULL);
 
-    SIO_COND_CHECK_RETURN_VAL(ret == -1 && WSAGetLastError() != ERROR_IO_PENDING, -1);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && WSAGetLastError() != ERROR_IO_PENDING, -1,
+        SIO_LOGE("iocp post recv failed\n"));
 
     return 0;
 }
