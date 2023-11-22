@@ -63,10 +63,10 @@ http_parser-download:
 	$(info "http_parser download")
 	$(info "from download https://github.com/nodejs/http-parser/archive/refs/tags/v2.9.4.1.tar.gz")
 	rm -rf $(HTTP_PARSER)
-	wget https://github.com/yangzhaohu/http-parser/archive/refs/tags/v2.9.4.1.tar.gz --no-check-certificate -O http-parser-2.9.4.1.tar.gz
-	tar -zxvf http-parser-2.9.4.1.tar.gz >/dev/null
-	cp -r http-parser-2.9.4.1 $(HTTP_PARSER)
-	rm -rf http-parser-2.9.4.1
+	wget https://github.com/yangzhaohu/http-parser/archive/refs/tags/v2.9.4.2.tar.gz --no-check-certificate -O http-parser-2.9.4.2.tar.gz
+	tar -zxvf http-parser-2.9.4.2.tar.gz >/dev/null
+	cp -r http-parser-2.9.4.2 $(HTTP_PARSER)
+	rm -rf http-parser-2.9.4.2
 
 pcre2-download:
 	$(info "pcre2 download")
