@@ -8,6 +8,7 @@
 int socknew(struct sio_socket *serv, struct sio_socket *newsock);
 int readable(struct sio_socket *sock, const char *data, int len);
 int writeable(struct sio_socket *sock, const char *data, int len);
+int closed(struct sio_socket *sock);
 
 struct sio_sockops g_serv_ops = 
 {
@@ -17,7 +18,8 @@ struct sio_sockops g_serv_ops =
 struct sio_sockops g_sock_ops = 
 {
     .readasync = readable,
-    .writeasync = writeable
+    .writeasync = writeable,
+    .closeable = closed
 };
 
 struct sio_mplex *g_mplex = NULL;
@@ -64,6 +66,12 @@ int readable(struct sio_socket *sock, const char *data, int len)
 int writeable(struct sio_socket *sock, const char *data, int len)
 {
     return 0;
+}
+
+int closed(struct sio_socket *sock)
+{
+    SIO_LOGI("close\n");
+    sio_socket_destory(sock);
 }
 
 int main(void)

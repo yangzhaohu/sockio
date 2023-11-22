@@ -8,6 +8,7 @@
 #include "sio_socket_pri.h"
 #include "sio_event.h"
 #include "sio_mplex.h"
+#include "sio_aio.h"
 #include "sio_errno.h"
 #include "sio_log.h"
 
@@ -123,6 +124,11 @@ __thread int tls_sock_readerr = 0;
 #define sio_socket_state_shut_get(sock)             \
     sock->stat.shut
 
+#define sio_socket_close_cleanup(sock)                                  \
+    sio_sock_mplex_event_del(sock);                                     \
+    sio_socket_state_shut_set(sock, SIO_SOCK_SHUTRDWR);                 \
+    sio_socket_ops_call(ops->closeable, sock);
+
 #define sio_sock_mplex_event_del(sock)                          \
     do {                                                        \
         struct sio_event event = { 0 };                         \
@@ -161,6 +167,11 @@ __thread int tls_sock_readerr = 0;
         sio_socket_socket_recv(sock);                                           \
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_READ) {                                \
+        if (attr->mean == SIO_SOCK_MEAN_SOCKET                                  \
+            && event->buf.len == 0) {                                           \
+            sio_socket_close_cleanup(sock);                                     \
+            continue;                                                           \
+        }                                                                       \
         sio_socket_ops_call(ops->readasync,                                     \
             sock, event->buf.ptr, event->buf.len);                              \
     }                                                                           \
@@ -671,7 +682,8 @@ int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock)
     ev.owner.pri = serv;
     ev.buf.ptr = sock->extbuf;
     ev.buf.len = sizeof(sock->extbuf);
-    return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
+
+    return sio_aio_accept(serv->fd, sock->fd, &ev);
 }
 
 #ifdef LINUX
@@ -786,7 +798,8 @@ int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
     ev.owner.pri = sock;
     ev.buf.ptr = buf;
     ev.buf.len = len;
-    return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
+
+    return sio_aio_recv(sock->fd, &ev);
 }
 
 int sio_socket_write(struct sio_socket *sock, const char *buf, int len)
