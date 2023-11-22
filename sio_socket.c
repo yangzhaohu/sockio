@@ -86,11 +86,13 @@ __thread int tls_sock_readerr = 0;
 #define sio_socket_enotconn(err) (err == WSAENOTCONN)
 #define sio_socket_eshutdown(err) (err == WSAESHUTDOWN)
 #define sio_socket_einval(err) (0)
+#define sio_socket_enotsock(err) (err == WSAENOTSOCK)
 #else
 #define sio_socket_eagain(err) (err == EAGAIN || err == EWOULDBLOCK)
 #define sio_socket_enotconn(err) (err == ENOTCONN)
 #define sio_socket_eshutdown(err) (err == ESHUTDOWN)
 #define sio_socket_einval(err) (err == EINVAL)
+#define sio_socket_enotsock(err) (err == ENOTSOCK)
 #endif
 
 // shutdown and break loop
@@ -136,11 +138,14 @@ __thread int tls_sock_readerr = 0;
         SIO_COND_CHECK_BREAK(sio_socket_eagain(err));                       \
         if (sio_socket_enotconn(err) |                                      \
             sio_socket_eshutdown(err) |                                     \
-            sio_socket_einval(err)) {                                       \
+            sio_socket_einval(err) |                                        \
+            sio_socket_enotsock(err)) {                                     \
             sio_sock_mplex_event_del(sock);                                 \
             sio_socket_state_shut_set(sock, SIO_SOCK_SHUTRDWR);             \
             sio_socket_ops_call(ops->closeable, sock);                      \
             break;                                                          \
+        } else {                                                            \
+            SIO_LOGI("pending errno: %d, break\n", err);                    \
         }                                                                   \
     } while (attr->nonblock);
 
@@ -731,6 +736,7 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int len)
 
     struct sockaddr_in addr = { 0 };
     int ret = sio_socket_read_imp(sock, buf, len, &addr);
+    // SIO_LOGI("socket read ret: %d, err: %d\n", ret, sio_sock_errno);
 
     if (ret <= 0) {
         if (ret == 0) {

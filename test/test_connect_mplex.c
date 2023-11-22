@@ -85,9 +85,13 @@ int main()
 
     getc(stdin);
 
+    SIO_LOGI("socket destory\n");
+    sio_socket_destory(sock);
+
+    getc(stdin);
+
     SIO_LOGI("pmplex destory\n");
     sio_permplex_destory(pmplex);
-    sio_socket_destory(sock);
 
     return 0;
 }
