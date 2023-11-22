@@ -614,7 +614,7 @@ int sio_socket_accept_has_pend_imp(struct sio_socket *sock)
     SIO_COND_CHECK_RETURN_VAL(sio_socket_accept_pend_fd() != -1, 0);
 
     sio_fd_t fd = accept(sock->fd, NULL, NULL);
-    SIO_LOGI("accept fd: %d, err: %d\n", fd, sio_sock_errno);
+    // SIO_LOGI("accept fd: %d, err: %d\n", fd, sio_sock_errno);
     if (fd == -1) {
         int err = sio_sock_errno;
         sio_socket_readerr_set(err);
@@ -644,6 +644,9 @@ int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock)
 
     struct sio_socket_attr *attr = &newsock->attr;
     attr->mean = SIO_SOCK_MEAN_SOCKET;
+
+    struct sio_socket_state *stat = &newsock->stat;
+    stat->what = SIO_SOCK_ESTABLISHED;
 
     newsock->fd = sio_socket_accept_pend_fd();
 
