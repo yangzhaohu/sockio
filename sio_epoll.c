@@ -65,16 +65,6 @@ int sio_mplex_epoll_ctl_imp(int efd, int op, int fd, struct sio_event *event)
     return epoll_ctl(efd, op, fd, &ep_ev);
 }
 
-static inline
-int sio_mplex_epoll_ctl_imp2(int efd, int op, int fd, struct sio_event *event)
-{
-    struct epoll_event ep_ev = { 0 };
-    sio_event_trans_to_epoll_event(event->events, ep_ev.events);
-    ep_ev.data.fd = event->owner.fd;
-    sio_mplex_op_trans_to_epoll_op(op);
-    return epoll_ctl(efd, op, fd, &ep_ev);
-}
-
 struct sio_mplex_ctx *sio_mplex_epoll_create(void)
 {
     struct sio_mplex_ctx *ctx = malloc(sizeof(struct sio_mplex_ctx));
@@ -99,8 +89,8 @@ struct sio_mplex_ctx *sio_mplex_epoll_create(void)
 
     struct sio_event ev = { 0 };
     ev.events = SIO_EVENTS_IN;
-    ev.owner.fd = notifyfd;
-    int ret = sio_mplex_epoll_ctl_imp2(fd, SIO_EV_OPT_ADD, notifyfd, &ev);
+    ev.owner.pri = ctx;
+    int ret = sio_mplex_epoll_ctl_imp(fd, SIO_EV_OPT_ADD, notifyfd, &ev);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         close(notifyfd),
         free(ctx),
@@ -141,7 +131,6 @@ int sio_mplex_epoll_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int
 {
     struct epoll_event ep_ev[count];
     struct sio_mplex_epoll_pri *epp = ctx->pri;
-    int notifyfd = epp->notifyfd;
 
     int fd = sio_mplex_get_efd(ctx);
     int ret = epoll_wait(fd, ep_ev, count, -1);
@@ -149,7 +138,7 @@ int sio_mplex_epoll_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int
         SIO_LOGE("epoll_wait errno: %d\n", errno));
 
     for (int i = 0; i < ret; i++) {
-        SIO_COND_CHECK_CALLOPS_BREAK(ep_ev[i].data.fd == notifyfd,
+        SIO_COND_CHECK_CALLOPS_BREAK(ep_ev[i].data.ptr == ctx,
             sio_eventfd_read(epp),
             sio_eventfd_notify(epp),
             ret = -1);
