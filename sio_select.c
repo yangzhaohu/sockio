@@ -16,10 +16,16 @@
 #define SIO_SELECT_NOTIFY_EXIT 0x01
 #define SIO_SELECT_NOTIFY_POLL 0x02
 
+struct sio_levent
+{
+    sio_fd_t fd;
+    struct sio_event ev;
+};
+
 struct sio_evfds
 {
     sio_socket_t maxfd;
-    struct sio_event evs[SIO_FD_SETSIZE];
+    struct sio_levent evs[SIO_FD_SETSIZE];
     struct sio_rwfds fds;
 };
 
@@ -67,10 +73,10 @@ void sio_select_set_rwfds(struct sio_rwfds *rwfds, sio_fd_t fd, enum sio_events 
 }
 
 static inline
-void sio_select_set_evs(struct sio_event *evs, sio_fd_t fd, struct sio_event *event)
+void sio_select_set_evs(struct sio_levent *evs, sio_fd_t fd, struct sio_event *event)
 {
 #ifndef WIN32
-    evs[fd] = *event;
+    evs[fd].ev = *event;
 
 #else
     int del = 0;
@@ -80,21 +86,21 @@ void sio_select_set_evs(struct sio_event *evs, sio_fd_t fd, struct sio_event *ev
 
     int i = 0;
     for (; i < SIO_FD_SETSIZE; i++) {
-        if (evs[i].owner.fd == fd || evs[i].owner.fd == 0) {
+        if (evs[i].fd == fd || evs[i].fd == 0) {
             break;
         }
     }
 
     if (del == 1) {
         memset(&evs[i], 0, sizeof(struct sio_event));
-        for (int j = i; j < SIO_FD_SETSIZE - 1 && evs[j + 1].owner.fd != 0; j++) {
+        for (int j = i; j < SIO_FD_SETSIZE - 1 && evs[j + 1].fd != 0; j++) {
             evs[j] = evs[j + 1];
         }
         return;
     }
 
-    event->owner.fd = fd; // for windows platform
-    evs[i] = *event;
+    evs[i].fd = fd; // for windows platform
+    evs[i].ev = *event;
 #endif
 }
 
@@ -153,17 +159,17 @@ void sio_select_clr_event(struct sio_select *slt, sio_fd_t fd)
 }
 
 
-#define sio_in_event_owner(fd) slt->evfs.evs[fd].owner
+#define sio_in_event_index_pri(fd) slt->evfs.evs[fd].ev.pri
 
 #ifdef WIN32
 
 static inline
-int sio_in_event_owner_index(struct sio_select *slt, sio_fd_t fd)
+int sio_in_event_index(struct sio_select *slt, sio_fd_t fd)
 {
     struct sio_evfds *efs = &slt->evfs;
+    struct sio_levent *evs = efs->evs;
     for (int i = 0; i < SIO_FD_SETSIZE; i++) {
-        struct sio_event_owner *owner = &(efs->evs[i].owner);
-        if (owner->fd == fd) {
+        if (evs[i].fd == fd) {
             return i;
         }
     }
@@ -174,7 +180,7 @@ int sio_in_event_owner_index(struct sio_select *slt, sio_fd_t fd)
 #define sio_out_event_get(fdset, evtype) \
     while (fdset->fd_count > 0 && resolved < count) { \
         sio_fd_t fd = fdset->fd_array[fdset->fd_count - 1]; \
-        int index = sio_in_event_owner_index(slt, fd); \
+        int index = sio_in_event_index(slt, fd); \
         if (index == -1) { \
             fdset->fd_count--; \
             continue; \
@@ -189,7 +195,7 @@ int sio_in_event_owner_index(struct sio_select *slt, sio_fd_t fd)
             } \
         } \
         event[resolved].events |= evtype; \
-        event[resolved].owner = sio_in_event_owner(index); \
+        event[resolved].pri = sio_in_event_index_pri(index); \
         resolved++; \
         fdset->fd_count--; \
     }
@@ -227,7 +233,7 @@ int sio_select_event(struct sio_select *slt, struct sio_event *event, int count)
         }
         if (events != 0) {
             event[resolved].events = events;
-            event[resolved].owner = sio_in_event_owner(pends);
+            event[resolved].pri = sio_in_event_index_pri(pends);
             resolved++;
         }
 
@@ -255,7 +261,7 @@ int sio_select_check_out_bounds(struct sio_select *slt, sio_fd_t fd)
     sio_fd_set *rfds = &efs->fds.rfds;
     sio_fd_set *wfds = &efs->fds.wfds;
 
-    int index = sio_in_event_owner_index(slt, fd);
+    int index = sio_in_event_index(slt, fd);
     if (index == -1 && (rfds->fd_count > SIO_FD_SETSIZE ||
         wfds->fd_count > SIO_FD_SETSIZE)) {
         return -1;

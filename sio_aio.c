@@ -34,8 +34,7 @@ struct sio_overlap *sio_overlap_base_event(struct sio_event *event)
     struct sio_overlap *ovlp = (struct sio_overlap *)ptr;
     ovlp->wsabuf.buf = event->buf.ptr;
     ovlp->wsabuf.len = event->buf.len;
-    ovlp->ptr = event->owner.pri;
-    ovlp->fd = event->owner.fd;
+    ovlp->ptr = event->pri;
     ovlp->events = event->events;
     
     return ovlp;

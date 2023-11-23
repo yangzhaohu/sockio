@@ -60,7 +60,7 @@ int sio_mplex_epoll_ctl_imp(int efd, int op, int fd, struct sio_event *event)
 {
     struct epoll_event ep_ev = { 0 };
     sio_event_trans_to_epoll_event(event->events, ep_ev.events);
-    ep_ev.data.ptr = event->owner.pri;
+    ep_ev.data.ptr = event->pri;
     sio_mplex_op_trans_to_epoll_op(op);
     return epoll_ctl(efd, op, fd, &ep_ev);
 }
@@ -89,7 +89,7 @@ struct sio_mplex_ctx *sio_mplex_epoll_create(void)
 
     struct sio_event ev = { 0 };
     ev.events = SIO_EVENTS_IN;
-    ev.owner.pri = ctx;
+    ev.pri = ctx;
     int ret = sio_mplex_epoll_ctl_imp(fd, SIO_EV_OPT_ADD, notifyfd, &ev);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         close(notifyfd),
@@ -147,7 +147,7 @@ int sio_mplex_epoll_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int
         unsigned int events = 0;
         epoll_event_trans_to_sio_event(epevents, events);
         event[i].events = events;
-        event[i].owner.pri = ep_ev[i].data.ptr;
+        event[i].pri = ep_ev[i].data.ptr;
     }
 
     return ret;

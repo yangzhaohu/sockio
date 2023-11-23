@@ -65,7 +65,7 @@ int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct si
     if (op == SIO_EV_OPT_ADD || op == SIO_EV_OPT_MOD) {
         if (event->events & SIO_EVENTS_IN) {
             void *iocp = sio_mplex_get_iocp(ctx);
-            ret = sio_iocp_link_fd(iocp, event->owner.fd);
+            ret = sio_iocp_link_fd(iocp, fd);
         }
     } else {
         int ret = CancelIoEx((HANDLE)fd, NULL);
@@ -105,7 +105,7 @@ int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int 
     // ret = GetQueuedCompletionStatusEx(iocp, ovlps, count, &rmcnt, INFINITE, TRUE);
 
     event[0].events = ovlp->events;
-    event[0].owner.pri = ovlp->ptr;
+    event[0].pri = ovlp->ptr;
     event[0].buf.ptr = ovlp->wsabuf.buf;
     event[0].buf.len = recv;
 

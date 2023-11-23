@@ -38,17 +38,10 @@ struct sio_evbuf
     int len;
 };
 
-struct sio_event_owner
-{
-    sio_fd_t fd;
-    void *pri;
-};
-
 struct sio_event
 {
     unsigned int events;
-    struct sio_event_owner owner;
-    // struct sio_event_buffer buf;
+    void *pri;
     struct sio_evbuf buf;
 };
 

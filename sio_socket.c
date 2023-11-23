@@ -220,7 +220,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
 {
     for (int i = 0; i < count; i++) {
         struct sio_event *event = &events[i];
-        struct sio_socket *sock = event->owner.pri;
+        struct sio_socket *sock = event->pri;
         if (sock == NULL) {
             continue;
         }
@@ -687,8 +687,7 @@ int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock)
 
     struct sio_event ev = { 0 };
     ev.events |= SIO_EVENTS_ASYNC_ACCEPT;
-    ev.owner.fd = serv->fd;
-    ev.owner.pri = serv;
+    ev.pri = serv;
     ev.buf.ptr = SIO_SOCK_EXT_TO_AIOBUF(sock->extbuf);
     ev.buf.len = sizeof(sock->extbuf) - ((char *)ev.buf.ptr - sock->extbuf);
 
@@ -807,8 +806,7 @@ int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
 
     struct sio_event ev = { 0 };
     ev.events |= SIO_EVENTS_ASYNC_READ;
-    ev.owner.fd = sock->fd;
-    ev.owner.pri = sock;
+    ev.pri = sock;
     ev.buf.ptr = buf;
     ev.buf.len = len;
 
@@ -845,8 +843,7 @@ int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
 
     struct sio_event ev = { 0 };
     ev.events |= SIO_EVENTS_ASYNC_WRITE;
-    ev.owner.fd = sock->fd;
-    ev.owner.pri = sock;
+    ev.pri = sock;
     ev.buf.ptr = buf;
     ev.buf.len = len;
 
@@ -866,8 +863,7 @@ int sio_socket_mplex_imp(struct sio_socket *sock, enum sio_events_opt op, enum s
 
     struct sio_event ev = { 0 };
     ev.events |= events;
-    ev.owner.fd = sock->fd;
-    ev.owner.pri = sock;
+    ev.pri = sock;
 
     return sio_mplex_ctl(sock->mp, op, sock->fd, &ev);
 }

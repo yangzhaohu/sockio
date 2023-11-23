@@ -12,7 +12,6 @@ struct sio_overlap
     OVERLAPPED overlap;
     WSABUF wsabuf;
     void *ptr;
-    sio_fd_t fd;
     unsigned int events;
     unsigned long olflags;
 };
