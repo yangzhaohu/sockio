@@ -26,6 +26,9 @@ EXPORTS
     sio_socket_shutdown
     sio_socket_close
     sio_socket_destory
+; sio_event
+    sio_aiobuf_alloc
+    sio_aiobuf_free
 ; sio_mplex
     sio_mplex_create
     sio_mplex_ctl

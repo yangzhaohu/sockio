@@ -13,6 +13,8 @@
 #include "sio_overlap.h"
 #include "sio_log.h"
 
+#define SIO_IOCP_EXIT_MAGIC 1234
+
 #ifdef WIN32
 
 #define sio_mplex_get_iocp(ctx) ctx->fd.pfd
@@ -36,6 +38,12 @@ int sio_iocp_link_fd(void *iocp, sio_fd_t fd)
     return 0;
 }
 
+static inline
+int sio_iocp_exit_notify(void *iocp)
+{
+    return PostQueuedCompletionStatus(iocp, 0, SIO_IOCP_EXIT_MAGIC, NULL);
+}
+
 struct sio_mplex_ctx *sio_mplex_iocp_create(void)
 {
     struct sio_mplex_ctx *ctx = malloc(sizeof(struct sio_mplex_ctx));
@@ -54,9 +62,19 @@ struct sio_mplex_ctx *sio_mplex_iocp_create(void)
 int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     int ret = 0;
-    if (event->events & SIO_EVENTS_IN) {
-        void *iocp = sio_mplex_get_iocp(ctx);
-        ret = sio_iocp_link_fd(iocp, event->owner.fd);
+    if (op == SIO_EV_OPT_ADD || op == SIO_EV_OPT_MOD) {
+        if (event->events & SIO_EVENTS_IN) {
+            void *iocp = sio_mplex_get_iocp(ctx);
+            ret = sio_iocp_link_fd(iocp, event->owner.fd);
+        }
+    } else {
+        int ret = CancelIoEx((HANDLE)fd, NULL);
+        if (ret > 0 || (ret == 0 && GetLastError() == ERROR_NOT_FOUND)) {
+            ret = 0;
+        } else {
+            SIO_LOGI("iocp cancel io failed, ret: %d, err: %d\n", ret, GetLastError());
+            ret = -1;
+        }
     }
 
     return ret;
@@ -70,6 +88,10 @@ int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int 
 
     void *iocp = sio_mplex_get_iocp(ctx);
     int ret = GetQueuedCompletionStatus(iocp, &recv, &key, (LPOVERLAPPED *)&ovlp, INFINITE);
+    if (key == SIO_IOCP_EXIT_MAGIC) {
+        sio_iocp_exit_notify(iocp);
+        return -1;
+    }
     if (ret == FALSE) {
         int err = GetLastError();
         // SIO_LOGE("err: %d\n", err);
@@ -92,12 +114,18 @@ int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int 
 
 int sio_mplex_iocp_close(struct sio_mplex_ctx *ctx)
 {
-    return -1;
+    void *iocp = sio_mplex_get_iocp(ctx);
+    return sio_iocp_exit_notify(iocp);
 }
 
 int sio_mplex_iocp_destory(struct sio_mplex_ctx *ctx)
 {
-    return -1;
+    void *iocp = sio_mplex_get_iocp(ctx);
+    int ret = CloseHandle(iocp);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        SIO_LOGE("iocp CloseHandle failed\n"));
+
+    return 0;
 }
 
 #else

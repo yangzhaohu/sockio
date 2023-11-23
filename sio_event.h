@@ -30,9 +30,11 @@ enum sio_events
     SIO_EVENTS_ASYNC_WRITE = 0x4000,
 };
 
-struct sio_event_buffer
+typedef void * sio_aiobuf;
+
+struct sio_evbuf
 {
-    char *ptr;
+    sio_aiobuf ptr;
     int len;
 };
 
@@ -46,7 +48,12 @@ struct sio_event
 {
     unsigned int events;
     struct sio_event_owner owner;
-    struct sio_event_buffer buf;
+    // struct sio_event_buffer buf;
+    struct sio_evbuf buf;
 };
+
+sio_aiobuf sio_aiobuf_alloc(unsigned long size);
+
+void sio_aiobuf_free(sio_aiobuf buf);
 
 #endif

@@ -5,6 +5,18 @@
 #include "sio_permplex.h"
 #include "sio_log.h"
 
+char *g_resp = "HTTP/1.1 200 OK\r\n"
+            "Connection: Keep-Alive\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 125\r\n\r\n"
+            "<html>"
+            "<head><title>Hello</title></head>"
+            "<body>"
+            "<center><h1>Hello, Client</h1></center>"
+            "<hr><center>SOCKIO</center>"
+            "</body>"
+            "</html>";
+
 int socknew(struct sio_socket *serv, struct sio_socket *newsock);
 int readable(struct sio_socket *sock, const char *data, int len);
 int writeable(struct sio_socket *sock, const char *data, int len);
@@ -46,9 +58,9 @@ int socknew(struct sio_socket *serv, struct sio_socket *newsock)
     SIO_LOGI("new socket accpet\n");
     sio_socket_mplex(newsock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
-    char *buff = malloc(512 * sizeof(char));
-    memset(buff, 0, 512);
-    sio_socket_async_read(newsock, buff, 512);
+    char *buf = sio_aiobuf_alloc(512 * sizeof(char));
+    memset(buf, 0, 512);
+    sio_socket_async_read(newsock, buf, 512);
 
     post_socket_accept(serv);
 
@@ -57,14 +69,21 @@ int socknew(struct sio_socket *serv, struct sio_socket *newsock)
 
 int readable(struct sio_socket *sock, const char *data, int len)
 {
-    SIO_LOGI("recv %d: %s\n", len, data);
+    // SIO_LOGI("recv %d: %s\n", len, data);
     sio_socket_async_read(sock, (char *)data, 512);
+
+    int l = strlen(g_resp);
+    char *buf = sio_aiobuf_alloc(l);
+    memcpy(buf, g_resp, strlen(g_resp));
+    sio_socket_async_write(sock, buf, l);
 
     return 0;
 }
 
 int writeable(struct sio_socket *sock, const char *data, int len)
 {
+    // SIO_LOGI("write %.*s\n", len, data);
+    sio_aiobuf_free((sio_aiobuf)data);
     return 0;
 }
 
@@ -107,6 +126,12 @@ int main(void)
 
     // post socket accept
     post_socket_accept(serv);
+
+    // getc(stdin);
+    // sio_socket_mplex(serv, SIO_EV_OPT_DEL, SIO_EVENTS_IN);
+
+    getc(stdin);
+    sio_permplex_destory(pmplex);
 
     getc(stdin);
     

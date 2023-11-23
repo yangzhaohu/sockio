@@ -72,6 +72,9 @@ __thread int tls_sock_readerr = 0;
 #define sio_socket_readerr_set(err)   tls_sock_readerr = err
 #define sio_socket_readerr_clear()   tls_sock_readerr = 0
 
+#define SIO_SOCK_EXT_TO_AIOBUF(ptr) (char *)ptr + sio_aioctx_size()
+#define SIO_SOCK_AIOBUF_TO_EXT(ptr) (char *)ptr - sio_aioctx_size()
+
 #ifdef WIN32
 #define SIO_SOCK_SHUT_RD SD_RECEIVE
 #define SIO_SOCK_SHUT_WR SD_SEND
@@ -150,8 +153,9 @@ __thread int tls_sock_readerr = 0;
             sio_socket_state_shut_set(sock, SIO_SOCK_SHUTRDWR);             \
             sio_socket_ops_call(ops->closeable, sock);                      \
             break;                                                          \
-        } else {                                                            \
+        } else if (err != 0) {                                              \
             SIO_LOGI("pending errno: %d, break\n", err);                    \
+            break;                                                          \
         }                                                                   \
     } while (attr->nonblock);
 
@@ -175,9 +179,14 @@ __thread int tls_sock_readerr = 0;
         sio_socket_ops_call(ops->readasync,                                     \
             sock, event->buf.ptr, event->buf.len);                              \
     }                                                                           \
+    if (event->events & SIO_EVENTS_ASYNC_WRITE) {                               \
+        sio_socket_ops_call(ops->writeasync,                                    \
+            sock, event->buf.ptr, event->buf.len);                              \
+    }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {                              \
+        char *__extptr = SIO_SOCK_AIOBUF_TO_EXT(event->buf.ptr);                \
         struct sio_socket *__sock =                                             \
-        SIO_CONTAINER_OF(event->buf.ptr,                                        \
+        SIO_CONTAINER_OF(__extptr,                                              \
             struct sio_socket,                                                  \
             extbuf);                                                            \
         sio_socket_ops_call(ops->acceptasync,                                   \
@@ -680,10 +689,14 @@ int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock)
     ev.events |= SIO_EVENTS_ASYNC_ACCEPT;
     ev.owner.fd = serv->fd;
     ev.owner.pri = serv;
-    ev.buf.ptr = sock->extbuf;
-    ev.buf.len = sizeof(sock->extbuf);
+    ev.buf.ptr = SIO_SOCK_EXT_TO_AIOBUF(sock->extbuf);
+    ev.buf.len = sizeof(sock->extbuf) - ((char *)ev.buf.ptr - sock->extbuf);
 
+#ifdef WIN32
     return sio_aio_accept(serv->fd, sock->fd, &ev);
+#else
+    return -1;
+#endif
 }
 
 #ifdef LINUX
@@ -799,7 +812,11 @@ int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
     ev.buf.ptr = buf;
     ev.buf.len = len;
 
+#ifdef WIN32
     return sio_aio_recv(sock->fd, &ev);
+#else
+    return -1;
+#endif
 }
 
 int sio_socket_write(struct sio_socket *sock, const char *buf, int len)
@@ -832,7 +849,12 @@ int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
     ev.owner.pri = sock;
     ev.buf.ptr = buf;
     ev.buf.len = len;
-    return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
+
+#ifdef WIN32
+    return sio_aio_send(sock->fd, &ev);
+#else
+    return -1;
+#endif
 }
 
 static inline
@@ -901,7 +923,7 @@ int sio_socket_shutdown(struct sio_socket *sock, enum sio_socksh how)
     struct sio_socket_state *stat = &sock->stat;
     int ret = sio_socket_shutdown_imp(sock, how);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && stat->what < SIO_SOCK_CONNECT, -1,
-        SIO_LOGE("socket shutdown failed\n"));
+        SIO_LOGE("socket shutdown failed, errno: %d\n", sio_sock_errno));
 
     stat->listening = 0;
     stat->connected = 0;

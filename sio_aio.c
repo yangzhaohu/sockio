@@ -1,27 +1,39 @@
 #include "sio_aio.h"
+#include <stdlib.h>
 #include <string.h>
 #include "sio_common.h"
 #include "sio_event.h"
 #include "sio_overlap.h"
 #include "sio_log.h"
 
+union sio_aioctx
+{
+#ifdef WIN32
+    struct sio_overlap ctx;
+#else
+    int ctx;
+#endif
+};
+
+static inline
+void *sio_aiobuf_baseptr(sio_aiobuf buf)
+{
+    return (char *)buf - sizeof(union sio_aioctx);
+}
+
 #ifdef WIN32
 
 static inline
 struct sio_overlap *sio_overlap_base_event(struct sio_event *event)
 {
-    char *ptr = event->buf.ptr;
-    int len = event->buf.len;
-    len -= sizeof(struct sio_overlap);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ptr == NULL || len <= 0, NULL,
-        SIO_LOGE("enough buffer space for overlap access. minimal space %u",
-            sizeof(struct sio_overlap)));
-    ptr += len;
+    char *ptr = sio_aiobuf_baseptr(event->buf.ptr);
+    SIO_COND_CHECK_RETURN_VAL(ptr == NULL, NULL);
+
     memset(ptr, 0, sizeof(struct sio_overlap));
 
     struct sio_overlap *ovlp = (struct sio_overlap *)ptr;
     ovlp->wsabuf.buf = event->buf.ptr;
-    ovlp->wsabuf.len = len;
+    ovlp->wsabuf.len = event->buf.len;
     ovlp->ptr = event->owner.pri;
     ovlp->fd = event->owner.fd;
     ovlp->events = event->events;
@@ -30,6 +42,31 @@ struct sio_overlap *sio_overlap_base_event(struct sio_event *event)
 }
 
 #endif
+
+static inline
+int sio_aioctx_size_imp()
+{
+    return sizeof(union sio_aioctx);
+}
+
+sio_aiobuf sio_aiobuf_alloc(unsigned long size)
+{
+    int must = sio_aioctx_size_imp();
+    char *buf = malloc(size + must);
+
+    return buf + must;
+}
+
+void sio_aiobuf_free(sio_aiobuf buf)
+{
+    buf = sio_aiobuf_baseptr(buf);
+    free(buf);
+}
+
+int sio_aioctx_size()
+{
+    return sio_aioctx_size_imp();
+}
 
 int sio_aio_accept(sio_fd_t sfd, sio_fd_t fd, struct sio_event *event)
 {
@@ -55,7 +92,7 @@ int sio_aio_accept(sio_fd_t sfd, sio_fd_t fd, struct sio_event *event)
 
 int sio_aio_recv(sio_fd_t fd, struct sio_event *event)
 {
-    #ifdef WIN32
+#ifdef WIN32
     struct sio_overlap *ovlp = sio_overlap_base_event(event);
     SIO_COND_CHECK_RETURN_VAL(ovlp == NULL, -1);
 
@@ -73,5 +110,18 @@ int sio_aio_recv(sio_fd_t fd, struct sio_event *event)
 
 int sio_aio_send(sio_fd_t fd, struct sio_event *event)
 {
+#ifdef WIN32
+    struct sio_overlap *ovlp = sio_overlap_base_event(event);
+    SIO_COND_CHECK_RETURN_VAL(ovlp == NULL, -1);
+
+    int ret = WSASend(fd, &ovlp->wsabuf, 1, NULL, ovlp->olflags, &ovlp->overlap, NULL);
+
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && WSAGetLastError() != ERROR_IO_PENDING, -1,
+        SIO_LOGE("iocp post send failed, errno: %d\n", WSAGetLastError()));
+
+#else
     return -1;
+
+#endif
+    return 0;
 }
