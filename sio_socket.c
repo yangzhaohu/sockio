@@ -202,12 +202,11 @@ __thread int tls_sock_readerr = 0;
                 stat->what = SIO_SOCK_ESTABLISHED;                              \
             } else {                                                            \
                 stat->what = SIO_SOCK_OPEN;                                     \
-                sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,                      \
-                    sock->stat.events | ~SIO_EVENTS_OUT);                       \
             }                                                                   \
+            sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,                          \
+                sock->stat.events);                                             \
             sio_socket_ops_call(ops->connected, sock, stat->what);              \
-        }                                                                       \
-        if (stat->what == SIO_SOCK_ESTABLISHED) {                               \
+        } else if (stat->what == SIO_SOCK_ESTABLISHED) {                        \
             sio_socket_ops_call(ops->writeable, sock);                          \
         }                                                                       \
     }
