@@ -400,15 +400,18 @@ void sio_socket_addr_in(struct sio_socket *sock, struct sio_sockaddr *addr, stru
 }
 
 static inline
+void sio_socket_destory_imp(struct sio_socket *sock)
+{
+    SIO_COND_CHECK_CALLOPS(sock->stat.placement,
+        free(sock));
+}
+
+static inline
 struct sio_socket *sio_socket_create_imp(enum sio_sockprot proto, char *placement)
 {
-    int plmt = 0;
     struct sio_socket *sock = (struct sio_socket *)placement;
-
     if (sock == NULL) {
         sock = malloc(sizeof(struct sio_socket));
-    } else {
-        plmt = 1;
     }
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock, NULL,
         SIO_LOGE("sio_socket malloc failed\n"));
@@ -416,7 +419,7 @@ struct sio_socket *sio_socket_create_imp(enum sio_sockprot proto, char *placemen
     memset(sock, 0, sizeof(struct sio_socket));
 
     struct sio_socket_state *stat = &sock->stat;
-    stat->placement = plmt;
+    stat->placement = placement == NULL ? 1 : 0;
     stat->what = SIO_SOCK_NONE;
 
     struct sio_socket_attr *attr = &sock->attr;
@@ -450,7 +453,7 @@ struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement)
     sio_fd_t fd = sio_socket_sock(proto);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, NULL,
         SIO_LOGE("socket failed\n"),
-        free(sock));
+        sio_socket_destory_imp(sock));
 
     sock->fd = fd;
 
@@ -961,9 +964,7 @@ int sio_socket_destory(struct sio_socket *sock)
             SIO_LOGE("socket close failed, err: %d\n", sio_sock_errno));
     }
 
-    struct sio_socket_state *stat = &sock->stat;
-    SIO_COND_CHECK_CALLOPS(stat->placement == 0,
-        free(sock));
+    sio_socket_destory_imp(sock);
 
     return 0;
 }
