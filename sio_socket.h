@@ -16,7 +16,8 @@ enum sio_socksh
 enum sio_sockprot
 {
     SIO_SOCK_TCP,
-    SIO_SOCK_UDP
+    SIO_SOCK_UDP,
+    SIO_SOCK_SSL
 };
 
 enum sio_sockwhat

@@ -6,6 +6,7 @@
 #endif
 #include "sio_common.h"
 #include "sio_socket_pri.h"
+#include "sio_sockssl.h"
 #include "sio_event.h"
 #include "sio_mplex.h"
 #include "sio_aio.h"
@@ -49,6 +50,7 @@ struct sio_socket_owner
 struct sio_socket
 {
     sio_fd_t fd;
+    struct sio_sockssl *ssock;
     struct sio_socket_state stat;
     struct sio_socket_attr attr;
     struct sio_socket_owner owner;
@@ -239,7 +241,7 @@ static inline
 sio_fd_t sio_socket_sock(enum sio_sockprot proto)
 {
     sio_fd_t fd;
-    if (proto == SIO_SOCK_TCP) {
+    if (proto == SIO_SOCK_TCP || proto == SIO_SOCK_SSL) {
         fd = socket(PF_INET, SOCK_STREAM, 0);
     } else if (proto == SIO_SOCK_UDP) {
         fd = socket(PF_INET, SOCK_DGRAM, 0);
@@ -254,7 +256,7 @@ static inline
 unsigned short sio_socket_domain(enum sio_sockprot proto)
 {
     unsigned short domain = PF_INET;
-    if (SIO_SOCK_TCP <= proto && SIO_SOCK_UDP <= proto) {
+    if (SIO_SOCK_TCP <= proto && SIO_SOCK_SSL <= proto) {
         domain = PF_INET;
     }
 
@@ -401,6 +403,9 @@ void sio_socket_addr_in(struct sio_socket *sock, struct sio_sockaddr *addr, stru
 static inline
 void sio_socket_destory_imp(struct sio_socket *sock)
 {
+    SIO_COND_CHECK_CALLOPS(sock->ssock,
+        sio_sockssl_destory(sock->ssock));
+
     SIO_COND_CHECK_CALLOPS(sock->stat.placement,
         free(sock));
 }
@@ -416,6 +421,12 @@ struct sio_socket *sio_socket_create_imp(enum sio_sockprot proto, char *placemen
         SIO_LOGE("sio_socket malloc failed\n"));
 
     memset(sock, 0, sizeof(struct sio_socket));
+
+    if (proto == SIO_SOCK_SSL) {
+        sock->ssock = sio_sockssl_create();
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock->ssock, NULL,
+            sio_socket_destory_imp(sock));
+    }
 
     struct sio_socket_state *stat = &sock->stat;
     stat->placement = placement == NULL ? 1 : 0;
@@ -437,14 +448,14 @@ unsigned int sio_socket_struct_size()
 
 struct sio_socket *sio_socket_create(enum sio_sockprot proto, char *placement)
 {
-    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
+    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_SSL, NULL);
 
     return sio_socket_create_imp(proto, placement);
 }
 
 struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement)
 {
-    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_UDP, NULL);
+    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_SSL, NULL);
 
     struct sio_socket *sock = sio_socket_create_imp(proto, placement);
     SIO_COND_CHECK_RETURN_VAL(!sock, NULL);
@@ -455,6 +466,11 @@ struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement)
         sio_socket_destory_imp(sock));
 
     sock->fd = fd;
+    if (proto == SIO_SOCK_SSL) {
+        int ret = sio_sockssl_setfd(sock->ssock, fd);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
+            sio_socket_destory_imp(sock));
+    }
 
     struct sio_socket_state *stat = &sock->stat;
     stat->what = SIO_SOCK_OPEN;
@@ -734,6 +750,15 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
     
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && err == 1, -1, 
         close(fd));
+
+    if (sock->attr.proto == SIO_SOCK_SSL) {
+        int ret = sio_sockssl_setfd(sock->ssock, fd);
+        SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+    }
+
+    if (sock->fd == -1) {
+        ret = sio_sockssl_handshake(sock->ssock);
+    }
 
     sock->fd = fd;
     attr->mean = SIO_SOCK_MEAN_SOCKET;
