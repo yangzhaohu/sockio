@@ -66,7 +66,7 @@ int readable(struct sio_socket *sock)
     char data[512] = { 0 };
     int len = sio_socket_read(sock, data, 512);
     if (len > 0 )
-        SIO_LOGI("recv %d: %s\n", len, data);
+        SIO_LOGI("recv %d: %s", len, data);
 
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
 

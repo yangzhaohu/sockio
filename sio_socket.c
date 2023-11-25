@@ -35,6 +35,7 @@ struct sio_socket_state
     enum sio_socksh shut;
     enum sio_sockwhat what;
     enum sio_events events;
+    enum sio_events levents;
     int placement:1;
     int listening:1;
     int connected:1;
@@ -88,12 +89,14 @@ __thread int tls_sock_readerr = 0;
 #ifdef WIN32
 #define sio_socket_eagain(err) (err == WSAEWOULDBLOCK)
 #define sio_socket_enotconn(err) (err == WSAENOTCONN)
+#define sio_socket_econnabort(err) (err == WSAECONNABORTED)
 #define sio_socket_eshutdown(err) (err == WSAESHUTDOWN)
 #define sio_socket_einval(err) (0)
 #define sio_socket_enotsock(err) (err == WSAENOTSOCK)
 #else
 #define sio_socket_eagain(err) (err == EAGAIN || err == EWOULDBLOCK)
 #define sio_socket_enotconn(err) (err == ENOTCONN)
+#define sio_socket_econnabort(err) (err == ECONNABORTED)
 #define sio_socket_eshutdown(err) (err == ESHUTDOWN)
 #define sio_socket_einval(err) (err == EINVAL)
 #define sio_socket_enotsock(err) (err == ENOTSOCK)
@@ -134,6 +137,7 @@ __thread int tls_sock_readerr = 0;
 
 #define sio_sock_mplex_event_del(sock)                          \
     do {                                                        \
+        stat->levents = 0;                                      \
         struct sio_event event = { 0 };                         \
         sio_mplex_ctl(sock->mp,                                 \
             SIO_EV_OPT_DEL, sock->fd, &event);                  \
@@ -146,6 +150,7 @@ __thread int tls_sock_readerr = 0;
         sio_socket_readerr_clear();                                         \
         SIO_COND_CHECK_BREAK(sio_socket_eagain(err));                       \
         if (sio_socket_enotconn(err) |                                      \
+            sio_socket_econnabort(err) |                                    \
             sio_socket_eshutdown(err) |                                     \
             sio_socket_einval(err) |                                        \
             sio_socket_enotsock(err)) {                                     \
@@ -203,8 +208,9 @@ __thread int tls_sock_readerr = 0;
             } else {                                                            \
                 stat->what = SIO_SOCK_OPEN;                                     \
             }                                                                   \
+            stat->levents &= ~SIO_EVENTS_OUT;                                   \
             sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,                          \
-                sock->stat.events);                                             \
+                stat->events | stat->levents);                                  \
             sio_socket_ops_call(ops->connected, sock, stat->what);              \
         } else if (stat->what == SIO_SOCK_ESTABLISHED) {                        \
             sio_socket_ops_call(ops->writeable, sock);                          \
@@ -741,8 +747,9 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
     stat->connected = 1;
     stat->what = SIO_SOCK_CONNECT;
 
-    if (sock->mp) {
-        sio_socket_mplex_imp(sock, SIO_EV_OPT_ADD, SIO_EVENTS_OUT);
+    if (ret == -1 && sock->mp) {
+        stat->levents |= SIO_EVENTS_OUT;
+        sio_socket_mplex_imp(sock, SIO_EV_OPT_ADD, stat->events | stat->levents);
     }
 
     return 0;
@@ -875,7 +882,7 @@ int sio_socket_mplex(struct sio_socket *sock, enum sio_events_opt op, enum sio_e
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1 || !sock->mp, -1);
 
-    int ret = sio_socket_mplex_imp(sock, op, events);
+    int ret = sio_socket_mplex_imp(sock, op, events | sock->stat.levents);
     SIO_COND_CHECK_CALLOPS(ret == 0,
         sock->stat.events = events);
 
@@ -902,8 +909,9 @@ int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socksh how)
     }
 
     if ((sock->stat.events & SIO_EVENTS_IN) == 0) {
+        sock->stat.levents = SIO_EVENTS_IN;
         sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,
-            sock->stat.events | SIO_EVENTS_IN);
+            sock->stat.events | sock->stat.levents);
     }
 
     int ret = shutdown(sock->fd, shuthow);

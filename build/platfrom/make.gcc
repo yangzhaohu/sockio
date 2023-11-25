@@ -28,7 +28,7 @@ build: $(OBJS)
 	$(CXX) $(OBJS) $(LIBPATH) $(LIBS) $(LFLAGS) -o $(TARGET_OUT)/$(TARGET).so
 
 clean:
-	@set -e; rm -rf $(OBJS) $(TARGET_OUT)/$(TARGET).so
+	@set -e; rm -rf $(DEPS) $(OBJS) $(TARGET_OUT)/$(TARGET).so
 
 #中间目标依赖文件.d
 DEPS := $(SRCS:%.c=$(OBJ_OUTPUT)%.d)
