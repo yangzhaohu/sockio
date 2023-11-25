@@ -14,7 +14,13 @@ struct sio_sockssl *sio_sockssl_create2(sio_fd_t fd);
 
 int sio_sockssl_setfd(struct sio_sockssl *ssock, sio_fd_t fd);
 
+int sio_sockssl_connect(struct sio_sockssl *ssock);
+
 int sio_sockssl_handshake(struct sio_sockssl *ssock);
+
+int sio_sockssl_read(struct sio_sockssl *ssock, char *buf, int len);
+
+int sio_sockssl_write(struct sio_sockssl *ssock, const char *data, int len);
 
 int sio_sockssl_destory(struct sio_sockssl *ssock);
 

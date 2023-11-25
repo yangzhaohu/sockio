@@ -753,11 +753,11 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
 
     if (sock->attr.proto == SIO_SOCK_SSL) {
         int ret = sio_sockssl_setfd(sock->ssock, fd);
-        SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
-    }
-
-    if (sock->fd == -1) {
-        ret = sio_sockssl_handshake(sock->ssock);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+            close(fd));
+        ret = sio_sockssl_connect(sock->ssock);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+            close(fd));
     }
 
     sock->fd = fd;
@@ -784,6 +784,10 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int len)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
+
+    if (sock->attr.proto == SIO_SOCK_SSL) {
+        return sio_sockssl_read(sock->ssock, buf, len);
+    }
 
     struct sockaddr_in addr = { 0 };
     int ret = sio_socket_read_imp(sock, buf, len, &addr);
@@ -848,6 +852,10 @@ int sio_socket_write(struct sio_socket *sock, const char *buf, int len)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
+
+    if (sock->attr.proto == SIO_SOCK_SSL) {
+        return sio_sockssl_write(sock->ssock, buf, len);
+    }
 
     return send(sock->fd, buf, len, 0);
 }

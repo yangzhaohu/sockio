@@ -46,8 +46,17 @@ struct sio_sockssl *sio_sockssl_create2(sio_fd_t fd)
 int sio_sockssl_setfd(struct sio_sockssl *ssock, sio_fd_t fd)
 {
     int ret = SSL_set_fd(ssock->ssl, fd);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 0, -1,
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == 0, -1,
         SIO_LOGE("SSL_set_fd failed\n"));
+
+    return 0;
+}
+
+int sio_sockssl_connect(struct sio_sockssl *ssock)
+{
+    int ret = SSL_connect(ssock->ssl);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, -1,
+        SIO_LOGE("SSL_connect err: %d\n", SSL_get_error(ssock->ssl, ret)));
 
     return 0;
 }
@@ -55,9 +64,28 @@ int sio_sockssl_setfd(struct sio_sockssl *ssock, sio_fd_t fd)
 int sio_sockssl_handshake(struct sio_sockssl *ssock)
 {
     int ret = SSL_do_handshake(ssock->ssl);
-    SIO_COND_CHECK_RETURN_VAL(ret <= 0, -1);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret <= 0, -1,
+        SIO_LOGE("SSL_do_handshake err: %d\n", SSL_get_error(ssock->ssl, ret)));
 
     return 0;
+}
+
+int sio_sockssl_read(struct sio_sockssl *ssock, char *buf, int len)
+{
+    int ret = SSL_read(ssock->ssl, buf, len);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret <= 0, -1,
+        SIO_LOGE("SSL_read err: %d\n", SSL_get_error(ssock->ssl, ret)));
+
+    return ret;
+}
+
+int sio_sockssl_write(struct sio_sockssl *ssock, const char *data, int len)
+{
+    int ret = SSL_write(ssock->ssl, data, len);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret <= 0, -1,
+        SIO_LOGE("SSL_write err: %d\n", SSL_get_error(ssock->ssl, ret)));
+
+    return ret;
 }
 
 int sio_sockssl_destory(struct sio_sockssl *ssock)
