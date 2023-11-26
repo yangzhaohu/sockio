@@ -3,6 +3,10 @@
 
 #include "sio_def.h"
 
+#define SIO_SOCKSSL_ESSL            -1
+#define SIO_SOCKSSL_EWANTREAD       -2
+#define SIO_SOCKSSL_EWANTWRITE      -3
+
 struct sio_sockssl;
 
 #ifdef __cplusplus
@@ -13,6 +17,8 @@ struct sio_sockssl *sio_sockssl_create();
 struct sio_sockssl *sio_sockssl_create2(sio_fd_t fd);
 
 int sio_sockssl_setfd(struct sio_sockssl *ssock, sio_fd_t fd);
+
+int sio_sockssl_accept(struct sio_sockssl *ssock);
 
 int sio_sockssl_connect(struct sio_sockssl *ssock);
 

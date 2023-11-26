@@ -1,47 +1,98 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
+#include "sio_permplex.h"
 #include "sio_log.h"
+
+int connected(struct sio_socket *sock, enum sio_sockwhat what)
+{
+    if (what == SIO_SOCK_ESTABLISHED) {
+        SIO_LOGI("connect succeed\n");
+        sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
+    } else {
+        SIO_LOGI("connect timeout\n");
+    }
+
+    return 0;
+}
+
+int readable(struct sio_socket *sock)
+{
+    char data[512] = { 0 };
+    int len = sio_socket_read(sock, data, 512);
+    if (len > 0 )
+        SIO_LOGI("recv %d: %s\n", len, data);
+
+    return 0;
+}
+
+int writeable(struct sio_socket *sock)
+{
+    SIO_LOGI("writeabled\n");
+    const char *request = "GET / HTTP/1.0\r\n"
+                        "Connection: Keep-Alive\r\n"
+                        "Host: 127.0.0.1:8000\r\n"
+                        "User-Agent: ApacheBench/2.3\r\n"
+                        "Accept: */*\r\n\r\n";
+    int ret = sio_socket_write(sock, request, strlen(request));
+    SIO_LOGE("write len: %d, real: %d\n", ret, strlen(request));
+    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
+    return 0;
+}
+
+int closed(struct sio_socket *sock)
+{
+    SIO_LOGI("close\n");
+    // sio_socket_destory(sock);
+
+    return 0;
+}
 
 int main()
 {
+    struct sio_permplex *pmplex = sio_permplex_create(SIO_MPLEX_SELECT);
+    struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
+
     struct sio_socket *sock = sio_socket_create2(SIO_SOCK_SSL, NULL);
     if (!sock) {
         SIO_LOGE("socket create failed\n");
         return -1;
     }
 
-    // union sio_sockopt opt = { 0 };
-    // opt.nonblock = 1;
-    // sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
+    union sio_sockopt opt = { 0 };
+    opt.mplex = mplex;
+    sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
+
+    opt.nonblock = 1;
+    sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
+
+    struct sio_sockops ops =
+    {
+        .connected = connected,
+        .readable = readable,
+        .writeable = writeable,
+        .closeable = closed
+    };
+    opt.ops = ops;
+    sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
     struct sio_sockaddr addr = {
-        // .addr = "110.242.68.66",
         .addr = "39.156.66.10",
+        // .addr = "199.16.156.11",
         .port = 443
     };
     int ret = sio_socket_connect(sock, &addr);
     SIO_LOGI("sock connect ret: %d\n", ret);
 
-    const char *request = "GET / HTTP/1.0\r\n"
-                          "Connection: Keep-Alive\r\n"
-                          "Host: 127.0.0.1:8000\r\n"
-                          "User-Agent: ApacheBench/2.3\r\n"
-                          "Accept: */*\r\n\r\n";
-    ret = sio_socket_write(sock, request, strlen(request));
-    SIO_LOGE("write len: %d, real: %d\n", ret, strlen(request));
+    sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
 
-    while (1) {
-        char buf[512] = { 0 };
-        int ret = sio_socket_read(sock, buf, 511);
-        if (ret > 0) {
-            SIO_LOGI("%s", buf);
-        }
-        char c = getc(stdin);
-        if (c == 'q') {
-            break;
-        }
-    }
+    // const char *request = "GET / HTTP/1.0\r\n"
+    //                       "Connection: Keep-Alive\r\n"
+    //                       "Host: 127.0.0.1:8000\r\n"
+    //                       "User-Agent: ApacheBench/2.3\r\n"
+    //                       "Accept: */*\r\n\r\n";
+    // ret = sio_socket_write(sock, request, strlen(request));
+    // SIO_LOGE("write len: %d, real: %d\n", ret, strlen(request));
 
     getc(stdin);
 

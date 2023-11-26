@@ -16,12 +16,17 @@ typedef UINT_PTR sio_uptr_t;
 typedef UINT_PTR sio_fd_t;
 typedef sio_fd_t sio_socket_t;
 
+#define sio_tls_t __declspec(thread)
+
 #else
 typedef unsigned long long int sio_uint64_t;
 typedef uintptr_t sio_uptr_t;
 
 typedef int sio_fd_t;
 typedef sio_fd_t sio_socket_t;
+
+#define sio_tls_t __thread // thread local storage
+
 #endif
 
 typedef struct
