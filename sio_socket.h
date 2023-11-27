@@ -40,6 +40,7 @@ struct sio_sockaddr
 struct sio_sockops
 {
     int (*connected)(struct sio_socket *sock, enum sio_sockwhat what);
+    int (*handshaked)(struct sio_socket *sock);
     int (*readable)(struct sio_socket *sock);
     int (*writeable)(struct sio_socket *sock);
     int (*acceptasync)(struct sio_socket *sock, struct sio_socket *newsock);

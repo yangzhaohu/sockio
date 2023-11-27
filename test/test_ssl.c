@@ -8,10 +8,17 @@ int connected(struct sio_socket *sock, enum sio_sockwhat what)
 {
     if (what == SIO_SOCK_ESTABLISHED) {
         SIO_LOGI("connect succeed\n");
-        sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
     } else {
         SIO_LOGI("connect timeout\n");
     }
+
+    return 0;
+}
+
+int handshaked(struct sio_socket *sock)
+{
+    SIO_LOGI("handshaked succeed\n");
+    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
 
     return 0;
 }
@@ -69,6 +76,7 @@ int main()
     struct sio_sockops ops =
     {
         .connected = connected,
+        .handshaked = handshaked,
         .readable = readable,
         .writeable = writeable,
         .closeable = closed

@@ -155,7 +155,7 @@ __thread int tls_sock_readerr = 0;
         } else if (err == 0) {                                          \
             stat->what = SIO_SOCK_ESTABLISHED;                          \
             stat->levents &= ~SIO_EVENTS_OUT;                           \
-            sio_socket_ops_call(ops->connected, sock, stat->what);      \
+            sio_socket_ops_call(ops->handshaked, sock);                 \
         } else {                                                        \
             SIO_LOGI("handshake err: %d\n", err);                       \
         }                                                               \
@@ -230,15 +230,19 @@ __thread int tls_sock_readerr = 0;
             if (ret == 0 && errval == 0) {                                      \
                 if (attr->proto == SIO_SOCK_SSL) {                              \
                     stat->what = SIO_SOCK_HANDSHAKE;                            \
+                    sio_socket_ops_call(ops->connected,                         \
+                        sock, SIO_SOCK_ESTABLISHED);                            \
                 } else {                                                        \
                     stat->what = SIO_SOCK_ESTABLISHED;                          \
                     stat->levents &= ~SIO_EVENTS_OUT;                           \
-                    sio_socket_ops_call(ops->connected, sock, stat->what);      \
+                    sio_socket_ops_call(ops->connected,                         \
+                        sock, SIO_SOCK_ESTABLISHED);                            \
                 }                                                               \
             } else {                                                            \
                 stat->what = SIO_SOCK_OPEN;                                     \
                 stat->levents &= ~SIO_EVENTS_OUT;                               \
-                sio_socket_ops_call(ops->connected, sock, stat->what);          \
+                sio_socket_ops_call(ops->connected,                             \
+                    sock, SIO_SOCK_OPEN);                                       \
             }                                                                   \
             sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,                          \
                 stat->events | stat->levents);                                  \
@@ -319,6 +323,7 @@ void sio_socket_set_ops(struct sio_socket *sock, struct sio_sockops *ops)
     struct sio_socket_owner *owner = &sock->owner;
 
     owner->ops.connected = ops->connected;
+    owner->ops.handshaked = ops->handshaked;
     owner->ops.readable = ops->readable;
     owner->ops.writeable = ops->writeable;
     owner->ops.acceptasync = ops->acceptasync;
@@ -333,6 +338,7 @@ void sio_socket_get_ops(struct sio_socket *sock, struct sio_sockops *ops)
     struct sio_socket_owner *owner = &sock->owner;
 
     ops->connected = owner->ops.connected;
+    ops->handshaked = owner->ops.handshaked;
     ops->readable = owner->ops.readable;
     ops->writeable = owner->ops.writeable;
     ops->acceptasync = owner->ops.acceptasync;
