@@ -830,9 +830,12 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int len)
         ret = sio_socket_read_imp(sock, buf, len, &addr);
     } else {
         ret = sio_sockssl_read(sock->ssock, buf, len);
+        if (ret == SIO_SOCKSSL_EZERORETURN) {
+            ret = sio_sockssl_shutdown(sock->ssock);
+        }
     }
 
-    SIO_LOGI("socket read ret: %d, err: %d\n", ret, sio_sock_errno);
+    // SIO_LOGI("socket read ret: %d, err: %d\n", ret, sio_sock_errno);
 
     if (ret <= 0) {
         if (ret == 0) {

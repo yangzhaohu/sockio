@@ -97,6 +97,15 @@ int sio_sockssl_write(struct sio_sockssl *ssock, const char *data, int len)
     return ret;
 }
 
+int sio_sockssl_shutdown(struct sio_sockssl *ssock)
+{
+    int ret = SSL_shutdown(ssock->ssl);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, ret,
+        ret = -SSL_get_error(ssock->ssl, ret));
+
+    return 0;
+}
+
 int sio_sockssl_destory(struct sio_sockssl *ssock)
 {
     SSL_CTX_free(ssock->sslctx);

@@ -6,6 +6,7 @@
 #define SIO_SOCKSSL_ESSL            -1
 #define SIO_SOCKSSL_EWANTREAD       -2
 #define SIO_SOCKSSL_EWANTWRITE      -3
+#define SIO_SOCKSSL_EZERORETURN     -6
 
 struct sio_sockssl;
 
@@ -27,6 +28,8 @@ int sio_sockssl_handshake(struct sio_sockssl *ssock);
 int sio_sockssl_read(struct sio_sockssl *ssock, char *buf, int len);
 
 int sio_sockssl_write(struct sio_sockssl *ssock, const char *data, int len);
+
+int sio_sockssl_shutdown(struct sio_sockssl *ssock);
 
 int sio_sockssl_destory(struct sio_sockssl *ssock);
 
