@@ -99,10 +99,12 @@ int sio_sockssl_write(struct sio_sockssl *ssock, const char *data, int len)
 
 int sio_sockssl_shutdown(struct sio_sockssl *ssock)
 {
+    SSL_set_shutdown(ssock->ssl, SSL_SENT_SHUTDOWN);
     int ret = SSL_shutdown(ssock->ssl);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, ret,
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret < 0, ret,
         ret = -SSL_get_error(ssock->ssl, ret));
 
+    SIO_COND_CHECK_RETURN_VAL(ret == 1, 0);
     return 0;
 }
 

@@ -103,6 +103,9 @@ int main()
     // SIO_LOGE("write len: %d, real: %d\n", ret, strlen(request));
 
     getc(stdin);
+    sio_socket_shutdown(sock, SIO_SOCK_SHUTRDWR);
+
+    getc(stdin);
 
     return 0;
 }

@@ -286,6 +286,7 @@ int sio_mplex_select_notifypair_create(struct sio_select *slt)
     addr_in.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     int ret = bind(pair1, (struct sockaddr *)&addr_in, sizeof(addr_in));
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        SIO_LOGI("bind failed, err: %d\n", errno),
         CLOSE(pair1));
 
     sio_socket_t pair2 = socket(PF_INET, SOCK_DGRAM, 0);
@@ -295,6 +296,7 @@ int sio_mplex_select_notifypair_create(struct sio_select *slt)
     addr_in.sin_port = htons(port - 1);
     ret = bind(pair2, (struct sockaddr *)&addr_in, sizeof(addr_in));
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        SIO_LOGI("bind failed, err: %d\n", errno),
         CLOSE(pair1),
         CLOSE(pair2));
 

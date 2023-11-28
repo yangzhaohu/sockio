@@ -838,6 +838,8 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int len)
         ret = sio_sockssl_read(sock->ssock, buf, len);
         if (ret == SIO_SOCKSSL_EZERORETURN) {
             ret = sio_sockssl_shutdown(sock->ssock);
+        } else if (ret == SIO_SOCKSSL_ESSL) {
+            ret = 0; // close
         }
     }
 
@@ -988,6 +990,13 @@ int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socksh how)
         sock->stat.levents = SIO_EVENTS_IN;
         sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,
             sock->stat.events | sock->stat.levents);
+    }
+
+    if (sock->attr.proto == SIO_SOCK_SSL) {
+        int ret = sio_sockssl_shutdown(sock->ssock);
+        SIO_COND_CHECK_CALLOPS(ret != SIO_SOCKSSL_EWANTREAD &&
+            ret != SIO_SOCKSSL_EWANTWRITE,
+            SIO_LOGI("ssl shutdown eror, ret: %d\n", ret));
     }
 
     int ret = shutdown(sock->fd, shuthow);
