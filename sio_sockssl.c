@@ -25,6 +25,11 @@ struct sio_sockssl *sio_sockssl_create()
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sslctx, NULL,
         SIO_LOGE("SSL_CTX_new failed\n"),
         free(ssock));
+
+    // 双向验证
+    // SSL_VERIFY_PEER---要求对证书进行认证，没有证书也会放行
+    // SSL_VERIFY_FAIL_IF_NO_PEER_CERT---要求客户端需要提供证书，但验证发现单独使用没有证书也会放行
+    SSL_CTX_set_verify(sslctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
     
     SSL *ssl = SSL_new(sslctx);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!ssl, NULL,
@@ -41,6 +46,30 @@ struct sio_sockssl *sio_sockssl_create()
 struct sio_sockssl *sio_sockssl_create2(sio_fd_t fd)
 {
     return 0;
+}
+
+int sio_sockssl_setopt(struct sio_sockssl *ssock, enum sio_ssloptc cmd, union sio_sslopt *opt)
+{
+    int ret = 0;
+    switch (cmd) {
+    case SIO_SSL_CACERT:
+        SSL_CTX_load_verify_locations(ssock->sslctx, opt->data, NULL);
+        break;
+
+    case SIO_SSL_USERCERT:
+        SSL_CTX_use_certificate_file(ssock->sslctx, opt->data, SSL_FILETYPE_PEM);
+        break;
+
+    case SIO_SSL_USERKEY:
+        SSL_CTX_use_PrivateKey_file(ssock->sslctx, opt->data, SSL_FILETYPE_PEM);
+        ret = SSL_CTX_check_private_key(ssock->sslctx);
+        break;
+    
+    default:
+        break;
+    }
+
+    return ret;
 }
 
 int sio_sockssl_setfd(struct sio_sockssl *ssock, sio_fd_t fd)

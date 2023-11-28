@@ -70,7 +70,10 @@ enum sio_sockoptc
     /* set socket send timeout */
     SIO_SOCK_SNDTIMEO,
     /* set socket recv timeout, the socket will become non blocking */
-    SIO_SOCK_RCVTIMEO
+    SIO_SOCK_RCVTIMEO,
+    SIO_SOCK_SSL_CACERT,
+    SIO_SOCK_SSL_USERCERT,
+    SIO_SOCK_SSL_USERKEY,
 };
 
 union sio_sockopt
@@ -84,6 +87,7 @@ union sio_sockopt
     int reuseaddr;
     int keepalive;
     int timeout; // ms
+    const char *data;
 };
 
 

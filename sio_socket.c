@@ -158,6 +158,8 @@ __thread int tls_sock_readerr = 0;
             sio_socket_ops_call(ops->handshaked, sock);                 \
         } else {                                                        \
             SIO_LOGI("handshake err: %d\n", err);                       \
+            stat->levents = 0;                                          \
+            stat->what = SIO_SOCK_OPEN;                                 \
         }                                                               \
         sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,                      \
             stat->events | stat->levents);                              \
@@ -269,7 +271,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
         struct sio_socket_state *stat = &sock->stat;
         struct sio_socket_owner *owner = &sock->owner;
         struct sio_sockops *ops = &owner->ops;
-        // SIO_LOGI("socket fd: %d, event: %d\n", sock->fd, event->events);
+        SIO_LOGI("socket fd: %d, event: %d\n", sock->fd, event->events);
 
         sio_socket_event_dispatch_once(event);
     }
@@ -733,9 +735,28 @@ int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock)
     struct sio_socket_state *stat = &newsock->stat;
     stat->what = SIO_SOCK_ESTABLISHED;
 
-    newsock->fd = sio_socket_accept_pend_fd();
-
+    sio_socket_t fd = sio_socket_accept_pend_fd();
     sio_socket_accept_pend_fd_clear();
+
+    if (newsock->attr.proto == SIO_SOCK_SSL) {
+        int ret = sio_sockssl_accept(newsock->ssock);
+        SIO_LOGI("sockssl accept ret: %d\n", ret);
+        
+        if (ret == SIO_SOCKSSL_EWANTREAD) {
+            stat->levents |= SIO_EVENTS_IN;
+        } else if (ret == SIO_SOCKSSL_EWANTWRITE) {
+            stat->levents |= SIO_EVENTS_OUT;
+        } else if (ret != 0) {
+            close(fd);
+            return -1;
+        }
+
+        if (ret != 0 && sock->mp) {
+            sio_socket_mplex_imp(sock, SIO_EV_OPT_ADD, stat->events | stat->levents);
+        }
+    }
+
+    newsock->fd = fd;
 
     return 0;
 }
