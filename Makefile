@@ -18,7 +18,7 @@ FLAGS +=
 INCLUDES += -I. -Iinclude -Idepend/include
 LIBPATH += -Ldepend/lib
 STATICLIB += -Wl,-Bstatic -lhttp_parser -lpcre2-posix -lpcre2-8
-DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -lpthread -lssl
+DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -lpthread -lssl -lcrypto
 else
 FLAGS :=
 INCLUDES += /I. /Iinclude /Idepend/include

@@ -84,24 +84,22 @@ int main()
     opt.ops = ops;
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
+    // opt.data = "../cert/ca.crt";
+    // sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
+    // opt.data = "../cert/client.crt";
+    // sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
+    // opt.data = "../cert/client.key";
+    // sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
+
     struct sio_sockaddr addr = {
         // .addr = "39.156.66.10",
-        // .addr = "199.16.156.11",
+        // .addr = "199.16.156.11", // connect timeout
         .addr = "127.0.0.1",
         .port = 8000
     };
     int ret = sio_socket_connect(sock, &addr);
-    SIO_LOGI("sock connect ret: %d\n", ret);
 
     sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
-
-    // const char *request = "GET / HTTP/1.0\r\n"
-    //                       "Connection: Keep-Alive\r\n"
-    //                       "Host: 127.0.0.1:8000\r\n"
-    //                       "User-Agent: ApacheBench/2.3\r\n"
-    //                       "Accept: */*\r\n\r\n";
-    // ret = sio_socket_write(sock, request, strlen(request));
-    // SIO_LOGE("write len: %d, real: %d\n", ret, strlen(request));
 
     getc(stdin);
     sio_socket_shutdown(sock, SIO_SOCK_SHUTRDWR);

@@ -154,7 +154,7 @@ __thread int tls_sock_readerr = 0;
             stat->levents = SIO_EVENTS_OUT;                             \
         } else if (err == 0) {                                          \
             stat->what = SIO_SOCK_ESTABLISHED;                          \
-            stat->levents &= ~SIO_EVENTS_OUT;                           \
+            stat->levents = 0;                                          \
             sio_socket_ops_call(ops->handshaked, sock);                 \
         } else {                                                        \
             SIO_LOGI("handshake err: %d\n", err);                       \
@@ -236,13 +236,13 @@ __thread int tls_sock_readerr = 0;
                         sock, SIO_SOCK_ESTABLISHED);                            \
                 } else {                                                        \
                     stat->what = SIO_SOCK_ESTABLISHED;                          \
-                    stat->levents &= ~SIO_EVENTS_OUT;                           \
+                    stat->levents = 0;                                          \
                     sio_socket_ops_call(ops->connected,                         \
                         sock, SIO_SOCK_ESTABLISHED);                            \
                 }                                                               \
             } else {                                                            \
                 stat->what = SIO_SOCK_OPEN;                                     \
-                stat->levents &= ~SIO_EVENTS_OUT;                               \
+                stat->levents = 0;                                              \
                 sio_socket_ops_call(ops->connected,                             \
                     sock, SIO_SOCK_OPEN);                                       \
             }                                                                   \
@@ -271,7 +271,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
         struct sio_socket_state *stat = &sock->stat;
         struct sio_socket_owner *owner = &sock->owner;
         struct sio_sockops *ops = &owner->ops;
-        SIO_LOGI("socket fd: %d, event: %d\n", sock->fd, event->events);
+        // SIO_LOGI("socket fd: %d, event: %d\n", sock->fd, event->events);
 
         sio_socket_event_dispatch_once(event);
     }
@@ -526,6 +526,10 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 
+    union sio_sslopt sopt = {
+        .data = opt->data
+    };
+
     int ret = 0;
     switch (cmd) {
     case SIO_SOCK_PRIVATE:
@@ -558,6 +562,16 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
     case SIO_SOCK_SNDTIMEO:
     case SIO_SOCK_RCVTIMEO:
         ret = sio_socket_set_sock_timeout(sock, opt->timeout, cmd);
+        break;
+
+    case SIO_SOCK_SSL_CACERT:
+        ret = sio_sockssl_setopt(sock->ssock, SIO_SSL_CACERT, &sopt);
+        break;
+    case SIO_SOCK_SSL_USERCERT:
+        ret = sio_sockssl_setopt(sock->ssock, SIO_SSL_USERCERT, &sopt);
+        break;
+    case SIO_SOCK_SSL_USERKEY:
+        ret = sio_sockssl_setopt(sock->ssock, SIO_SSL_USERKEY, &sopt);
         break;
 
     default:
@@ -737,26 +751,32 @@ int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock)
 
     sio_socket_t fd = sio_socket_accept_pend_fd();
     sio_socket_accept_pend_fd_clear();
+    newsock->fd = fd;
+
+    if (sock->attr.nonblock == 1) {
+        sio_socket_set_nonblock(newsock, 1);
+    }
 
     if (newsock->attr.proto == SIO_SOCK_SSL) {
+        sio_sockssl_setfd(newsock->ssock, fd);
         int ret = sio_sockssl_accept(newsock->ssock);
-        SIO_LOGI("sockssl accept ret: %d\n", ret);
         
         if (ret == SIO_SOCKSSL_EWANTREAD) {
-            stat->levents |= SIO_EVENTS_IN;
+            stat->levents = SIO_EVENTS_IN;
         } else if (ret == SIO_SOCKSSL_EWANTWRITE) {
-            stat->levents |= SIO_EVENTS_OUT;
+            stat->levents = SIO_EVENTS_OUT;
         } else if (ret != 0) {
+            SIO_LOGE("sockssl accept ret: %d\n", ret);
             close(fd);
             return -1;
         }
 
+        stat->what = SIO_SOCK_HANDSHAKE;
+
         if (ret != 0 && sock->mp) {
-            sio_socket_mplex_imp(sock, SIO_EV_OPT_ADD, stat->events | stat->levents);
+            sio_socket_mplex_imp(newsock, SIO_EV_OPT_ADD, stat->events | stat->levents);
         }
     }
-
-    newsock->fd = fd;
 
     return 0;
 }
@@ -832,7 +852,7 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
     stat->what = SIO_SOCK_CONNECT;
 
     if (ret == -1 && sock->mp) {
-        stat->levents |= SIO_EVENTS_OUT;
+        stat->levents = SIO_EVENTS_OUT;
         sio_socket_mplex_imp(sock, SIO_EV_OPT_ADD, stat->events | stat->levents);
     }
 
@@ -1017,7 +1037,7 @@ int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socksh how)
         int ret = sio_sockssl_shutdown(sock->ssock);
         SIO_COND_CHECK_CALLOPS(ret != SIO_SOCKSSL_EWANTREAD &&
             ret != SIO_SOCKSSL_EWANTWRITE,
-            SIO_LOGI("ssl shutdown eror, ret: %d\n", ret));
+            SIO_LOGE("ssl shutdown error, ret: %d\n", ret));
     }
 
     int ret = shutdown(sock->fd, shuthow);

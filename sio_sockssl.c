@@ -20,7 +20,6 @@ struct sio_sockssl *sio_sockssl_create()
     SIO_COND_CHECK_RETURN_VAL(!ssock, NULL);
 
     memset(ssock, 0, sizeof(struct sio_sockssl));
-
     SSL_CTX *sslctx = SSL_CTX_new(SSLv23_method());
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sslctx, NULL,
         SIO_LOGE("SSL_CTX_new failed\n"),
@@ -29,7 +28,7 @@ struct sio_sockssl *sio_sockssl_create()
     // 双向验证
     // SSL_VERIFY_PEER---要求对证书进行认证，没有证书也会放行
     // SSL_VERIFY_FAIL_IF_NO_PEER_CERT---要求客户端需要提供证书，但验证发现单独使用没有证书也会放行
-    SSL_CTX_set_verify(sslctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+    // SSL_CTX_set_verify(sslctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
     
     SSL *ssl = SSL_new(sslctx);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!ssl, NULL,
@@ -53,16 +52,19 @@ int sio_sockssl_setopt(struct sio_sockssl *ssock, enum sio_ssloptc cmd, union si
     int ret = 0;
     switch (cmd) {
     case SIO_SSL_CACERT:
-        SSL_CTX_load_verify_locations(ssock->sslctx, opt->data, NULL);
+        // SSL_CTX_load_verify_locations(ssock->sslctx, opt->data, NULL);
         break;
 
     case SIO_SSL_USERCERT:
-        SSL_CTX_use_certificate_file(ssock->sslctx, opt->data, SSL_FILETYPE_PEM);
+        // ret = SSL_CTX_use_certificate_file(ssock->sslctx, opt->data, SSL_FILETYPE_PEM);
+        SSL_use_certificate_file(ssock->ssl, opt->data, SSL_FILETYPE_PEM);
         break;
 
     case SIO_SSL_USERKEY:
-        SSL_CTX_use_PrivateKey_file(ssock->sslctx, opt->data, SSL_FILETYPE_PEM);
-        ret = SSL_CTX_check_private_key(ssock->sslctx);
+        // ret = SSL_CTX_use_PrivateKey_file(ssock->sslctx, opt->data, SSL_FILETYPE_PEM);
+        // ret = SSL_CTX_check_private_key(ssock->sslctx);
+        SSL_use_PrivateKey_file(ssock->ssl, opt->data, SSL_FILETYPE_PEM);
+        ret = SSL_check_private_key(ssock->ssl);
         break;
     
     default:
@@ -85,7 +87,8 @@ int sio_sockssl_accept(struct sio_sockssl *ssock)
 {
     int ret = SSL_accept(ssock->ssl);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, ret,
-        ret = -SSL_get_error(ssock->ssl, ret));
+        ret = -SSL_get_error(ssock->ssl, ret),
+        SIO_LOGD("accept ret: %d, %s\n", -ret, ERR_error_string(ERR_get_error(), NULL)));
 
     return 0;
 }
