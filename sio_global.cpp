@@ -9,6 +9,7 @@
 #include <sys/syscall.h>
 #endif
 #include "sio_common.h"
+#include "sio_def.h"
 #include "sio_log.h"
 
 #ifdef WIN32
@@ -130,8 +131,11 @@ sio_global_init::~sio_global_init()
 static sio_global_init g_global_init;
 
 
+sio_tls_t int tls_tid = -1;
 int sio_gettid()
 {
+    SIO_COND_CHECK_RETURN_VAL(tls_tid != -1, tls_tid);
+
 #ifdef WIN32
     int tid = GetCurrentThreadId();
 #else

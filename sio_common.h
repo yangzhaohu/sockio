@@ -6,6 +6,13 @@
 #define PRINT_MACRO_HELPER(x) #x
 #define PRINT_MACRO(x) #x"="PRINT_MACRO_HELPER(x)
 
+// str macro
+
+#define SIO_TO_STR(a) _SIO_TO_STR(a)
+#define _SIO_TO_STR(a) #a
+#define SIO_CAT_STR(a, b) _SIO_CAT_STR(a, b)
+#define _SIO_CAT_STR(a, b) a##b
+
 // #pragma message(PRINT_MACRO(var))
 
 #define SIO_MIN(a, b) ((a < b) ? a : b)
