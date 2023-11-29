@@ -1,6 +1,7 @@
 #include "sio_log.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include "sio_common.h"
 #include "sio_global.h"
 #include "sio_time.h"
 
@@ -23,6 +24,8 @@ void sio_logg_setlevel(int level)
 
 int sio_logg(int level, const char *format, ...)
 {
+    SIO_COND_CHECK_RETURN_VAL(level < SIO_LOGG_LEVEL, 0);
+
     printf("[%s][0x%04x] ", sio_timezone(), SIO_TID);
     va_list args;
     va_start(args, format);
