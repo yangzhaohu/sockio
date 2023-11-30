@@ -2,46 +2,43 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/ssl.h>
-#include <openssl/ssl2.h>
-#include <openssl/ssl3.h>
 #include <openssl/err.h>
 #include "sio_common.h"
 #include "sio_log.h"
 
 struct sio_sockssl
 {
-    SSL_CTX *sslctx;
     SSL *ssl;
 };
 
-struct sio_sockssl *sio_sockssl_create()
+struct sio_sockssl *sio_sockssl_create(sio_sslctx_t ctx)
 {
     struct sio_sockssl *ssock = malloc(sizeof(struct sio_sockssl));
     SIO_COND_CHECK_RETURN_VAL(!ssock, NULL);
 
-    memset(ssock, 0, sizeof(struct sio_sockssl));
-    SSL_CTX *sslctx = SSL_CTX_new(SSLv23_method());
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sslctx, NULL,
-        SIO_LOGE("SSL_CTX_new failed\n"),
-        free(ssock));
-
-    // SSL_CTX_set_verify(sslctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-    
-    SSL *ssl = SSL_new(sslctx);
+    SSL *ssl = SSL_new(ctx);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!ssl, NULL,
         SIO_LOGE("SSL_new failed\n"),
-        SSL_CTX_free(sslctx),
         free(ssock));
 
-    ssock->sslctx = sslctx;
     ssock->ssl = ssl;
 
     return ssock;
 }
 
-struct sio_sockssl *sio_sockssl_create2(sio_fd_t fd)
+struct sio_sockssl *sio_sockssl_create_dup(struct sio_sockssl *ssock)
 {
-    return 0;
+    struct sio_sockssl *dupsock = malloc(sizeof(struct sio_sockssl));
+    SIO_COND_CHECK_RETURN_VAL(!dupsock, NULL);
+
+    SSL *ssl = SSL_dup(ssock->ssl);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(!ssl, NULL,
+        SIO_LOGE("SSL_new failed\n"),
+        free(dupsock));
+
+    dupsock->ssl = ssl;
+
+    return dupsock;
 }
 
 int sio_sockssl_setopt(struct sio_sockssl *ssock, enum sio_sslopc cmd, union sio_sslopt *opt)
@@ -86,7 +83,7 @@ int sio_sockssl_accept(struct sio_sockssl *ssock)
     int ret = SSL_accept(ssock->ssl);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, ret,
         ret = -SSL_get_error(ssock->ssl, ret),
-        SIO_LOGD("accept ret: %d, %s\n", -ret, ERR_error_string(ERR_get_error(), NULL)));
+        SIO_LOGE("accept ret: %d, %s\n", -ret, ERR_error_string(ERR_get_error(), NULL)));
 
     return 0;
 }
@@ -140,7 +137,7 @@ int sio_sockssl_shutdown(struct sio_sockssl *ssock)
 
 int sio_sockssl_destory(struct sio_sockssl *ssock)
 {
-    SSL_CTX_free(ssock->sslctx);
+    // SSL_CTX_free(ssock->sslctx);
     SSL_free(ssock->ssl);
     free(ssock);
 

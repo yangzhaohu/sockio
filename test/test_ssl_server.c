@@ -6,7 +6,15 @@
 
 int main()
 {
-    struct sio_socket *serv = sio_socket_create(SIO_SOCK_TCP, NULL);
+    struct sio_socket *serv = sio_socket_create(SIO_SOCK_SSL, NULL);
+
+    union sio_sockopt opt = { 0 };
+    opt.data = "../cert/ca.crt";
+    sio_socket_setopt(serv, SIO_SOCK_SSL_CACERT, &opt);
+    opt.data = "../cert/server.crt";
+    sio_socket_setopt(serv, SIO_SOCK_SSL_USERCERT, &opt);
+    opt.data = "../cert/server.key";
+    sio_socket_setopt(serv, SIO_SOCK_SSL_USERKEY, &opt);
 
     struct sio_sockaddr addr = {
         .addr = "127.0.0.1",
@@ -21,15 +29,6 @@ int main()
         }
 
         struct sio_socket *sock = sio_socket_create(SIO_SOCK_SSL, NULL);
-        union sio_sockopt opt = { 0 };
-
-        opt.data = "../cert/ca.crt";
-        sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
-        opt.data = "../cert/server.crt";
-        sio_socket_setopt(sock, SIO_SOCK_SSL_USERCERT, &opt);
-        opt.data = "../cert/server.key";
-        sio_socket_setopt(sock, SIO_SOCK_SSL_USERKEY, &opt);
-
         int ret = sio_socket_accept(serv, sock);
         if (ret != 0) {
             SIO_LOGI("accept failed\n");

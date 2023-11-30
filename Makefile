@@ -38,6 +38,7 @@ SRCS := sio_global.cpp \
 		sio_epoll.c \
 		sio_iocp.c \
 		sio_socket.c \
+		sio_sslctx.c \
 		sio_sockssl.c \
 		sio_aio.c \
 		sio_server.c \

@@ -39,13 +39,6 @@ int socknew(struct sio_socket *serv)
     opt.ops = g_sock_ops;
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
-    opt.data = "../cert/ca.crt";
-    sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
-    opt.data = "../cert/server.crt";
-    sio_socket_setopt(sock, SIO_SOCK_SSL_USERCERT, &opt);
-    opt.data = "../cert/server.key";
-    sio_socket_setopt(sock, SIO_SOCK_SSL_USERKEY, &opt);
-
     opt.mplex = g_mplex;
     sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
 
@@ -97,7 +90,7 @@ int main()
     struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
     g_mplex = mplex;
 
-    struct sio_socket *serv = sio_socket_create2(SIO_SOCK_TCP, NULL);
+    struct sio_socket *serv = sio_socket_create2(SIO_SOCK_SSL, NULL);
     if (!serv) {
         SIO_LOGE("socket create failed\n");
         return -1;
@@ -112,6 +105,13 @@ int main()
 
     opt.ops = g_serv_ops;
     sio_socket_setopt(serv, SIO_SOCK_OPS, &opt);
+
+    opt.data = "../cert/ca.crt";
+    sio_socket_setopt(serv, SIO_SOCK_SSL_CACERT, &opt);
+    opt.data = "../cert/server.crt";
+    sio_socket_setopt(serv, SIO_SOCK_SSL_USERCERT, &opt);
+    opt.data = "../cert/server.key";
+    sio_socket_setopt(serv, SIO_SOCK_SSL_USERKEY, &opt);
 
     struct sio_sockaddr addr = {
         .addr = "127.0.0.1",
