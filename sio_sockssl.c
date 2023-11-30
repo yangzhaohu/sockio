@@ -44,27 +44,28 @@ struct sio_sockssl *sio_sockssl_create2(sio_fd_t fd)
     return 0;
 }
 
-int sio_sockssl_setopt(struct sio_sockssl *ssock, enum sio_ssloptc cmd, union sio_sslopt *opt)
+int sio_sockssl_setopt(struct sio_sockssl *ssock, enum sio_sslopc cmd, union sio_sslopt *opt)
 {
     int ret = 0;
     switch (cmd) {
-    case SIO_SSL_CACERT:
-        // SSL_CTX_load_verify_locations(ssock->sslctx, opt->data, NULL);
-        break;
-
     case SIO_SSL_USERCERT:
-        // ret = SSL_CTX_use_certificate_file(ssock->sslctx, opt->data, SSL_FILETYPE_PEM);
-        SSL_use_certificate_file(ssock->ssl, opt->data, SSL_FILETYPE_PEM);
+        ret = SSL_use_certificate_file(ssock->ssl, opt->data, SSL_FILETYPE_PEM);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, -1,
+            SIO_LOGE("SSL_use_certificate_file", ERR_error_string(ERR_get_error(), NULL)));
         break;
 
     case SIO_SSL_USERKEY:
-        // ret = SSL_CTX_use_PrivateKey_file(ssock->sslctx, opt->data, SSL_FILETYPE_PEM);
-        // ret = SSL_CTX_check_private_key(ssock->sslctx);
-        SSL_use_PrivateKey_file(ssock->ssl, opt->data, SSL_FILETYPE_PEM);
+        ret = SSL_use_PrivateKey_file(ssock->ssl, opt->data, SSL_FILETYPE_PEM);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, -1,
+            SIO_LOGE("SSL_use_PrivateKey_file", ERR_error_string(ERR_get_error(), NULL)));
+
         ret = SSL_check_private_key(ssock->ssl);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, -1,
+            SIO_LOGE("SSL_check_private_key", ERR_error_string(ERR_get_error(), NULL)));
         break;
     
     default:
+        ret = -1;
         break;
     }
 
