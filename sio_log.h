@@ -20,7 +20,7 @@
 #define SIO_LOG_LEVEL_STRING(level)  SIO_CAT_STR(SIO_LOG_LEVEL_DES, level)
 
 #define SIO_LOG_IMP(level, format, ...) sio_logg(level,                 \
-    "[%s][0x%x][%s]"format,                                             \
+    "[%s][0x%x][%s]" format,                                            \
     sio_timezone(), sio_gettid(), SIO_LOG_LEVEL_STRING(level),          \
     ##__VA_ARGS__)
 
