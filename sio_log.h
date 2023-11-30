@@ -1,10 +1,6 @@
 #ifndef SIO_LOG_H_
 #define SIO_LOG_H_
 
-#include "sio_common.h"
-#include "sio_global.h"
-#include "sio_time.h"
-
 #define SIO_LOG_LEVEL_TRC     1    // trace
 #define SIO_LOG_LEVEL_DBG     2    // debug
 #define SIO_LOG_LEVEL_INF     3    // info
@@ -17,7 +13,21 @@
 #define SIO_LOG_LEVEL_DES4  "WAR"
 #define SIO_LOG_LEVEL_DES5  "ERR"
 
-#define SIO_LOG_LEVEL_STRING(level)  SIO_CAT_STR(SIO_LOG_LEVEL_DES, level)
+#define SIO_LOG_TO_STR(a) _SIO_LOG_TO_STR(a)
+#define _SIO_LOG_TO_STR(a) #a
+#define SIO_LOG_CONCAT_STR(a, b) _SIO_LOG_CONCAT_STR(a, b)
+#define _SIO_LOG_CONCAT_STR(a, b) a##b
+
+#define SIO_LOG_LEVEL_STRING(level)  SIO_LOG_CONCAT_STR(SIO_LOG_LEVEL_DES, level)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern const char *sio_timezone();
+extern int sio_gettid();
+#ifdef __cplusplus
+}
+#endif
 
 #define SIO_LOG_IMP(level, format, ...) sio_logg(level,                 \
     "[%s][0x%x][%s]" format,                                            \

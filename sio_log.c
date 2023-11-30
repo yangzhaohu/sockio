@@ -1,6 +1,7 @@
 #include "sio_log.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include "sio_common.h"
 
 static int g_level = SIO_LOG_LEVEL_INF;
 

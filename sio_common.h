@@ -10,8 +10,8 @@
 
 #define SIO_TO_STR(a) _SIO_TO_STR(a)
 #define _SIO_TO_STR(a) #a
-#define SIO_CAT_STR(a, b) _SIO_CAT_STR(a, b)
-#define _SIO_CAT_STR(a, b) a##b
+#define SIO_CONCAT_STR(a, b) _SIO_CONCAT_STR(a, b)
+#define _SIO_CONCAT_STR(a, b) a##b
 
 // #pragma message(PRINT_MACRO(var))
 
