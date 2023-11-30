@@ -20,15 +20,6 @@
 
 #define SIO_LOG_LEVEL_STRING(level)  SIO_LOG_CONCAT_STR(SIO_LOG_LEVEL_DES, level)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-extern const char *sio_timezone();
-extern int sio_gettid();
-#ifdef __cplusplus
-}
-#endif
-
 #define SIO_LOG_IMP(level, format, ...) sio_logg(level,                 \
     "[%s][0x%x][%s]" format,                                            \
     sio_timezone(), sio_gettid(), SIO_LOG_LEVEL_STRING(level),          \
@@ -43,6 +34,9 @@ extern int sio_gettid();
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern const char *sio_timezone();
+extern int sio_gettid();
 
 void sio_logg_setlevel(int level);
 
