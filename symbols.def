@@ -39,6 +39,10 @@ EXPORTS
     sio_permplex_create
     sio_permplex_mplex_ref
     sio_permplex_destory
+; sio_global
+    sio_gettid
+; sio_time
+    sio_timezone
 ; sio_logg
     sio_logg_setlevel
     sio_logg

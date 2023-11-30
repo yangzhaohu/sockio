@@ -25,9 +25,6 @@ struct sio_sockssl *sio_sockssl_create()
         SIO_LOGE("SSL_CTX_new failed\n"),
         free(ssock));
 
-    // 双向验证
-    // SSL_VERIFY_PEER---要求对证书进行认证，没有证书也会放行
-    // SSL_VERIFY_FAIL_IF_NO_PEER_CERT---要求客户端需要提供证书，但验证发现单独使用没有证书也会放行
     // SSL_CTX_set_verify(sslctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
     
     SSL *ssl = SSL_new(sslctx);

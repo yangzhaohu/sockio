@@ -24,7 +24,7 @@ FLAGS :=
 INCLUDES += /I. /Iinclude /Idepend/include
 LIBPATH += /LIBPATH:depend/lib
 STATICLIB += libhttp_parser.lib pcre2-posix-static.lib pcre2-8-static.lib
-DYNAMICLIB += mswsock.lib ws2_32.lib
+DYNAMICLIB += mswsock.lib ws2_32.lib libssl.lib libcrypto.lib
 endif
 endif
 
