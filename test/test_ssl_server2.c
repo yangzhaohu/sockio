@@ -33,7 +33,7 @@ int socknew(struct sio_socket *serv)
         return ret;
     }
 
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_SSL, NULL);
+    struct sio_socket *sock = sio_socket_dup(serv, NULL);
 
     union sio_sockopt opt = { 0 };
     opt.ops = g_sock_ops;

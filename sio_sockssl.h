@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 struct sio_sockssl *sio_sockssl_create(sio_sslctx_t ctx);
-struct sio_sockssl *sio_sockssl_create_dup(struct sio_sockssl *ssock);
+struct sio_sockssl *sio_sockssl_dup(struct sio_sockssl *ssock);
 
 int sio_sockssl_setopt(struct sio_sockssl *ssock, enum sio_sslopc cmd, union sio_sslopt *opt);
 
@@ -33,6 +33,8 @@ int sio_sockssl_read(struct sio_sockssl *ssock, char *buf, int len);
 int sio_sockssl_write(struct sio_sockssl *ssock, const char *data, int len);
 
 int sio_sockssl_shutdown(struct sio_sockssl *ssock);
+
+int sio_sockssl_close(struct sio_sockssl *ssock);
 
 int sio_sockssl_destory(struct sio_sockssl *ssock);
 

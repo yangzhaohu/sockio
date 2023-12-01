@@ -28,7 +28,7 @@ int main()
             continue;
         }
 
-        struct sio_socket *sock = sio_socket_create(SIO_SOCK_SSL, NULL);
+        struct sio_socket *sock = sio_socket_dup(serv, NULL);
         int ret = sio_socket_accept(serv, sock);
         if (ret != 0) {
             SIO_LOGI("accept failed\n");

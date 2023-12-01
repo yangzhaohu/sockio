@@ -11,6 +11,16 @@ struct sio_sockssl
     SSL *ssl;
 };
 
+static inline
+void sio_sockssl_errprint(const char *prefix, int err)
+{
+    SIO_COND_CHECK_CALLOPS(err != SSL_ERROR_NONE &&
+        err != SSL_ERROR_SSL &&
+        err != SSL_ERROR_WANT_READ &&
+        err != SSL_ERROR_WANT_WRITE,
+        SIO_LOGE("%s err: %d, %s\n", prefix, err, ERR_error_string(ERR_get_error(), NULL)));
+}
+
 struct sio_sockssl *sio_sockssl_create(sio_sslctx_t ctx)
 {
     struct sio_sockssl *ssock = malloc(sizeof(struct sio_sockssl));
@@ -26,14 +36,14 @@ struct sio_sockssl *sio_sockssl_create(sio_sslctx_t ctx)
     return ssock;
 }
 
-struct sio_sockssl *sio_sockssl_create_dup(struct sio_sockssl *ssock)
+struct sio_sockssl *sio_sockssl_dup(struct sio_sockssl *ssock)
 {
     struct sio_sockssl *dupsock = malloc(sizeof(struct sio_sockssl));
     SIO_COND_CHECK_RETURN_VAL(!dupsock, NULL);
 
     SSL *ssl = SSL_dup(ssock->ssl);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!ssl, NULL,
-        SIO_LOGE("SSL_new failed\n"),
+        SIO_LOGE("SSL_dup failed\n"),
         free(dupsock));
 
     dupsock->ssl = ssl;
@@ -83,7 +93,7 @@ int sio_sockssl_accept(struct sio_sockssl *ssock)
     int ret = SSL_accept(ssock->ssl);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, ret,
         ret = -SSL_get_error(ssock->ssl, ret),
-        SIO_LOGE("accept ret: %d, %s\n", -ret, ERR_error_string(ERR_get_error(), NULL)));
+        sio_sockssl_errprint("SSL_accept", -ret));
 
     return 0;
 }
@@ -92,7 +102,8 @@ int sio_sockssl_connect(struct sio_sockssl *ssock)
 {
     int ret = SSL_connect(ssock->ssl);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, ret,
-        ret = -SSL_get_error(ssock->ssl, ret));
+        ret = -SSL_get_error(ssock->ssl, ret),
+        sio_sockssl_errprint("SSL_connect", -ret));
 
     return 0;
 }
@@ -101,7 +112,8 @@ int sio_sockssl_handshake(struct sio_sockssl *ssock)
 {
     int ret = SSL_do_handshake(ssock->ssl);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, ret,
-        ret = -SSL_get_error(ssock->ssl, ret));
+        ret = -SSL_get_error(ssock->ssl, ret),
+        sio_sockssl_errprint("SSL_do_handshake", -ret));
 
     return 0;
 }
@@ -110,7 +122,8 @@ int sio_sockssl_read(struct sio_sockssl *ssock, char *buf, int len)
 {
     int ret = SSL_read(ssock->ssl, buf, len);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret <= 0, ret,
-        ret = -SSL_get_error(ssock->ssl, ret));
+        ret = -SSL_get_error(ssock->ssl, ret),
+        sio_sockssl_errprint("SSL_read", -ret));
 
     return ret;
 }
@@ -119,7 +132,8 @@ int sio_sockssl_write(struct sio_sockssl *ssock, const char *data, int len)
 {
     int ret = SSL_write(ssock->ssl, data, len);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret <= 0, ret,
-        ret = -SSL_get_error(ssock->ssl, ret));
+        ret = -SSL_get_error(ssock->ssl, ret),
+        sio_sockssl_errprint("SSL_write", -ret));
 
     return ret;
 }
@@ -128,10 +142,19 @@ int sio_sockssl_shutdown(struct sio_sockssl *ssock)
 {
     SSL_set_shutdown(ssock->ssl, SSL_SENT_SHUTDOWN);
     int ret = SSL_shutdown(ssock->ssl);
+    SSL_clear(ssock->ssl);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret < 0, ret,
-        ret = -SSL_get_error(ssock->ssl, ret));
+        ret = -SSL_get_error(ssock->ssl, ret),
+        sio_sockssl_errprint("SSL_shutdown", -ret));
 
     SIO_COND_CHECK_RETURN_VAL(ret == 1, 0);
+    return 0;
+}
+
+int sio_sockssl_close(struct sio_sockssl *ssock)
+{
+    SSL_clear(ssock->ssl);
+
     return 0;
 }
 

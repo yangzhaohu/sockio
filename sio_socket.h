@@ -100,7 +100,7 @@ unsigned int sio_socket_struct_size();
 struct sio_socket *sio_socket_create(enum sio_sockprot proto, char *placement);
 struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement);
 
-struct sio_socket *sio_socket_create_dup(struct sio_socket *sock, char *placement);
+struct sio_socket *sio_socket_dup(struct sio_socket *sock, char *placement);
 
 int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt);
 int sio_socket_getopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt);
