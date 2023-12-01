@@ -14,11 +14,9 @@ struct sio_sockssl
 static inline
 void sio_sockssl_errprint(const char *prefix, int err)
 {
-    SIO_COND_CHECK_CALLOPS(err != SSL_ERROR_NONE &&
-        err != SSL_ERROR_SSL &&
-        err != SSL_ERROR_WANT_READ &&
-        err != SSL_ERROR_WANT_WRITE,
-        SIO_LOGE("%s err: %d, %s\n", prefix, err, ERR_error_string(ERR_get_error(), NULL)));
+    unsigned long gerr = ERR_get_error();
+    SIO_COND_CHECK_CALLOPS(gerr != 0 && err != SSL_ERROR_SSL,
+        SIO_LOGE("%s err: %d, %s\n", prefix, err, ERR_error_string(gerr, NULL)));
 }
 
 struct sio_sockssl *sio_sockssl_create(sio_sslctx_t ctx)

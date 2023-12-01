@@ -601,13 +601,31 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
         break;
 
     case SIO_SOCK_SSL_CACERT:
-        ret = sio_sslctx_setopt(sock->ssl.ctx, SIO_SSL_CACERT, &sopt);
+        ret = -1;
+        if (sock->ssl.ctx) {
+            ret = sio_sslctx_setopt(sock->ssl.ctx, SIO_SSL_CACERT, &sopt);
+        }
+        if (sock->ssl.sock) {
+            ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_CACERT, &sopt);
+        }
         break;
     case SIO_SOCK_SSL_USERCERT:
-        ret = sio_sslctx_setopt(sock->ssl.ctx, SIO_SSL_USERCERT, &sopt);
+        ret = -1;
+        if (sock->ssl.ctx) {
+            ret = sio_sslctx_setopt(sock->ssl.ctx, SIO_SSL_USERCERT, &sopt);
+        }
+        if (sock->ssl.sock) {
+            ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_USERCERT, &sopt);
+        }
         break;
     case SIO_SOCK_SSL_USERKEY:
-        ret = sio_sslctx_setopt(sock->ssl.ctx, SIO_SSL_USERKEY, &sopt);
+        ret = -1;
+        if (sock->ssl.ctx) {
+            ret = sio_sslctx_setopt(sock->ssl.ctx, SIO_SSL_USERKEY, &sopt);
+        }
+        if (sock->ssl.sock) {
+            ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_USERKEY, &sopt);
+        }
         break;
 
     default:
