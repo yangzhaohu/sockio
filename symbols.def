@@ -6,6 +6,8 @@ EXPORTS
     sio_socket_struct_size
     sio_socket_create
     sio_socket_create2
+    sio_socket_dup
+    sio_socket_dup2
     sio_socket_setopt
     sio_socket_getopt
     sio_socket_peername

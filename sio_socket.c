@@ -543,19 +543,54 @@ struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement)
 struct sio_socket *sio_socket_dup(struct sio_socket *sock, char *placement)
 {
     enum sio_sockprot proto = sock->attr.proto;
-    struct sio_socket *dup = sio_socket_alloc(proto, placement);
-    SIO_COND_CHECK_RETURN_VAL(!dup, NULL);
+    struct sio_socket *sdup = sio_socket_alloc(proto, placement);
+    SIO_COND_CHECK_RETURN_VAL(!sdup, NULL);
 
     if (proto == SIO_SOCK_SSL) {
-        dup->ssl.sock = sio_sockssl_create(sock->ssl.ctx);
-        SIO_COND_CHECK_CALLOPS_RETURN_VAL(!dup->ssl.sock, NULL,
-            sio_socket_destory_imp(dup));
+        sdup->ssl.sock = sio_sockssl_create(sock->ssl.ctx);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sdup->ssl.sock, NULL,
+            sio_socket_destory_imp(sdup));
     }
 
-    struct sio_socket_attr *attr = &dup->attr;
+    struct sio_socket_attr *attr = &sdup->attr;
     attr->nonblock = sock->attr.nonblock;
 
-    return dup;
+    return sdup;
+}
+
+struct sio_socket *sio_socket_dup2(struct sio_socket *sock, char *placement)
+{
+    enum sio_sockprot proto = sock->attr.proto;
+    struct sio_socket *sdup = sio_socket_alloc(proto, placement);
+    SIO_COND_CHECK_RETURN_VAL(!sdup, NULL);
+
+    sio_fd_t fd = sio_socket_sock(proto);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, NULL,
+        SIO_LOGE("socket failed\n"),
+        sio_socket_destory_imp(sock));
+
+    sdup->fd = fd;
+    if (proto == SIO_SOCK_SSL) {
+        sdup->ssl.sock = sio_sockssl_create(sock->ssl.ctx);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sdup->ssl.sock, NULL,
+            sio_socket_destory_imp(sdup));
+
+        int ret = sio_sockssl_setfd(sdup->ssl.sock, fd);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
+            sio_socket_destory_imp(sdup),
+            sio_sockssl_destory(sdup->ssl.sock));
+    }
+
+    struct sio_socket_attr *attr = &sdup->attr;
+    attr->nonblock = sock->attr.nonblock;
+    if (attr->nonblock) {
+        sio_socket_set_nonblock(sdup, 1);
+    }
+
+    struct sio_socket_state *stat = &sdup->stat;
+    stat->what = SIO_SOCK_OPEN;
+
+    return sdup;
 }
 
 int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt)
