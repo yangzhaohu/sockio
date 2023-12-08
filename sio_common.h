@@ -3,8 +3,8 @@
 
 #include "sio_def.h"
 
-#define PRINT_MACRO_HELPER(x) #x
-#define PRINT_MACRO(x) #x"="PRINT_MACRO_HELPER(x)
+// #define PRINT_MACRO_HELPER(x) #x
+// #define PRINT_MACRO(x) #x"="PRINT_MACRO_HELPER(x)
 
 // str macro
 

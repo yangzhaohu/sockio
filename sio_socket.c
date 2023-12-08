@@ -665,10 +665,6 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 
-    union sio_sslopt sopt = {
-        .data = opt->data
-    };
-
     int ret = 0;
     switch (cmd) {
     case SIO_SOCK_PRIVATE:
@@ -704,7 +700,9 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
         break;
 
     case SIO_SOCK_SSL_CACERT:
+    {
         ret = -1;
+        union sio_sslopt sopt = { .data = opt->data };
         if (sock->stat.dup) {
             SIO_COND_CHECK_BREAK(!sock->ssl.sock);
             ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_CACERT, &sopt);
@@ -715,8 +713,11 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
                 ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_CACERT, &sopt));
         }
         break;
+    }
     case SIO_SOCK_SSL_USERCERT:
+    {
         ret = -1;
+        union sio_sslopt sopt = { .data = opt->data };
         if (sock->stat.dup) {
             SIO_COND_CHECK_BREAK(!sock->ssl.sock);
             ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_USERCERT, &sopt);
@@ -727,8 +728,11 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
                 ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_USERCERT, &sopt));
         }
         break;
+    }
     case SIO_SOCK_SSL_USERKEY:
+    {
         ret = -1;
+        union sio_sslopt sopt = { .data = opt->data };
         if (sock->stat.dup) {
             SIO_COND_CHECK_BREAK(!sock->ssl.sock);
             ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_USERKEY, &sopt);
@@ -739,6 +743,22 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
                 ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_USERKEY, &sopt));
         }
         break;
+    }
+    case SIO_SOCK_SSL_VERIFY_PEER:
+    {
+        ret = -1;
+        union sio_sslopt sopt = { .enable = opt->enable };
+        if (sock->stat.dup) {
+            SIO_COND_CHECK_BREAK(!sock->ssl.sock);
+            ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_VERIFY_PEER, &sopt);
+        } else {
+            SIO_COND_CHECK_CALLOPS(sock->ssl.ctx,
+                ret = sio_sslctx_setopt(sock->ssl.ctx, SIO_SSL_VERIFY_PEER, &sopt));
+            SIO_COND_CHECK_CALLOPS(sock->ssl.sock,
+                ret = sio_sockssl_setopt(sock->ssl.sock, SIO_SSL_VERIFY_PEER, &sopt));
+        }
+        break;
+    }
 
     default:
         ret = -1;

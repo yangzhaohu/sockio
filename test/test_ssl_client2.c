@@ -84,12 +84,16 @@ int main()
     opt.ops = ops;
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
-    // opt.data = "../cert/ca.crt";
-    // sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
-    // opt.data = "../cert/client.crt";
-    // sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
-    // opt.data = "../cert/client.key";
-    // sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
+    // verify server cert
+    opt.data = "../cert/ca.crt";
+    sio_socket_setopt(sock, SIO_SOCK_SSL_CACERT, &opt);
+    opt.enable = 1;
+    sio_socket_setopt(sock, SIO_SOCK_SSL_VERIFY_PEER, &opt);
+
+    opt.data = "../cert/client.crt";
+    sio_socket_setopt(sock, SIO_SOCK_SSL_USERCERT, &opt);
+    opt.data = "../cert/client.key";
+    sio_socket_setopt(sock, SIO_SOCK_SSL_USERKEY, &opt);
 
     struct sio_sockaddr addr = {
         // .addr = "39.156.66.10",

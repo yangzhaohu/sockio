@@ -116,8 +116,12 @@ int main()
     opt.ops = g_serv_ops;
     sio_socket_setopt(serv, SIO_SOCK_OPS, &opt);
 
+    // verify client cert
     opt.data = "../cert/ca.crt";
-    sio_socket_setopt(serv, SIO_SOCK_SSL_CACERT, &opt);
+    // sio_socket_setopt(serv, SIO_SOCK_SSL_CACERT, &opt);
+    // opt.enable = 1;
+    // sio_socket_setopt(serv, SIO_SOCK_SSL_VERIFY_PEER, &opt);
+
     opt.data = "../cert/server.crt";
     sio_socket_setopt(serv, SIO_SOCK_SSL_USERCERT, &opt);
     opt.data = "../cert/server.key";

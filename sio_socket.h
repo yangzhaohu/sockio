@@ -74,6 +74,7 @@ enum sio_sockoptc
     SIO_SOCK_SSL_CACERT,
     SIO_SOCK_SSL_USERCERT,
     SIO_SOCK_SSL_USERKEY,
+    SIO_SOCK_SSL_VERIFY_PEER
 };
 
 union sio_sockopt
@@ -88,6 +89,7 @@ union sio_sockopt
     int keepalive;
     int timeout; // ms
     const char *data;
+    unsigned char enable;
 };
 
 

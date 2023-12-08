@@ -24,25 +24,32 @@ int sio_sslctx_setopt(sio_sslctx_t ctx, enum sio_sslopc cmd, union sio_sslopt *o
     case SIO_SSL_CACERT:
         ret = SSL_CTX_load_verify_locations(ctx, opt->data, NULL);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, -1,
-            SIO_LOGE("SSL_CTX_load_verify_locations", ERR_error_string(ERR_get_error(), NULL)));
+            SIO_LOGE("SSL_CTX_load_verify_locations %s\n", ERR_error_string(ERR_get_error(), NULL)));
         break;
 
     case SIO_SSL_USERCERT:
         ret = SSL_CTX_use_certificate_file(ctx, opt->data, SSL_FILETYPE_PEM);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, -1,
-            SIO_LOGE("SSL_CTX_use_certificate_file", ERR_error_string(ERR_get_error(), NULL)));
+            SIO_LOGE("SSL_CTX_use_certificate_file %s\n", ERR_error_string(ERR_get_error(), NULL)));
         break;
 
     case SIO_SSL_USERKEY:
         ret = SSL_CTX_use_PrivateKey_file(ctx, opt->data, SSL_FILETYPE_PEM);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, -1,
-            SIO_LOGE("SSL_CTX_use_PrivateKey_file", ERR_error_string(ERR_get_error(), NULL)));
+            SIO_LOGE("SSL_CTX_use_PrivateKey_file %s\n", ERR_error_string(ERR_get_error(), NULL)));
 
         ret = SSL_CTX_check_private_key(ctx);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret != 1, -1,
-            SIO_LOGE("SSL_CTX_check_private_key", ERR_error_string(ERR_get_error(), NULL)));
+            SIO_LOGE("SSL_CTX_check_private_key %s\n", ERR_error_string(ERR_get_error(), NULL)));
         break;
     
+    case SIO_SSL_VERIFY_PEER:
+    {
+        int mode = opt->enable ? SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT : 0;
+        SSL_CTX_set_verify(ctx, mode, NULL);
+        break;
+    }
+
     default:
         ret = -1;
         break;
