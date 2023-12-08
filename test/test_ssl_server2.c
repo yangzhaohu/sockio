@@ -4,6 +4,18 @@
 #include "sio_permplex.h"
 #include "sio_log.h"
 
+char *g_resp = "HTTP/1.1 200 OK\r\n"
+            "Connection: Keep-Alive\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 125\r\n\r\n"
+            "<html>"
+            "<head><title>Hello</title></head>"
+            "<body>"
+            "<center><h1>Hello, Client</h1></center>"
+            "<hr><center>SOCKIO</center>"
+            "</body>"
+            "</html>";
+
 int socknew(struct sio_socket *serv);
 int handshaked(struct sio_socket *serv);
 int readable(struct sio_socket *sock);
@@ -51,7 +63,7 @@ int handshaked(struct sio_socket *sock)
 {
     SIO_LOGI("handshaked succeed\n");
 
-    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN | SIO_EVENTS_OUT);
+    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
 
     return 0;
 }
@@ -59,18 +71,16 @@ int handshaked(struct sio_socket *sock)
 int readable(struct sio_socket *sock)
 {
     char data[512] = { 0 };
-    int len = sio_socket_read(sock, data, 512);
-    if (len > 0 )
-        SIO_LOGI("recv %d: %s\n", len, data);
+    sio_socket_read(sock, data, 512);
+
+    sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_OUT);
 
     return 0;
 }
 
 int writeable(struct sio_socket *sock)
 {
-    const char *response = "hello, client\n";
-    int ret = sio_socket_write(sock, response, strlen(response));
-    SIO_LOGE("write len: %d, real: %d\n", ret, strlen(response));
+    int ret = sio_socket_write(sock, g_resp, strlen(g_resp));
     sio_socket_mplex(sock, SIO_EV_OPT_MOD, SIO_EVENTS_IN);
 
     return 0;
@@ -79,7 +89,7 @@ int writeable(struct sio_socket *sock)
 int closed(struct sio_socket *sock)
 {
     SIO_LOGI("close\n");
-    // sio_socket_destory(sock);
+    sio_socket_destory(sock);
 
     return 0;
 }
