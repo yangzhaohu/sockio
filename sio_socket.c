@@ -151,7 +151,7 @@ __thread int tls_sock_readerr = 0;
             SIO_EV_OPT_DEL, sock->fd, &event);                  \
     } while (0);
 
-#define sio_sockssl_handshake(sock)                                     \
+#define sio_sockssl_handshake2(sock)                                    \
     do {                                                                \
         int err = sio_sockssl_handshake(sock->ssl.sock);                \
         if (err == SIO_SOCKSSL_EWANTREAD) {                             \
@@ -171,10 +171,25 @@ __thread int tls_sock_readerr = 0;
             stat->events | stat->levents);                              \
     } while(0);
 
+#define sio_sockssl_async_handshake(sockpri, sslops)                        \
+    do {                                                                    \
+        int err = sslops(sockpri->ssl.sock);                                \
+        if (err == SIO_SOCKSSL_EWANTREAD) {                                 \
+            sio_socket_async_handshake_read(sockpri);                       \
+        } else if (err == SIO_SOCKSSL_EWANTREAD) {                          \
+            sio_socket_async_handshake_write(sockpri);                      \
+        } else if (err == 0) {                                              \
+            sockpri->stat.what = SIO_SOCK_ESTABLISHED;                      \
+            sio_sockssl_enable_membio(sockpri->ssl.sock);                   \
+            sio_socket_ops_call(sockpri->owner.ops.handshaked, sockpri);    \
+        }                                                                   \
+    } while (0);
+
+
 #define sio_socket_socket_recv(sock)                                        \
     do {                                                                    \
         if (stat->what == SIO_SOCK_HANDSHAKE) {                             \
-            sio_sockssl_handshake(sock);                                    \
+            sio_sockssl_handshake2(sock);                                   \
             break;                                                          \
         }                                                                   \
         sio_socket_ops_call(ops->readable, sock);                           \
@@ -213,6 +228,13 @@ __thread int tls_sock_readerr = 0;
             sio_socket_close_cleanup(sock);                                     \
             continue;                                                           \
         }                                                                       \
+        if (sock->attr.proto == SIO_SOCK_SSL) {                                 \
+            int len = sio_sockssl_writeto_rbio(sock->ssl.sock,                  \
+                event->buf.ptr, event->buf.len);                                \
+            len = sio_sockssl_read(sock->ssl.sock,                              \
+                event->buf.ptr, event->buf.len);                                \
+            event->buf.len = len;                                               \
+        }                                                                       \
         sio_socket_ops_call(ops->readasync,                                     \
             sock, event->buf.ptr, event->buf.len);                              \
     }                                                                           \
@@ -228,6 +250,15 @@ __thread int tls_sock_readerr = 0;
             extbuf);                                                            \
         sio_socket_ops_call(ops->acceptasync,                                   \
             sock, __sock);                                                      \
+        if (__sock->attr.proto == SIO_SOCK_SSL) {                               \
+            __sock->stat.what = SIO_SOCK_HANDSHAKE;                             \
+            sio_sockssl_async_handshake(__sock, sio_sockssl_accept);            \
+        }                                                                       \
+    }                                                                           \
+    if (event->events & (SIO_EVENTS_ASYNC_HANDSHAKE_READ |                      \
+        SIO_EVENTS_ASYNC_HANDSHAKE_WRITE)) {                                    \
+        sio_sockssl_async_handshake(sock, sio_sockssl_handshake);               \
+        continue;                                                               \
     }                                                                           \
     if (event->events & SIO_EVENTS_OUT) {                                       \
         if (stat->what == SIO_SOCK_CONNECT) {                                   \
@@ -255,7 +286,7 @@ __thread int tls_sock_readerr = 0;
             sio_socket_mplex_imp(sock, SIO_EV_OPT_MOD,                          \
                 stat->events | stat->levents);                                  \
         } else if (stat->what == SIO_SOCK_HANDSHAKE) {                          \
-            sio_sockssl_handshake(sock);                                        \
+            sio_sockssl_handshake2(sock);                                       \
         } else if (stat->what == SIO_SOCK_ESTABLISHED) {                        \
             sio_socket_ops_call(ops->writeable, sock);                          \
         }                                                                       \
@@ -264,6 +295,38 @@ __thread int tls_sock_readerr = 0;
 
 static inline
 int sio_socket_mplex_imp(struct sio_socket *sock, enum sio_events_opt op, enum sio_events events);
+
+static inline
+int sio_socket_async_handshake_read(struct sio_socket *sock)
+{
+    struct sio_event ev = { 0 };
+    ev.events |= SIO_EVENTS_ASYNC_HANDSHAKE_READ;
+    ev.pri = sock;
+    ev.buf.ptr = SIO_SOCK_EXT_TO_AIOBUF(sock->extbuf);
+    ev.buf.len = 0;
+
+#ifdef WIN32
+    return sio_aio_recv(sock->fd, &ev);
+#else
+    return -1;
+#endif
+}
+
+static inline
+int sio_socket_async_handshake_write(struct sio_socket *sock)
+{
+    struct sio_event ev = { 0 };
+    ev.events |= SIO_EVENTS_ASYNC_HANDSHAKE_WRITE;
+    ev.pri = sock;
+    ev.buf.ptr = SIO_SOCK_EXT_TO_AIOBUF(sock->extbuf);
+    ev.buf.len = 0;
+
+#ifdef WIN32
+    return sio_aio_send(sock->fd, &ev);
+#else
+    return -1;
+#endif
+}
 
 extern int sio_socket_event_dispatch(struct sio_event *events, int count)
 {
@@ -277,7 +340,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
         struct sio_socket_state *stat = &sock->stat;
         struct sio_socket_owner *owner = &sock->owner;
         struct sio_sockops *ops = &owner->ops;
-        // SIO_LOGI("socket fd: %d, event: %d\n", sock->fd, event->events);
+        // SIO_LOGI("socket fd: %d, event: 0x%x\n", sock->fd, event->events);
 
         sio_socket_event_dispatch_once(event);
     }
@@ -978,9 +1041,9 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int len)
         ret = sio_socket_read_imp(sock, buf, len, &addr);
     } else {
         ret = sio_sockssl_read(sock->ssl.sock, buf, len);
-        if (ret == SIO_SOCKSSL_EZERORETURN) {
+        /*if (ret == SIO_SOCKSSL_EZERORETURN) {
             ret = sio_sockssl_shutdown(sock->ssl.sock);
-        } else if (ret == SIO_SOCKSSL_ESSL) {
+        } else */if (ret == SIO_SOCKSSL_ESSL) {
             ret = 0; // close
         }
     }
@@ -1024,11 +1087,9 @@ int sio_socket_readfrom(struct sio_socket *sock, char *buf, int len, struct sio_
     return ret;
 }
 
-int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
+static inline
+int sio_socket_async_read_imp(struct sio_socket *sock, char *buf, int len)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1 || !sock->mp, -1);
-    SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
-
     struct sio_event ev = { 0 };
     ev.events |= SIO_EVENTS_ASYNC_READ;
     ev.pri = sock;
@@ -1040,6 +1101,14 @@ int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
 #else
     return -1;
 #endif
+}
+
+int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1 || !sock->mp, -1);
+    SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
+
+    return sio_socket_async_read_imp(sock, buf, len);
 }
 
 int sio_socket_write(struct sio_socket *sock, const char *buf, int len)
@@ -1065,11 +1134,9 @@ int sio_socket_writeto(struct sio_socket *sock, const char *buf, int len, struct
     return sendto(sock->fd, buf, len, 0, (const struct sockaddr *)&addr, sizeof(struct sockaddr_in));
 }
 
-int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
+static inline
+int sio_socket_async_write_imp(struct sio_socket *sock, char *buf, int len)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1 || !sock->mp, -1);
-    SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
-
     struct sio_event ev = { 0 };
     ev.events |= SIO_EVENTS_ASYNC_WRITE;
     ev.pri = sock;
@@ -1081,6 +1148,22 @@ int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
 #else
     return -1;
 #endif
+}
+
+int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
+{
+    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1 || !sock->mp, -1);
+    SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
+
+    if (sock->attr.proto == SIO_SOCK_SSL) {
+        int l = sio_sockssl_write(sock->ssl.sock, buf, len);
+        SIO_COND_CHECK_RETURN_VAL(l <= 0, -1);
+
+        int pending = sio_sockssl_wbio_pending(sock->ssl.sock);
+        len = sio_sockssl_readfrom_wbio(sock->ssl.sock, buf, pending);
+    }
+
+    return sio_socket_async_write_imp(sock, buf, len);
 }
 
 static inline

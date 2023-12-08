@@ -6,6 +6,8 @@
 #include "sio_overlap.h"
 #include "sio_log.h"
 
+#define SIO_AIO_BUFF_PADDING 512
+
 union sio_aioctx
 {
 #ifdef WIN32
@@ -50,6 +52,8 @@ int sio_aioctx_size_imp()
 
 sio_aiobuf sio_aiobuf_alloc(unsigned long size)
 {
+    size += SIO_AIO_BUFF_PADDING; // for ssl
+
     int must = sio_aioctx_size_imp();
     char *buf = malloc(size + must);
 

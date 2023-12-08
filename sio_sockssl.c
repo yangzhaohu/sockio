@@ -9,6 +9,8 @@
 struct sio_sockssl
 {
     SSL *ssl;
+    BIO *rio;
+    BIO *wio;
 };
 
 static inline
@@ -24,6 +26,8 @@ struct sio_sockssl *sio_sockssl_create(sio_sslctx_t ctx)
     struct sio_sockssl *ssock = malloc(sizeof(struct sio_sockssl));
     SIO_COND_CHECK_RETURN_VAL(!ssock, NULL);
 
+    memset(ssock, 0, sizeof(struct sio_sockssl));
+
     SSL *ssl = SSL_new(ctx);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!ssl, NULL,
         SIO_LOGE("SSL_new failed\n"),
@@ -38,6 +42,8 @@ struct sio_sockssl *sio_sockssl_dup(struct sio_sockssl *ssock)
 {
     struct sio_sockssl *dupsock = malloc(sizeof(struct sio_sockssl));
     SIO_COND_CHECK_RETURN_VAL(!dupsock, NULL);
+
+    memset(dupsock, 0, sizeof(struct sio_sockssl));
 
     SSL *ssl = SSL_dup(ssock->ssl);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!ssl, NULL,
@@ -86,6 +92,19 @@ int sio_sockssl_setfd(struct sio_sockssl *ssock, sio_fd_t fd)
     return 0;
 }
 
+int sio_sockssl_enable_membio(struct sio_sockssl *ssock)
+{
+    if (ssock->rio) {
+        return 0;
+    }
+
+    ssock->rio = BIO_new(BIO_s_mem());
+    ssock->wio = BIO_new(BIO_s_mem());
+    SSL_set_bio(ssock->ssl, ssock->rio, ssock->wio);
+
+    return 0;
+}
+
 int sio_sockssl_accept(struct sio_sockssl *ssock)
 {
     int ret = SSL_accept(ssock->ssl);
@@ -114,6 +133,26 @@ int sio_sockssl_handshake(struct sio_sockssl *ssock)
         sio_sockssl_errprint("SSL_do_handshake", -ret));
 
     return 0;
+}
+
+int sio_sockssl_readfrom_wbio(struct sio_sockssl *ssock, char *buf, int len)
+{
+    int ret = BIO_read(ssock->wio, buf, len);
+    SIO_COND_CHECK_RETURN_VAL(ret < 0, -1);
+    return ret;
+}
+
+int sio_sockssl_wbio_pending(struct sio_sockssl *ssock)
+{
+    return BIO_ctrl_pending(ssock->wio);
+}
+
+int sio_sockssl_writeto_rbio(struct sio_sockssl *ssock, char *data, int len)
+{
+    int ret = BIO_write(ssock->rio, data, len);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret < 0, -1,
+        sio_sockssl_errprint("BIO_write", ret));
+    return ret;
 }
 
 int sio_sockssl_read(struct sio_sockssl *ssock, char *buf, int len)

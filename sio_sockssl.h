@@ -22,11 +22,19 @@ int sio_sockssl_setopt(struct sio_sockssl *ssock, enum sio_sslopc cmd, union sio
 
 int sio_sockssl_setfd(struct sio_sockssl *ssock, sio_fd_t fd);
 
+int sio_sockssl_enable_membio(struct sio_sockssl *ssock);
+
 int sio_sockssl_accept(struct sio_sockssl *ssock);
 
 int sio_sockssl_connect(struct sio_sockssl *ssock);
 
 int sio_sockssl_handshake(struct sio_sockssl *ssock);
+
+int sio_sockssl_readfrom_wbio(struct sio_sockssl *ssock, char *buf, int len);
+
+int sio_sockssl_wbio_pending(struct sio_sockssl *ssock);
+
+int sio_sockssl_writeto_rbio(struct sio_sockssl *ssock, char *buf, int len);
 
 int sio_sockssl_read(struct sio_sockssl *ssock, char *buf, int len);
 
