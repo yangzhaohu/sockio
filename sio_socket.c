@@ -1251,7 +1251,7 @@ int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socksh how)
             sock->stat.events | sock->stat.levents);
     }
 
-    if (sock->attr.proto == SIO_SOCK_SSL) {
+    if (sock->ssl.sock && sock->attr.proto == SIO_SOCK_SSL) {
         int ret = sio_sockssl_shutdown(sock->ssl.sock);
         SIO_COND_CHECK_CALLOPS(ret != SIO_SOCKSSL_EWANTREAD &&
             ret != SIO_SOCKSSL_EWANTWRITE,
