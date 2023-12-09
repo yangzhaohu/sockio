@@ -87,10 +87,10 @@ int sio_server_threads_create(struct sio_server *serv, unsigned char threads)
 {
     struct sio_permplex **pmplexs = serv->pmplexs;
 
-#ifdef WIN32
-    enum SIO_MPLEX_TYPE type = SIO_MPLEX_IOCP;
-#else
+#ifdef LINUX
     enum SIO_MPLEX_TYPE type = SIO_MPLEX_EPOLL;
+#else
+    enum SIO_MPLEX_TYPE type = SIO_MPLEX_SELECT;
 #endif
 
     int ret = 0;
@@ -212,6 +212,31 @@ int sio_server_setopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_
         sio_server_set_ops(serv, &opt->ops);
         break;
     
+    case SIO_SERV_SSL_CACERT:
+    {
+        union sio_sockopt opt2 = { .data = opt->data };
+        sio_socket_setopt(serv->sock, SIO_SOCK_SSL_CACERT, &opt2);
+        break;
+    }
+    case SIO_SERV_SSL_USERCERT:
+    {
+        union sio_sockopt opt2 = { .data = opt->data };
+        sio_socket_setopt(serv->sock, SIO_SOCK_SSL_USERCERT, &opt2);
+        break;
+    }
+    case SIO_SERV_SSL_USERKEY:
+    {
+        union sio_sockopt opt2 = { .data = opt->data };
+        sio_socket_setopt(serv->sock, SIO_SOCK_SSL_USERKEY, &opt2);
+        break;
+    }
+    case SIO_SERV_SSL_VERIFY_PEER:
+    {
+        union sio_sockopt opt2 = { .enable = opt->enable };
+        sio_socket_setopt(serv->sock, SIO_SOCK_SSL_VERIFY_PEER, &opt2);
+        break;
+    }
+
     default:
         ret = -1;
         break;

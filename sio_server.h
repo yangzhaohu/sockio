@@ -8,7 +8,11 @@ struct sio_server;
 enum sio_servoptc
 {
     SIO_SERV_PRIVATE,
-    SIO_SERV_OPS
+    SIO_SERV_OPS,
+    SIO_SERV_SSL_CACERT,
+    SIO_SERV_SSL_USERCERT,
+    SIO_SERV_SSL_USERKEY,
+    SIO_SERV_SSL_VERIFY_PEER
 };
 
 struct sio_servops
@@ -20,6 +24,8 @@ union sio_servopt
 {
     void *private;
     struct sio_servops ops;
+    const char *data;
+    unsigned char enable;
 };
 
 #ifdef __cplusplus

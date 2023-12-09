@@ -28,7 +28,8 @@ SRCS := test_mplex_close.c \
 	test_ssl_client2.c \
 	test_ssl_server.c \
 	test_ssl_server2.c \
-	test_ssl_server3.c
+	test_ssl_server3.c \
+	test_server.c
 
 ifeq ($(compiler), gcc)
 OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)

@@ -28,6 +28,16 @@ EXPORTS
     sio_socket_shutdown
     sio_socket_close
     sio_socket_destory
+; sio_server
+    sio_server_create
+    sio_server_create2
+    sio_server_setopt
+    sio_server_getopt
+    sio_server_listen
+    sio_server_accept
+    sio_server_socket_mplex
+    sio_server_shutdown
+    sio_server_destory
 ; sio_event
     sio_aiobuf_alloc
     sio_aiobuf_free
