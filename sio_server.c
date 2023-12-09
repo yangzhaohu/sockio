@@ -52,12 +52,12 @@ struct sio_server
     struct sio_server_mlb mlb;
 };
 
-static int sio_socket_accpet(struct sio_socket *sock);
+static int sio_server_accpet_socket(struct sio_socket *sock);
 void *sio_work_thread_start_routine(void *arg);
 
 static struct sio_sockops g_serv_ops = 
 {
-    .readable = sio_socket_accpet
+    .readable = sio_server_accpet_socket
 };
 
 #define SIO_SERVER_THREADS_CREATE(thread, ops, count, ret) \
@@ -279,7 +279,7 @@ int sio_server_accept_cb(struct sio_server *serv)
     return owner->ops.accept == NULL ? 0 : owner->ops.accept(serv);
 }
 
-static int sio_socket_accpet(struct sio_socket *sock)
+static int sio_server_accpet_socket(struct sio_socket *sock)
 {
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
