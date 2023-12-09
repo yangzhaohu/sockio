@@ -79,11 +79,7 @@ int main(int argc, char *argv[])
     int cmd = 0;
     struct sio_server *serv = NULL;
     union sio_servopt opt;
-    while (1) {
-        cmd = getopt(argc, argv, "p:c:k:a:v:h");
-        if (cmd == -1) {
-            break;
-        }
+    while ((cmd = getopt(argc, argv, "p:c:k:a:v:h")) != -1) {
         switch (cmd) {
             case 'p':
                 if (atoi(optarg) == 0) {
