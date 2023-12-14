@@ -7,38 +7,20 @@
 #define SIO_LOG_LEVEL_WAR     4    // warn
 #define SIO_LOG_LEVEL_ERR     5    // error
 
-#define SIO_LOG_LEVEL_DES1  "TRC"
-#define SIO_LOG_LEVEL_DES2  "DBG"
-#define SIO_LOG_LEVEL_DES3  "INF"
-#define SIO_LOG_LEVEL_DES4  "WAR"
-#define SIO_LOG_LEVEL_DES5  "ERR"
 
-#define SIO_LOG_TO_STR(a) _SIO_LOG_TO_STR(a)
-#define _SIO_LOG_TO_STR(a) #a
-#define SIO_LOG_CONCAT_STR(a, b) _SIO_LOG_CONCAT_STR(a, b)
-#define _SIO_LOG_CONCAT_STR(a, b) a##b
-
-#define SIO_LOG_LEVEL_STRING(level)  SIO_LOG_CONCAT_STR(SIO_LOG_LEVEL_DES, level)
-
-#define SIO_LOG_IMP(level, format, ...) sio_logg(level,                 \
-    "[%s][0x%x][%s]" format,                                            \
-    sio_timezone(), sio_gettid(), SIO_LOG_LEVEL_STRING(level),          \
-    ##__VA_ARGS__)
-
-#define SIO_LOGT(format, ...) SIO_LOG_IMP(SIO_LOG_LEVEL_TRC, format, ##__VA_ARGS__)
-#define SIO_LOGD(format, ...) SIO_LOG_IMP(SIO_LOG_LEVEL_DBG, format, ##__VA_ARGS__)
-#define SIO_LOGI(format, ...) SIO_LOG_IMP(SIO_LOG_LEVEL_ERR, format, ##__VA_ARGS__)
-#define SIO_LOGW(format, ...) SIO_LOG_IMP(SIO_LOG_LEVEL_WAR, format, ##__VA_ARGS__)
-#define SIO_LOGE(format, ...) SIO_LOG_IMP(SIO_LOG_LEVEL_ERR, format, ##__VA_ARGS__)
+#define SIO_LOGT(format, ...) sio_logg(SIO_LOG_LEVEL_TRC, format, ##__VA_ARGS__)
+#define SIO_LOGD(format, ...) sio_logg(SIO_LOG_LEVEL_DBG, format, ##__VA_ARGS__)
+#define SIO_LOGI(format, ...) sio_logg(SIO_LOG_LEVEL_ERR, format, ##__VA_ARGS__)
+#define SIO_LOGW(format, ...) sio_logg(SIO_LOG_LEVEL_WAR, format, ##__VA_ARGS__)
+#define SIO_LOGE(format, ...) sio_logg(SIO_LOG_LEVEL_ERR, format, ##__VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const char *sio_timezone();
-extern int sio_gettid();
-
 void sio_logg_setlevel(int level);
+
+void sio_logg_ebable_prefix(int enable);
 
 int sio_logg(int level, const char *format, ...);
 
