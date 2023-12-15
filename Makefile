@@ -42,6 +42,7 @@ SRCS := sio_global.cpp \
 		sio_sockssl.c \
 		sio_aio.c \
 		sio_server.c \
+		sio_aserver.c \
 		sio_thread.c \
 		sio_thread_pthread.c \
 		sio_thread_win.c \
