@@ -43,7 +43,7 @@ struct sio_sockops
     int (*handshaked)(struct sio_socket *sock);
     int (*readable)(struct sio_socket *sock);
     int (*writeable)(struct sio_socket *sock);
-    int (*acceptasync)(struct sio_socket *sock, struct sio_socket *newsock);
+    int (*acceptasync)(struct sio_socket *serv, struct sio_socket *sock);
     int (*readasync)(struct sio_socket *sock, const char *data, int len);
     int (*writeasync)(struct sio_socket *sock, const char *data, int len);
     int (*closeable)(struct sio_socket *sock);
@@ -99,8 +99,8 @@ extern "C" {
 
 unsigned int sio_socket_struct_size();
 
-struct sio_socket *sio_socket_create(enum sio_sockprot proto, char *placement);
-struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement);
+struct sio_socket *sio_socket_create(enum sio_sockprot prot, char *placement);
+struct sio_socket *sio_socket_create2(enum sio_sockprot prot, char *placement);
 
 struct sio_socket *sio_socket_dup(struct sio_socket *sock, char *placement);
 struct sio_socket *sio_socket_dup2(struct sio_socket *sock, char *placement);

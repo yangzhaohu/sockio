@@ -5,6 +5,12 @@
 
 struct sio_server;
 
+enum sio_servio
+{
+    SIO_SERV_NIO,
+    SIO_SERV_AIO
+};
+
 enum sio_servoptc
 {
     SIO_SERV_PRIVATE,
@@ -17,7 +23,7 @@ enum sio_servoptc
 
 struct sio_servops
 {
-    int (*accept)(struct sio_server *serv);
+    int (*newconnection)(struct sio_socket *sock);
 };
 
 union sio_servopt
@@ -32,18 +38,20 @@ union sio_servopt
 extern "C" {
 #endif
 
-struct sio_server *sio_server_create(enum sio_sockprot type);
+int sio_server_set_default(enum sio_servio mode);
 
-struct sio_server *sio_server_create2(enum sio_sockprot type, unsigned char threads);
+struct sio_server *sio_server_create(enum sio_sockprot prot);
+
+struct sio_server *sio_server_create2(enum sio_sockprot prot, unsigned char threads);
 
 int sio_server_setopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt);
 int sio_server_getopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt);
 
 int sio_server_listen(struct sio_server *serv, struct sio_sockaddr *addr);
 
-int sio_server_accept(struct sio_server *serv, struct sio_socket *sock);
+struct sio_server *sio_server_socket_server(struct sio_socket *sock);
 
-int sio_server_socket_mplex(struct sio_server *serv, struct sio_socket *sock);
+int sio_server_socket_reuse(struct sio_socket *sock);
 
 int sio_server_shutdown(struct sio_server *serv);
 

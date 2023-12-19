@@ -50,9 +50,8 @@ int closed(struct sio_socket *sock)
     return 0;
 }
 
-int socknew(struct sio_server *serv)
+int socknew(struct sio_socket *sock)
 {
-    struct sio_socket *sock = sio_socket_create(g_prot, NULL);
     union sio_sockopt opt = {
         .ops.readable = readable,
         .ops.writeable = writeable,
@@ -63,19 +62,12 @@ int socknew(struct sio_server *serv)
     opt.nonblock = 1;
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
-    int ret = sio_server_accept(serv, sock);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        sio_socket_destory(sock));
-
-    ret = sio_server_socket_mplex(serv, sock);
-    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-        sio_socket_destory(sock));
-
     return 0;
 }
 
 int main(int argc, char *argv[])
 {
+    sio_logg_enable_prefix(0);
     int cmd = 0;
     struct sio_server *serv = NULL;
     union sio_servopt opt;
@@ -119,7 +111,7 @@ int main(int argc, char *argv[])
                 SIO_LOGI("    -p proto       network proto type, 0: TCP, 2: SSL/TLS\n");
                 SIO_LOGI("    -c usercert    user cert filename\n");
                 SIO_LOGI("    -k userkey     user key filename\n");
-                SIO_LOGI("    -k cacert      cacert filename\n");
+                SIO_LOGI("    -a cacert      cacert filename\n");
                 SIO_LOGI("    -v verify      verify peer, 0: disable, 1: enable\n");
                 return 0;
         }
@@ -147,7 +139,7 @@ int main(int argc, char *argv[])
         serv = sio_server_create(g_prot);
     }
 
-    opt.ops.accept = socknew;
+    opt.ops.newconnection = socknew;
     sio_server_setopt(serv, SIO_SERV_OPS, &opt);
 
     sio_server_listen(serv, &g_addr);

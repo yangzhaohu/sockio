@@ -20,7 +20,7 @@ extern "C" {
 
 void sio_logg_setlevel(int level);
 
-void sio_logg_ebable_prefix(int enable);
+void sio_logg_enable_prefix(int enable);
 
 int sio_logg(int level, const char *format, ...);
 

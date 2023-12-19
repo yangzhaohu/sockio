@@ -26,7 +26,7 @@ enum sio_socket_mean
 
 struct sio_socket_attr
 {
-    enum sio_sockprot proto;
+    enum sio_sockprot prot;
     enum sio_socket_mean mean;
     int nonblock;
 };
@@ -229,7 +229,7 @@ __thread int tls_sock_readerr = 0;
             sio_socket_close_cleanup(sock);                                     \
             continue;                                                           \
         }                                                                       \
-        if (sock->attr.proto == SIO_SOCK_SSL) {                                 \
+        if (sock->attr.prot == SIO_SOCK_SSL) {                                  \
             int len = sio_sockssl_writeto_rbio(sock->ssl.sock,                  \
                 event->buf.ptr, event->buf.len);                                \
             len = sio_sockssl_read(sock->ssl.sock,                              \
@@ -251,7 +251,7 @@ __thread int tls_sock_readerr = 0;
             extbuf);                                                            \
         sio_socket_ops_call(ops->acceptasync,                                   \
             sock, __sock);                                                      \
-        if (__sock->attr.proto == SIO_SOCK_SSL) {                               \
+        if (__sock->attr.prot == SIO_SOCK_SSL) {                                \
             __sock->stat.what = SIO_SOCK_HANDSHAKE;                             \
             sio_sockssl_async_handshake(__sock, sio_sockssl_accept);            \
         }                                                                       \
@@ -268,7 +268,7 @@ __thread int tls_sock_readerr = 0;
             int ret = getsockopt(sock->fd,                                      \
                 SOL_SOCKET, SO_ERROR, (void *)&errval, &errl);                  \
             if (ret == 0 && errval == 0) {                                      \
-                if (attr->proto == SIO_SOCK_SSL) {                              \
+                if (attr->prot == SIO_SOCK_SSL) {                               \
                     stat->what = SIO_SOCK_HANDSHAKE;                            \
                     sio_socket_ops_call(ops->connected,                         \
                         sock, SIO_SOCK_ESTABLISHED);                            \
@@ -350,12 +350,12 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
 }
 
 static inline
-sio_fd_t sio_socket_sock(enum sio_sockprot proto)
+sio_fd_t sio_socket_sock(enum sio_sockprot prot)
 {
     sio_fd_t fd;
-    if (proto == SIO_SOCK_TCP || proto == SIO_SOCK_SSL) {
+    if (prot == SIO_SOCK_TCP || prot == SIO_SOCK_SSL) {
         fd = socket(PF_INET, SOCK_STREAM, 0);
-    } else if (proto == SIO_SOCK_UDP) {
+    } else if (prot == SIO_SOCK_UDP) {
         fd = socket(PF_INET, SOCK_DGRAM, 0);
     } else {
         fd = -1;
@@ -365,10 +365,10 @@ sio_fd_t sio_socket_sock(enum sio_sockprot proto)
 }
 
 static inline 
-unsigned short sio_socket_domain(enum sio_sockprot proto)
+unsigned short sio_socket_domain(enum sio_sockprot prot)
 {
     unsigned short domain = PF_INET;
-    if (SIO_SOCK_TCP <= proto && SIO_SOCK_SSL <= proto) {
+    if (SIO_SOCK_TCP <= prot && SIO_SOCK_SSL <= prot) {
         domain = PF_INET;
     }
 
@@ -506,7 +506,7 @@ int sio_socket_set_sock_timeout(struct sio_socket *sock, int ms, enum sio_sockop
 static inline 
 void sio_socket_addr_in(struct sio_socket *sock, struct sio_sockaddr *addr, struct sockaddr_in *addr_in)
 {
-    unsigned short domain = sio_socket_domain(sock->attr.proto);
+    unsigned short domain = sio_socket_domain(sock->attr.prot);
     
     addr_in->sin_family = domain;
     addr_in->sin_port = htons(addr->port);
@@ -528,7 +528,7 @@ void sio_socket_destory_imp(struct sio_socket *sock)
 }
 
 static inline
-struct sio_socket *sio_socket_alloc(enum sio_sockprot proto, char *placement)
+struct sio_socket *sio_socket_alloc(enum sio_sockprot prot, char *placement)
 {
     struct sio_socket *sock = (struct sio_socket *)placement;
     if (sock == NULL) {
@@ -544,7 +544,7 @@ struct sio_socket *sio_socket_alloc(enum sio_sockprot proto, char *placement)
     stat->what = SIO_SOCK_NONE;
 
     struct sio_socket_attr *attr = &sock->attr;
-    attr->proto = proto;
+    attr->prot = prot;
     attr->mean = SIO_SOCK_MEAN_SOCKET;
     
     sock->fd = -1;
@@ -553,12 +553,12 @@ struct sio_socket *sio_socket_alloc(enum sio_sockprot proto, char *placement)
 }
 
 static inline
-struct sio_socket *sio_socket_create_imp(enum sio_sockprot proto, char *placement)
+struct sio_socket *sio_socket_create_imp(enum sio_sockprot prot, char *placement)
 {
-    struct sio_socket *sock = sio_socket_alloc(proto, placement);
+    struct sio_socket *sock = sio_socket_alloc(prot, placement);
     SIO_COND_CHECK_RETURN_VAL(!sock, NULL);
 
-    if (proto == SIO_SOCK_SSL) {
+    if (prot == SIO_SOCK_SSL) {
         sock->ssl.ctx = sio_sslctx_create();
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock->ssl.ctx, NULL,
             sio_socket_destory_imp(sock));
@@ -572,27 +572,27 @@ unsigned int sio_socket_struct_size()
     return sizeof(struct sio_socket);
 }
 
-struct sio_socket *sio_socket_create(enum sio_sockprot proto, char *placement)
+struct sio_socket *sio_socket_create(enum sio_sockprot prot, char *placement)
 {
-    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_SSL, NULL);
+    SIO_COND_CHECK_RETURN_VAL(prot < SIO_SOCK_TCP || prot > SIO_SOCK_SSL, NULL);
 
-    return sio_socket_create_imp(proto, placement);
+    return sio_socket_create_imp(prot, placement);
 }
 
-struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement)
+struct sio_socket *sio_socket_create2(enum sio_sockprot prot, char *placement)
 {
-    SIO_COND_CHECK_RETURN_VAL(proto < SIO_SOCK_TCP || proto > SIO_SOCK_SSL, NULL);
+    SIO_COND_CHECK_RETURN_VAL(prot < SIO_SOCK_TCP || prot > SIO_SOCK_SSL, NULL);
 
-    struct sio_socket *sock = sio_socket_create_imp(proto, placement);
+    struct sio_socket *sock = sio_socket_create_imp(prot, placement);
     SIO_COND_CHECK_RETURN_VAL(!sock, NULL);
 
-    sio_fd_t fd = sio_socket_sock(proto);
+    sio_fd_t fd = sio_socket_sock(prot);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, NULL,
         SIO_LOGE("socket failed\n"),
         sio_socket_destory_imp(sock));
 
     sock->fd = fd;
-    if (proto == SIO_SOCK_SSL) {
+    if (prot == SIO_SOCK_SSL) {
         sock->ssl.sock = sio_sockssl_create(sock->ssl.ctx);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock->ssl.sock, NULL,
             sio_socket_destory_imp(sock));
@@ -606,11 +606,11 @@ struct sio_socket *sio_socket_create2(enum sio_sockprot proto, char *placement)
 
 struct sio_socket *sio_socket_dup(struct sio_socket *sock, char *placement)
 {
-    enum sio_sockprot proto = sock->attr.proto;
-    struct sio_socket *sdup = sio_socket_alloc(proto, placement);
+    enum sio_sockprot prot = sock->attr.prot;
+    struct sio_socket *sdup = sio_socket_alloc(prot, placement);
     SIO_COND_CHECK_RETURN_VAL(!sdup, NULL);
 
-    if (proto == SIO_SOCK_SSL) {
+    if (prot == SIO_SOCK_SSL) {
         sdup->ssl.sock = sio_sockssl_create(sock->ssl.ctx);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sdup->ssl.sock, NULL,
             sio_socket_destory_imp(sdup));
@@ -627,17 +627,17 @@ struct sio_socket *sio_socket_dup(struct sio_socket *sock, char *placement)
 
 struct sio_socket *sio_socket_dup2(struct sio_socket *sock, char *placement)
 {
-    enum sio_sockprot proto = sock->attr.proto;
-    struct sio_socket *sdup = sio_socket_alloc(proto, placement);
+    enum sio_sockprot prot = sock->attr.prot;
+    struct sio_socket *sdup = sio_socket_alloc(prot, placement);
     SIO_COND_CHECK_RETURN_VAL(!sdup, NULL);
 
-    sio_fd_t fd = sio_socket_sock(proto);
+    sio_fd_t fd = sio_socket_sock(prot);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, NULL,
         SIO_LOGE("socket failed\n"),
         sio_socket_destory_imp(sock));
 
     sdup->fd = fd;
-    if (proto == SIO_SOCK_SSL) {
+    if (prot == SIO_SOCK_SSL) {
         sdup->ssl.sock = sio_sockssl_create(sock->ssl.ctx);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sdup->ssl.sock, NULL,
             sio_socket_destory_imp(sdup));
@@ -843,7 +843,7 @@ int sio_socket_bind(struct sio_socket *sock, struct sio_sockaddr *addr)
     struct sio_socket_attr *attr = &sock->attr;
     sio_fd_t fd = -1;
     if (sock->fd == -1) {
-        fd = sio_socket_sock(attr->proto);
+        fd = sio_socket_sock(attr->prot);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
             SIO_LOGE("socket socket failed\n"));
     }
@@ -870,7 +870,7 @@ int sio_socket_listen(struct sio_socket *sock, struct sio_sockaddr *addr)
     struct sio_socket_attr *attr = &sock->attr;
     sio_fd_t fd = sock->fd;
     if (fd == -1) {
-        fd = sio_socket_sock(attr->proto);
+        fd = sio_socket_sock(attr->prot);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
             SIO_LOGE("socket socket failed\n"));
     }
@@ -943,7 +943,7 @@ int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock)
         sio_socket_set_nonblock(newsock, 1);
     }
 
-    if (newsock->attr.proto == SIO_SOCK_SSL) {
+    if (newsock->attr.prot == SIO_SOCK_SSL) {
         if (!newsock->ssl.sock) {
             newsock->ssl.sock = sio_sockssl_create(sock->ssl.ctx);
             SIO_COND_CHECK_RETURN_VAL(!newsock->ssl.sock, -1);
@@ -977,7 +977,7 @@ int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock)
 int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
-    SIO_COND_CHECK_RETURN_VAL(serv->fd == -1 || sock->fd == -1 || !sock->mp, -1);
+    SIO_COND_CHECK_RETURN_VAL(serv->fd == -1 || sock->fd == -1, -1);
 
     struct sio_event ev = { 0 };
     ev.events |= SIO_EVENTS_ASYNC_ACCEPT;
@@ -1011,7 +1011,7 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
     struct sio_socket_attr *attr = &sock->attr;
     sio_fd_t fd = sock->fd;
     if (fd == -1) {
-        fd = sio_socket_sock(attr->proto);
+        fd = sio_socket_sock(attr->prot);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(fd == -1, -1,
             SIO_LOGE("socket failed\n"));
     }
@@ -1027,7 +1027,7 @@ int sio_socket_connect(struct sio_socket *sock, struct sio_sockaddr *addr)
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && err == 1, -1, 
         close(fd));
 
-    if (sock->attr.proto == SIO_SOCK_SSL) {
+    if (sock->attr.prot == SIO_SOCK_SSL) {
         if (!sock->ssl.sock) {
             sock->ssl.sock = sio_sockssl_create(sock->ssl.ctx);
             SIO_COND_CHECK_RETURN_VAL(!sock->ssl.sock, -1);
@@ -1070,7 +1070,7 @@ int sio_socket_read(struct sio_socket *sock, char *buf, int len)
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
 
     int ret;
-    if (sock->attr.proto != SIO_SOCK_SSL) {
+    if (sock->attr.prot != SIO_SOCK_SSL) {
         struct sockaddr_in addr = { 0 };
         ret = sio_socket_read_imp(sock, buf, len, &addr);
     } else {
@@ -1139,7 +1139,7 @@ int sio_socket_async_read_imp(struct sio_socket *sock, char *buf, int len)
 
 int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1 || !sock->mp, -1);
+    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
 
     return sio_socket_async_read_imp(sock, buf, len);
@@ -1150,7 +1150,7 @@ int sio_socket_write(struct sio_socket *sock, const char *buf, int len)
     SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
 
-    if (sock->attr.proto == SIO_SOCK_SSL) {
+    if (sock->attr.prot == SIO_SOCK_SSL) {
         return sio_sockssl_write(sock->ssl.sock, buf, len);
     }
 
@@ -1186,10 +1186,10 @@ int sio_socket_async_write_imp(struct sio_socket *sock, char *buf, int len)
 
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)
 {
-    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1 || !sock->mp, -1);
+    SIO_COND_CHECK_RETURN_VAL(!sock || sock->fd == -1, -1);
     SIO_COND_CHECK_RETURN_VAL(!buf || len == 0, -1);
 
-    if (sock->attr.proto == SIO_SOCK_SSL) {
+    if (sock->attr.prot == SIO_SOCK_SSL) {
         int l = sio_sockssl_write(sock->ssl.sock, buf, len);
         SIO_COND_CHECK_RETURN_VAL(l <= 0, -1);
 
@@ -1251,7 +1251,7 @@ int sio_socket_shutdown_imp(struct sio_socket *sock, enum sio_socksh how)
             sock->stat.events | sock->stat.levents);
     }
 
-    if (sock->ssl.sock && sock->attr.proto == SIO_SOCK_SSL) {
+    if (sock->ssl.sock && sock->attr.prot == SIO_SOCK_SSL) {
         int ret = sio_sockssl_shutdown(sock->ssl.sock);
         SIO_COND_CHECK_CALLOPS(ret != SIO_SOCKSSL_EWANTREAD &&
             ret != SIO_SOCKSSL_EWANTWRITE,

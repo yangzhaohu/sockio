@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "sio_common.h"
+#include "sio_def.h"
 #include "sio_socket.h"
 #include "sio_mplex.h"
 #include "sio_permplex.h"
@@ -26,6 +27,14 @@
 // }
 
 #define SIO_SERVER_MAX_THREADS 255
+
+#ifdef WIN32
+#define SIO_SYNC_IO     SIO_MPLEX_SELECT
+#define SIO_ASYNC_IO    SIO_MPLEX_IOCP
+#else
+#define SIO_SYNC_IO     SIO_MPLEX_EPOLL
+#define SIO_ASYNC_IO    SIO_MPLEX_EPOLL
+#endif
 
 struct sio_server_mlb
 {
@@ -52,13 +61,117 @@ struct sio_server
     struct sio_server_mlb mlb;
 };
 
-static int sio_server_accpet_socket(struct sio_socket *sock);
-void *sio_work_thread_start_routine(void *arg);
+#define sio_socket_memptr char
 
-static struct sio_sockops g_serv_ops = 
+struct sio_sockunion
 {
-    .readable = sio_server_accpet_socket
+    struct sio_server *serv;
+    sio_socket_memptr sock[0];
 };
+
+sio_tls_t enum SIO_MPLEX_TYPE tls_mplex = SIO_SYNC_IO;
+
+static inline
+int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock);
+
+static inline
+struct sio_socket *sio_server_alloc_socket(struct sio_server *serv, int flag)
+{
+    int blocksize = sizeof(struct sio_sockunion) + sio_socket_struct_size();
+    char *memptr = malloc(blocksize);
+    SIO_COND_CHECK_RETURN_VAL(!memptr, NULL);
+
+    memset(memptr, 0, blocksize);
+    struct sio_sockunion *sockuni = (struct sio_sockunion *)memptr;
+    sockuni->serv = serv;
+
+    char *sockmem = sockuni->sock;
+    struct sio_socket *sock;
+    if (flag) {
+        sock = sio_socket_dup2(serv->sock, sockmem);
+    } else {
+        sock = sio_socket_dup(serv->sock, sockmem);
+    }
+
+    return sock;
+}
+
+static inline
+void sio_server_free_socket(struct sio_socket *sock)
+{
+    struct sio_sockunion *sockuni = SIO_CONTAINER_OF(sock, struct sio_sockunion, sock);
+    free(sockuni);
+}
+
+static inline
+struct sio_server *sio_server_socket_get_server(struct sio_socket *sock)
+{
+    struct sio_sockunion *sockuni = SIO_CONTAINER_OF(sock, struct sio_sockunion, sock);
+    return sockuni->serv;
+}
+
+static inline
+int sio_server_async_post_accept(struct sio_server *serv)
+{
+    struct sio_socket *sock = sio_server_alloc_socket(serv, 1);
+    SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+
+    return sio_socket_async_accept(serv->sock, sock);
+}
+
+static inline
+int sio_server_newconnection_cb(struct sio_server *serv, struct sio_socket *sock)
+{
+    struct sio_server_owner *owner = &serv->owner;
+
+    return owner->ops.newconnection == NULL ? 0 : owner->ops.newconnection(sock);
+}
+
+static inline
+int sio_server_accpet_socket(struct sio_socket *serv)
+{
+    union sio_sockopt opt = { 0 };
+    sio_socket_getopt(serv, SIO_SOCK_PRIVATE, &opt);
+    struct sio_server *server = opt.private;
+    SIO_COND_CHECK_RETURN_VAL(!server, -1);
+
+    do {
+        int ret = sio_socket_accept_has_pend(serv);
+        SIO_COND_CHECK_BREAK(ret == SIO_ERRNO_AGAIN);
+        SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
+        struct sio_socket *sock = sio_server_alloc_socket(server, 0);
+        SIO_COND_CHECK_RETURN_VAL(!sock, -1);
+
+        ret = sio_socket_accept(serv, sock);
+        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+            sio_server_free_socket(sock));
+
+        sio_server_newconnection_cb(server, sock);
+
+        sio_server_socket_mlb(server, sock);
+
+    } while (1);
+
+    return 0;
+}
+
+static inline
+int sio_server_async_accpet_socket(struct sio_socket *serv, struct sio_socket *sock)
+{
+    union sio_sockopt opt = { 0 };
+    sio_socket_getopt(serv, SIO_SOCK_PRIVATE, &opt);
+    struct sio_server *server = opt.private;
+    SIO_COND_CHECK_RETURN_VAL(!server, -1);
+
+    sio_server_async_post_accept(server);
+
+    sio_server_newconnection_cb(server, sock);
+
+    sio_server_socket_mlb(server, sock);
+
+    return 0;
+}
 
 #define SIO_SERVER_THREADS_CREATE(thread, ops, count, ret) \
     do { \
@@ -87,14 +200,8 @@ int sio_server_threads_create(struct sio_server *serv, unsigned char threads)
 {
     struct sio_permplex **pmplexs = serv->pmplexs;
 
-#ifdef LINUX
-    enum SIO_MPLEX_TYPE type = SIO_MPLEX_EPOLL;
-#else
-    enum SIO_MPLEX_TYPE type = SIO_MPLEX_SELECT;
-#endif
-
     int ret = 0;
-    SIO_SERVER_THREADS_CREATE(pmplexs, sio_permplex_create(type), threads, ret);
+    SIO_SERVER_THREADS_CREATE(pmplexs, sio_permplex_create(tls_mplex), threads, ret);
     if (ret == -1) {
         SIO_SERVER_THREADS_DESTORY(pmplexs, threads);
         return -1;
@@ -137,7 +244,7 @@ int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock)
 }
 
 static inline
-struct sio_server *sio_server_create_imp(enum sio_sockprot type, unsigned char threads)
+struct sio_server *sio_server_create_imp(enum sio_sockprot prot, unsigned char threads)
 {
     SIO_COND_CHECK_RETURN_VAL(threads == 0, NULL);
 
@@ -146,14 +253,16 @@ struct sio_server *sio_server_create_imp(enum sio_sockprot type, unsigned char t
 
     memset(serv, 0, sizeof(struct sio_server));
 
-    struct sio_socket *sock = sio_socket_create(type, NULL);
+    struct sio_socket *sock = sio_socket_create(prot, NULL);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!sock, NULL,
         free(serv));
 
     union sio_sockopt opt = { 0 };
     opt.private = serv;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
-    opt.ops = g_serv_ops;
+
+    opt.ops.readable = sio_server_accpet_socket;
+    opt.ops.acceptasync = sio_server_async_accpet_socket;
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
     serv->sock = sock;
@@ -188,14 +297,27 @@ void sio_server_set_ops(struct sio_server *serv, struct sio_servops *ops)
     owner->ops = *ops;
 }
 
-struct sio_server *sio_server_create(enum sio_sockprot type)
+int sio_server_set_default(enum sio_servio mode)
 {
-    return sio_server_create_imp(type, 1);
+    if (mode == SIO_SERV_NIO) {
+        tls_mplex = SIO_SYNC_IO;
+    } else if (mode == SIO_SERV_AIO){
+        tls_mplex = SIO_ASYNC_IO;
+    } else {
+        return -1;
+    }
+
+    return 0;
 }
 
-struct sio_server *sio_server_create2(enum sio_sockprot type, unsigned char threads)
+struct sio_server *sio_server_create(enum sio_sockprot prot)
 {
-    return sio_server_create_imp(type, threads);
+    return sio_server_create_imp(prot, 1);
+}
+
+struct sio_server *sio_server_create2(enum sio_sockprot prot, unsigned char threads)
+{
+    return sio_server_create_imp(prot, threads);
 }
 
 int sio_server_setopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt)
@@ -279,53 +401,20 @@ int sio_server_listen(struct sio_server *serv, struct sio_sockaddr *addr)
     ret = sio_server_socket_mlb(serv, sock);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
-    return 0;
-}
-
-int sio_server_accept(struct sio_server *serv, struct sio_socket *sock)
-{
-    SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
-
-    return sio_socket_accept(serv->sock, sock);
-}
-
-int sio_server_socket_mplex(struct sio_server *serv, struct sio_socket *sock)
-{
-    SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
-
-    return sio_server_socket_mlb(serv, sock);
-}
-
-static inline
-int sio_server_accept_cb(struct sio_server *serv)
-{
-    struct sio_server_owner *owner = &serv->owner;
-
-    return owner->ops.accept == NULL ? 0 : owner->ops.accept(serv);
-}
-
-static int sio_server_accpet_socket(struct sio_socket *sock)
-{
-    union sio_sockopt opt = { 0 };
-    sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
-    struct sio_server *serv = opt.private;
-    SIO_COND_CHECK_RETURN_VAL(!serv, -1);
-
-    do {
-        int ret = sio_socket_accept_has_pend(serv->sock);
-        SIO_COND_CHECK_BREAK(ret == SIO_ERRNO_AGAIN);
-        SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
-
-        sio_server_accept_cb(serv);
-
-    } while (1);
+    SIO_COND_CHECK_CALLOPS(ret == 0 && tls_mplex == SIO_ASYNC_IO,
+        sio_server_async_post_accept(serv));
 
     return 0;
 }
 
-void *sio_work_thread_start_routine(void *arg)
+struct sio_server *sio_server_socket_server(struct sio_socket *sock)
 {
-    return NULL;
+    return sio_server_socket_get_server(sock);
+}
+
+int sio_server_socket_reuse(struct sio_socket *sock)
+{
+    return -1;
 }
 
 int sio_server_shutdown(struct sio_server *serv)

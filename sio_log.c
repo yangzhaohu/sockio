@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#ifdef WIN32
+#include <malloc.h>
+#endif
 #include "sio_common.h"
 #include "sio_def.h"
 #include "sio_global.h"
@@ -42,7 +45,7 @@ void sio_logg_setlevel(int level)
     SIO_LOGG_LEVEL = level;
 }
 
-void sio_logg_ebable_prefix(int enable)
+void sio_logg_enable_prefix(int enable)
 {
     g_prefix_enable = enable != 0 ? 1 : 0;
 }
@@ -60,7 +63,11 @@ int sio_logg(int level, const char *format, ...)
         int prelen = 0;
         const char *prefix = sio_logg_prefix(level, &prelen);
 
+#ifdef WIN32
+        char *fmt = _alloca(l + prelen + 1);
+#else
         char fmt[l + prelen + 1];
+#endif
         fmt[l + prelen] = 0;
 
         memcpy(fmt, prefix, prelen);

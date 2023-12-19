@@ -6,6 +6,7 @@
 #else
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <poll.h>
 #endif
 
 #ifdef WIN32
@@ -39,6 +40,8 @@ typedef struct sio_fd_set {
 
 typedef fd_set sio_fd_set;
 #define SIO_FD_SET      FD_SET
+
+typedef struct pollfd sio_pollfd;
 
 #endif
 
