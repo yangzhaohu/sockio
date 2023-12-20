@@ -47,6 +47,8 @@ int closed(struct sio_socket *sock)
     SIO_LOGI("close\n");
     sio_socket_destory(sock);
 
+    sio_server_socket_free(sock);
+
     return 0;
 }
 

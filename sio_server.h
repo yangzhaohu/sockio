@@ -53,6 +53,8 @@ struct sio_server *sio_server_socket_server(struct sio_socket *sock);
 
 int sio_server_socket_reuse(struct sio_socket *sock);
 
+void sio_server_socket_free(struct sio_socket *sock);
+
 int sio_server_shutdown(struct sio_server *serv);
 
 int sio_server_destory(struct sio_server *serv);

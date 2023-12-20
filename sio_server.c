@@ -417,6 +417,11 @@ int sio_server_socket_reuse(struct sio_socket *sock)
     return -1;
 }
 
+void sio_server_socket_free(struct sio_socket *sock)
+{
+    sio_server_free_socket(sock);
+}
+
 int sio_server_shutdown(struct sio_server *serv)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
