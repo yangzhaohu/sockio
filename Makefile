@@ -18,7 +18,7 @@ FLAGS +=
 INCLUDES += -I. -Iinclude -Idepend/include
 LIBPATH += -Ldepend/lib
 STATICLIB += -Wl,-Bstatic -lhttp_parser -lpcre2-posix -lpcre2-8
-DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -lpthread -lssl -lcrypto
+DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -luring -lpthread -lssl -lcrypto
 else
 FLAGS :=
 INCLUDES += /I. /Iinclude /Idepend/include
@@ -37,6 +37,7 @@ SRCS := sio_global.cpp \
 		sio_select.c \
 		sio_epoll.c \
 		sio_iocp.c \
+		sio_uring.c \
 		sio_socket.c \
 		sio_sslctx.c \
 		sio_sockssl.c \

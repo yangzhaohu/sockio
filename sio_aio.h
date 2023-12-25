@@ -9,13 +9,13 @@ struct sio_event;
 extern "C" {
 #endif
 
-int sio_aioctx_size();
+// int sio_aioctx_size();
 
-int sio_aio_accept(sio_fd_t sfd, sio_fd_t fd, struct sio_event *event);
+// int sio_aio_accept(sio_fd_t sfd, sio_fd_t fd, struct sio_event *event);
 
-int sio_aio_recv(sio_fd_t fd, struct sio_event *event);
+// int sio_aio_recv(sio_fd_t fd, struct sio_event *event);
 
-int sio_aio_send(sio_fd_t fd, struct sio_event *event);
+// int sio_aio_send(sio_fd_t fd, struct sio_event *event);
 
 #ifdef __cplusplus
 }
