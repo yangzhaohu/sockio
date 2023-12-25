@@ -127,6 +127,7 @@ int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct si
             void *iocp = sio_mplex_get_iocp(ctx);
             ret = sio_iocp_link_fd(iocp, fd);
         } else if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {
+            event->events |= ~SIO_EVENTS_ASYNC_ACCEPT_RES;
             sio_iocp_accept(fd, event);
         } else if (event->events & SIO_EVENTS_ASYNC_READ) {
             sio_iocp_recv(fd, event);
