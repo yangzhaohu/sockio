@@ -28,6 +28,7 @@ enum sio_events
     SIO_EVENTS_ASYNC_ACCEPT = 0x1000,
     SIO_EVENTS_ASYNC_READ = 0x2000,
     SIO_EVENTS_ASYNC_WRITE = 0x4000,
+    SIO_EVENTS_ASYNC_ACCEPT_RES = 0x8000,
 
     SIO_EVENTS_HANDSHAKE_READ = 0x10000,
     SIO_EVENTS_HANDSHAKE_WRITE = 0x20000,
@@ -47,10 +48,15 @@ struct sio_event
 {
     unsigned int events;
     void *pri;
+    int res;
     struct sio_evbuf buf;
 };
 
+int sio_aioctx_size();
+
 sio_aiobuf sio_aiobuf_alloc(unsigned long size);
+
+void *sio_aiobuf_aioctx_ptr(sio_aiobuf buf);
 
 void sio_aiobuf_free(sio_aiobuf buf);
 
