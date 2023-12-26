@@ -127,7 +127,7 @@ int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct si
             void *iocp = sio_mplex_get_iocp(ctx);
             ret = sio_iocp_link_fd(iocp, fd);
         } else if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {
-            event->events |= ~SIO_EVENTS_ASYNC_ACCEPT_RES;
+            event->events &= ~SIO_EVENTS_ASYNC_ACCEPT_RES;
             sio_iocp_accept(fd, event);
         } else if (event->events & SIO_EVENTS_ASYNC_READ) {
             sio_iocp_recv(fd, event);
@@ -173,8 +173,9 @@ int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int 
 
     event[0].events = ovlp->events;
     event[0].pri = ovlp->ptr;
+    event[0].res = recv;
     event[0].buf.ptr = ovlp->wsabuf.buf;
-    event[0].buf.len = recv;
+    event[0].buf.len = ovlp->wsabuf.len;
 
     return 1;
 }
