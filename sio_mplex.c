@@ -6,6 +6,7 @@
 #include "sio_select.h"
 #include "sio_epoll.h"
 #include "sio_iocp.h"
+#include "sio_uring.h"
 #include "sio_log.h"
 
 struct sio_mplex
@@ -46,11 +47,22 @@ struct sio_mplex_ops g_mplex_iocp_ops =
 };
 
 static const
+struct sio_mplex_ops g_mplex_uring_ops =
+{
+    .create = sio_mplex_uring_create,
+    .ctl  = sio_mplex_uring_ctl,
+    .wait = sio_mplex_uring_wait,
+    .close = sio_mplex_uring_close,
+    .destory = sio_mplex_uring_destory
+};
+
+static const
 struct sio_mplex_ops *g_mplex[] = 
 {
     [SIO_MPLEX_SELECT] = &g_mplex_select_ops,
     [SIO_MPLEX_EPOLL]  = &g_mplex_epoll_ops,
     [SIO_MPLEX_IOCP]   = &g_mplex_iocp_ops,
+    [SIO_MPLEX_URING]  = &g_mplex_uring_ops
 };
 
 #define SIO_MPLEX_PLEXER_SIZE (sizeof(g_mplex) / sizeof(struct sio_mplex_ops *))

@@ -67,9 +67,50 @@ int socknew(struct sio_socket *sock)
     return 0;
 }
 
+int readable_async(struct sio_socket *sock, const char *data, int len)
+{
+    // SIO_LOGI("recv %d: %s\n", len, data);
+    sio_socket_async_read(sock, (char *)data, 512);
+
+    int l = strlen(g_resp);
+    char *buf = sio_aiobuf_alloc(l);
+    memcpy(buf, g_resp, strlen(g_resp));
+    sio_socket_async_write(sock, buf, l);
+
+    return 0;
+}
+
+int writeable_async(struct sio_socket *sock, const char *data, int len)
+{
+    // SIO_LOGI("write %.*s\n", len, data);
+    sio_aiobuf_free((sio_aiobuf)data);
+    return 0;
+}
+
+int socknew_async(struct sio_socket *sock)
+{
+    SIO_LOGI("new sock\n");
+    union sio_sockopt opt = {
+        .ops.readasync = readable_async,
+        .ops.writeasync = writeable_async,
+        .ops.closeable = closed
+    };
+    sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
+
+    opt.nonblock = 1;
+    sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
+
+    char *buf = sio_aiobuf_alloc(512 * sizeof(char));
+    memset(buf, 0, 512);
+    sio_socket_async_read(sock, buf, 512);
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     sio_logg_enable_prefix(0);
+    sio_server_set_default(SIO_SERV_AIO);
     int cmd = 0;
     struct sio_server *serv = NULL;
     union sio_servopt opt;
@@ -141,7 +182,7 @@ int main(int argc, char *argv[])
         serv = sio_server_create(g_prot);
     }
 
-    opt.ops.newconnection = socknew;
+    opt.ops.newconnection = socknew_async;
     sio_server_setopt(serv, SIO_SERV_OPS, &opt);
 
     sio_server_listen(serv, &g_addr);

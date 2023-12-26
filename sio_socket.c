@@ -225,7 +225,7 @@ __thread int tls_sock_readerr = 0;
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_READ) {                                \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET                                  \
-            && event->buf.len == 0) {                                           \
+            && event->res == 0) {                                               \
             sio_socket_close_cleanup(sock);                                     \
             continue;                                                           \
         }                                                                       \
@@ -243,12 +243,17 @@ __thread int tls_sock_readerr = 0;
         sio_socket_ops_call(ops->writeasync,                                    \
             sock, event->buf.ptr, event->buf.len);                              \
     }                                                                           \
-    if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {                              \
+    if (event->events &                                                         \
+        (SIO_EVENTS_ASYNC_ACCEPT | SIO_EVENTS_ASYNC_ACCEPT_RES)) {              \
         char *__extptr = SIO_SOCK_AIOBUF_TO_EXT(event->buf.ptr);                \
         struct sio_socket *__sock =                                             \
         SIO_CONTAINER_OF(__extptr,                                              \
             struct sio_socket,                                                  \
             extbuf);                                                            \
+        if (event->events & SIO_EVENTS_ASYNC_ACCEPT_RES) {                      \
+            sio_socket_accept_pend_fd_set(event->res);                          \
+            sio_socket_accept(sock, __sock);                                    \
+        }                                                                       \
         sio_socket_ops_call(ops->acceptasync,                                   \
             sock, __sock);                                                      \
         if (__sock->attr.prot == SIO_SOCK_SSL) {                                \
@@ -306,11 +311,7 @@ int sio_socket_async_handshake_read(struct sio_socket *sock)
     ev.buf.ptr = SIO_SOCK_EXT_TO_AIOBUF(sock->extbuf);
     ev.buf.len = 0;
 
-#ifdef WIN32
-    return sio_aio_recv(sock->fd, &ev);
-#else
-    return -1;
-#endif
+    return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
 static inline
@@ -322,11 +323,7 @@ int sio_socket_async_handshake_write(struct sio_socket *sock)
     ev.buf.ptr = SIO_SOCK_EXT_TO_AIOBUF(sock->extbuf);
     ev.buf.len = 0;
 
-#ifdef WIN32
-    return sio_aio_send(sock->fd, &ev);
-#else
-    return -1;
-#endif
+    return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
 extern int sio_socket_event_dispatch(struct sio_event *events, int count)
@@ -341,7 +338,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
         struct sio_socket_state *stat = &sock->stat;
         struct sio_socket_owner *owner = &sock->owner;
         struct sio_sockops *ops = &owner->ops;
-        // SIO_LOGI("socket fd: %d, event: 0x%x\n", sock->fd, event->events);
+        SIO_LOGD("socket fd: %d, event: 0x%x\n", sock->fd, event->events);
 
         sio_socket_event_dispatch_once(event);
     }
@@ -977,19 +974,16 @@ int sio_socket_accept(struct sio_socket *sock, struct sio_socket *newsock)
 int sio_socket_async_accept(struct sio_socket *serv, struct sio_socket *sock)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
-    SIO_COND_CHECK_RETURN_VAL(serv->fd == -1 || sock->fd == -1, -1);
+    SIO_COND_CHECK_RETURN_VAL(serv->fd == -1, -1);
 
     struct sio_event ev = { 0 };
-    ev.events |= SIO_EVENTS_ASYNC_ACCEPT;
+    ev.events |= SIO_EVENTS_ASYNC_ACCEPT | SIO_EVENTS_ASYNC_ACCEPT_RES;
     ev.pri = serv;
+    ev.res = sock->fd;
     ev.buf.ptr = SIO_SOCK_EXT_TO_AIOBUF(sock->extbuf);
     ev.buf.len = sizeof(sock->extbuf) - ((char *)ev.buf.ptr - sock->extbuf);
 
-#ifdef WIN32
-    return sio_aio_accept(serv->fd, sock->fd, &ev);
-#else
-    return -1;
-#endif
+    return sio_mplex_ctl(serv->mp, SIO_EV_OPT_ADD, serv->fd, &ev);
 }
 
 #ifdef LINUX
@@ -1130,11 +1124,7 @@ int sio_socket_async_read_imp(struct sio_socket *sock, char *buf, int len)
     ev.buf.ptr = buf;
     ev.buf.len = len;
 
-#ifdef WIN32
-    return sio_aio_recv(sock->fd, &ev);
-#else
-    return -1;
-#endif
+    return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
 int sio_socket_async_read(struct sio_socket *sock, char *buf, int len)
@@ -1177,11 +1167,7 @@ int sio_socket_async_write_imp(struct sio_socket *sock, char *buf, int len)
     ev.buf.ptr = buf;
     ev.buf.len = len;
 
-#ifdef WIN32
-    return sio_aio_send(sock->fd, &ev);
-#else
-    return -1;
-#endif
+    return sio_mplex_ctl(sock->mp, SIO_EV_OPT_ADD, sock->fd, &ev);
 }
 
 int sio_socket_async_write(struct sio_socket *sock, char *buf, int len)

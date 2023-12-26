@@ -20,6 +20,66 @@
 #define sio_mplex_get_iocp(ctx) ctx->fd.pfd
 
 static inline
+struct sio_overlap *sio_overlap_base_event(struct sio_event *event)
+{
+    char *ptr = sio_aiobuf_aioctx_ptr(event->buf.ptr);
+    SIO_COND_CHECK_RETURN_VAL(ptr == NULL, NULL);
+
+    memset(ptr, 0, sizeof(struct sio_overlap));
+
+    struct sio_overlap *ovlp = (struct sio_overlap *)ptr;
+    ovlp->wsabuf.buf = event->buf.ptr;
+    ovlp->wsabuf.len = event->buf.len;
+    ovlp->ptr = event->pri;
+    ovlp->events = event->events;
+    
+    return ovlp;
+}
+
+int sio_iocp_accept(sio_fd_t fd, struct sio_event *event)
+{
+    struct sio_overlap *ovlp = sio_overlap_base_event(event);
+    SIO_COND_CHECK_RETURN_VAL(ovlp == NULL, -1);
+
+    sio_fd_t client = event->res;
+    unsigned long recvsize = 0;
+    static char addrbuf[2 * (sizeof(struct sockaddr_in) + 16)] = { 0 };
+    int ret = AcceptEx(fd, client, addrbuf, 0, 
+        sizeof(struct sockaddr_in) + 16, sizeof(struct sockaddr_in) + 16, &recvsize, (LPOVERLAPPED)ovlp);
+
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == 0 && WSAGetLastError() != ERROR_IO_PENDING, -1,
+        SIO_LOGE("iocp post accept failed\n"));
+
+    return 0;
+}
+
+int sio_iocp_recv(sio_fd_t fd, struct sio_event *event)
+{
+    struct sio_overlap *ovlp = sio_overlap_base_event(event);
+    SIO_COND_CHECK_RETURN_VAL(ovlp == NULL, -1);
+
+    int ret = WSARecv(fd, &ovlp->wsabuf, 1, NULL, &ovlp->olflags, &ovlp->overlap, NULL);
+
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && WSAGetLastError() != ERROR_IO_PENDING, -1,
+        SIO_LOGE("iocp post recv failed\n"));
+
+    return 0;
+}
+
+int sio_iocp_send(sio_fd_t fd, struct sio_event *event)
+{
+    struct sio_overlap *ovlp = sio_overlap_base_event(event);
+    SIO_COND_CHECK_RETURN_VAL(ovlp == NULL, -1);
+
+    int ret = WSASend(fd, &ovlp->wsabuf, 1, NULL, ovlp->olflags, &ovlp->overlap, NULL);
+
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1 && WSAGetLastError() != ERROR_IO_PENDING, -1,
+        SIO_LOGE("iocp post send failed, errno: %d\n", WSAGetLastError()));
+
+    return 0;
+}
+
+static inline
 void *sio_iocp_create()
 {
     void *iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
@@ -66,6 +126,13 @@ int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct si
         if (event->events & SIO_EVENTS_IN) {
             void *iocp = sio_mplex_get_iocp(ctx);
             ret = sio_iocp_link_fd(iocp, fd);
+        } else if (event->events & SIO_EVENTS_ASYNC_ACCEPT) {
+            event->events &= ~SIO_EVENTS_ASYNC_ACCEPT_RES;
+            sio_iocp_accept(fd, event);
+        } else if (event->events & SIO_EVENTS_ASYNC_READ) {
+            sio_iocp_recv(fd, event);
+        } else if (event->events & SIO_EVENTS_ASYNC_WRITE) {
+            sio_iocp_send(fd, event);
         }
     } else {
         int ret = CancelIoEx((HANDLE)fd, NULL);
@@ -106,8 +173,9 @@ int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int 
 
     event[0].events = ovlp->events;
     event[0].pri = ovlp->ptr;
+    event[0].res = recv;
     event[0].buf.ptr = ovlp->wsabuf.buf;
-    event[0].buf.len = recv;
+    event[0].buf.len = ovlp->wsabuf.len;
 
     return 1;
 }

@@ -33,7 +33,7 @@
 #define SIO_ASYNC_IO    SIO_MPLEX_IOCP
 #else
 #define SIO_SYNC_IO     SIO_MPLEX_EPOLL
-#define SIO_ASYNC_IO    SIO_MPLEX_EPOLL
+#define SIO_ASYNC_IO    SIO_MPLEX_URING
 #endif
 
 struct sio_server_mlb
@@ -113,7 +113,7 @@ struct sio_server *sio_server_socket_get_server(struct sio_socket *sock)
 static inline
 int sio_server_async_post_accept(struct sio_server *serv)
 {
-    struct sio_socket *sock = sio_server_alloc_socket(serv, 1);
+    struct sio_socket *sock = sio_server_alloc_socket(serv, tls_mplex == SIO_MPLEX_IOCP);
     SIO_COND_CHECK_RETURN_VAL(!sock, -1);
 
     return sio_socket_async_accept(serv->sock, sock);
@@ -166,9 +166,9 @@ int sio_server_async_accpet_socket(struct sio_socket *serv, struct sio_socket *s
 
     sio_server_async_post_accept(server);
 
-    sio_server_newconnection_cb(server, sock);
-
     sio_server_socket_mlb(server, sock);
+
+    sio_server_newconnection_cb(server, sock);
 
     return 0;
 }

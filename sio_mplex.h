@@ -7,7 +7,8 @@ enum SIO_MPLEX_TYPE
 {
     SIO_MPLEX_SELECT,
     SIO_MPLEX_EPOLL,    // only support linux
-    SIO_MPLEX_IOCP      // only support windows
+    SIO_MPLEX_IOCP,     // only support windows
+    SIO_MPLEX_URING      // only support linux
 };
 
 struct sio_mplex_attr
