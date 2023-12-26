@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_log.h"
 
 int main()

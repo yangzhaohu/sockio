@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "sio_socket.h"
 #include "sio_mplex.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -137,8 +137,8 @@ int main(void)
     post_socket_accept(serv, mplex2);
 
     // start thread process mplex
-    sio_permplex_create2(mplex);
-    sio_permplex_create2(mplex2);
+    sio_pmplex_create2(mplex);
+    sio_pmplex_create2(mplex2);
 
     getc(stdin);
     sio_socket_close(g_sock);

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_errno.h"
 
 struct sio_mplex *g_mplex = NULL;

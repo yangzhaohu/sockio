@@ -46,7 +46,7 @@ SRCS := sio_global.cpp \
 		sio_thread.c \
 		sio_thread_pthread.c \
 		sio_thread_win.c \
-		sio_permplex.c \
+		sio_pmplex.c \
 		sio_atomic.c \
 		sio_stack.c \
 		sio_queue.c \

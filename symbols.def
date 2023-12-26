@@ -48,10 +48,10 @@ EXPORTS
     sio_mplex_wait
     sio_mplex_close
     sio_mplex_destory
-; sio_permplex
-    sio_permplex_create
-    sio_permplex_mplex_ref
-    sio_permplex_destory
+; sio_pmplex
+    sio_pmplex_create
+    sio_pmplex_mplex_ref
+    sio_pmplex_destory
 ; sio_global
     sio_gettid
 ; sio_time

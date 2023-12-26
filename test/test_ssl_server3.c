@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "sio_socket.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_log.h"
 
 char *g_resp = "HTTP/1.1 200 OK\r\n"
@@ -111,8 +111,8 @@ int closed(struct sio_socket *sock)
 int main(void)
 {
     // create mplex
-    struct sio_permplex *pmplex = sio_permplex_create(SIO_MPLEX_IOCP);
-    struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
+    struct sio_pmplex *pmplex = sio_pmplex_create(SIO_MPLEX_IOCP);
+    struct sio_mplex *mplex = sio_pmplex_mplex_ref(pmplex);
     g_mplex = mplex;
 
     // create server socket
@@ -157,7 +157,7 @@ int main(void)
     // sio_socket_mplex(serv, SIO_EV_OPT_DEL, SIO_EVENTS_IN);
 
     getc(stdin);
-    sio_permplex_destory(pmplex);
+    sio_pmplex_destory(pmplex);
 
     getc(stdin);
     

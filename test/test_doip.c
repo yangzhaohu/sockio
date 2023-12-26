@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "sio_common.h"
 #include "sio_socket.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_list.h"
 #include "sio_timer.h"
 #include "moudle/doip/doip_hdr.h"
@@ -35,7 +35,7 @@ struct test_doip_entity
 struct test_equip
 {
     unsigned short la;
-    struct sio_permplex *pmplex;
+    struct sio_pmplex *pmplex;
     struct sio_socket *udpsock;
     struct sio_list_head head;
 
@@ -277,7 +277,7 @@ int test_equip_connect_entity(int fd, unsigned short la)
     opt.private = entity;
     ret = sio_socket_setopt(entity->tcpsock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_mplex *mplex = sio_permplex_mplex_ref(TEST_EQUIP_PERMPLEX);
+    struct sio_mplex *mplex = sio_pmplex_mplex_ref(TEST_EQUIP_PERMPLEX);
     opt.mplex = mplex;
     sio_socket_setopt(entity->tcpsock, SIO_SOCK_MPLEX, &opt);
 
@@ -345,7 +345,7 @@ int test_equip_configure_params()
 static inline
 int test_equip_permplex_init()
 {
-    TEST_EQUIP->pmplex = sio_permplex_create(SIO_MPLEX_EPOLL);
+    TEST_EQUIP->pmplex = sio_pmplex_create(SIO_MPLEX_EPOLL);
     SIO_COND_CHECK_RETURN_VAL(TEST_EQUIP_PERMPLEX == NULL, -1);
 
     return 0;
@@ -368,7 +368,7 @@ int test_equip_udpsock_init()
     struct sio_sockaddr addr = {"127.0.0.1", 13401};
     sio_socket_bind(TEST_EQUIP_UDP, &addr);
 
-    struct sio_mplex *mplex = sio_permplex_mplex_ref(TEST_EQUIP_PERMPLEX);
+    struct sio_mplex *mplex = sio_pmplex_mplex_ref(TEST_EQUIP_PERMPLEX);
     opt.mplex = mplex;
     sio_socket_setopt(TEST_EQUIP_UDP, SIO_SOCK_MPLEX, &opt);
 

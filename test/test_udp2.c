@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_log.h"
 
 static int socket_readable(struct sio_socket *sock)
@@ -28,7 +28,7 @@ static int socket_closeable(struct sio_socket *sock)
     return 0;
 }
 
-int set_sock_mplex(struct sio_socket *sock, struct sio_permplex *pmplex)
+int set_sock_mplex(struct sio_socket *sock, struct sio_pmplex *pmplex)
 {
     union sio_sockopt opt = { 0 };
     opt.ops.readable = socket_readable;
@@ -38,7 +38,7 @@ int set_sock_mplex(struct sio_socket *sock, struct sio_permplex *pmplex)
     opt.nonblock = 1;
     ret = sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
+    struct sio_mplex *mplex = sio_pmplex_mplex_ref(pmplex);
     opt.mplex = mplex;
     sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
 
@@ -49,7 +49,7 @@ int set_sock_mplex(struct sio_socket *sock, struct sio_permplex *pmplex)
 
 int main()
 {
-    struct sio_permplex *pmplex = sio_permplex_create(SIO_MPLEX_EPOLL);
+    struct sio_pmplex *pmplex = sio_pmplex_create(SIO_MPLEX_EPOLL);
 
     struct sio_socket *sock = sio_socket_create(SIO_SOCK_UDP, NULL);
     struct sio_sockaddr addr = { "127.0.0.1", 8090};
@@ -79,7 +79,7 @@ int main()
         }
     }
 
-    sio_permplex_destory(pmplex);
+    sio_pmplex_destory(pmplex);
 
     return 0;
 }

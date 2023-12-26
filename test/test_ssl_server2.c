@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "sio_socket.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_log.h"
 
 char *g_resp = "HTTP/1.1 200 OK\r\n"
@@ -96,8 +96,8 @@ int closed(struct sio_socket *sock)
 
 int main()
 {
-    struct sio_permplex *pmplex = sio_permplex_create(SIO_MPLEX_SELECT);
-    struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
+    struct sio_pmplex *pmplex = sio_pmplex_create(SIO_MPLEX_SELECT);
+    struct sio_mplex *mplex = sio_pmplex_mplex_ref(pmplex);
     g_mplex = mplex;
 
     struct sio_socket *serv = sio_socket_create2(SIO_SOCK_SSL, NULL);

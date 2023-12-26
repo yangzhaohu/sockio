@@ -2,7 +2,7 @@
 #include <string.h>
 #include "sio_socket.h"
 #include "sio_mplex.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_log.h"
 
 int socknew(struct sio_socket *serv);
@@ -119,8 +119,8 @@ int main(void)
     opt.nonblock = 1;
     sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_permplex *pmplex = sio_permplex_create(SIO_MPLEX_SELECT);
-    struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
+    struct sio_pmplex *pmplex = sio_pmplex_create(SIO_MPLEX_SELECT);
+    struct sio_mplex *mplex = sio_pmplex_mplex_ref(pmplex);
     g_mplex = mplex;
 
     opt.mplex = mplex;
@@ -134,7 +134,7 @@ int main(void)
     getc(stdin);
 
     getc(stdin);
-    sio_permplex_destory(pmplex);
+    sio_pmplex_destory(pmplex);
     
     return 0;
 }

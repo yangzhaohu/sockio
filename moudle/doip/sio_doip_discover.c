@@ -3,7 +3,7 @@
 #include <string.h>
 #include "sio_common.h"
 #include "sio_socket.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_doip_node.h"
 #include "doip_hdr.h"
 #include "sio_log.h"
@@ -11,7 +11,7 @@
 struct sio_doip_disc
 {
     struct sio_socket *udpsock;
-    struct sio_permplex *pmplex;
+    struct sio_pmplex *pmplex;
 };
 
 struct sio_doip_disc g_disc;
@@ -116,7 +116,7 @@ int sio_doip_discover_closeable(struct sio_socket *sock)
     return 0;
 }
 
-int sio_doip_discover_sock_mplex(struct sio_socket *sock, struct sio_permplex *pmplex)
+int sio_doip_discover_sock_mplex(struct sio_socket *sock, struct sio_pmplex *pmplex)
 {
     union sio_sockopt opt = { 0 };
     opt.ops.readable = sio_doip_discover_readable;
@@ -126,7 +126,7 @@ int sio_doip_discover_sock_mplex(struct sio_socket *sock, struct sio_permplex *p
     opt.nonblock = 1;
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_mplex *mplex = sio_permplex_mplex_ref(pmplex);
+    struct sio_mplex *mplex = sio_pmplex_mplex_ref(pmplex);
     opt.mplex = mplex;
     sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
 
@@ -142,7 +142,7 @@ int sio_doip_discover_init(struct sio_sockaddr *addr)
 
     sio_socket_bind(sock, addr);
 
-    struct sio_permplex *pmplex = sio_permplex_create(SIO_MPLEX_SELECT);
+    struct sio_pmplex *pmplex = sio_pmplex_create(SIO_MPLEX_SELECT);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!pmplex, -1,
         sio_socket_destory(sock));
 

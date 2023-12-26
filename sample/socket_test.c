@@ -2,7 +2,7 @@
 #include <string.h>
 #include "sio_socket.h"
 #include "sio_mplex.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 
 int socknew(struct sio_socket *serv, const char *buf, int len);
 int readable(struct sio_socket *sock, const char *buf, int len);
@@ -115,11 +115,11 @@ int main(void)
     sio_socket_mplex_bind(serv, mplex);
     sio_socket_mplex(serv, 1, SIO_EVENTS_IN);
 
-    /*struct sio_permplex *smt = */sio_permplex_create2(mplex);
+    /*struct sio_pmplex *smt = */sio_pmplex_create2(mplex);
 
     // socket rw mplex
-    // struct sio_permplex *smt_io = sio_permplex_create(0);
-    g_mplex = mplex; // sio_permplex_mplex_ref(smt_io);
+    // struct sio_pmplex *smt_io = sio_pmplex_create(0);
+    g_mplex = mplex; // sio_pmplex_mplex_ref(smt_io);
 
     getc(stdin);
     sio_socket_close(g_sock);

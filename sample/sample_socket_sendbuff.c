@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include "sio_socket.h"
 #include "sio_errno.h"
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include "sio_log.h"
 
 struct sio_mplex *g_mplex = NULL;
@@ -112,12 +112,12 @@ int main()
     opt.nonblock = 1;
     sio_socket_setopt(serv, SIO_SOCK_NONBLOCK, &opt);
 
-    struct sio_permplex *mpthr = sio_permplex_create(SIO_MPLEX_EPOLL);
+    struct sio_pmplex *mpthr = sio_pmplex_create(SIO_MPLEX_EPOLL);
     if (mpthr == NULL) {
         return -1;
     }
 
-    g_mplex = sio_permplex_mplex_ref(mpthr);
+    g_mplex = sio_pmplex_mplex_ref(mpthr);
 
     opt.mplex = g_mplex;
     sio_socket_setopt(serv, SIO_SOCK_MPLEX, &opt);

@@ -1,11 +1,11 @@
-#include "sio_permplex.h"
+#include "sio_pmplex.h"
 #include <string.h>
 #include <stdlib.h>
 #include "sio_common.h"
 #include "sio_thread.h"
 #include "sio_log.h"
 
-struct sio_permplex
+struct sio_pmplex
 {
     struct sio_mplex *mplex;
     struct sio_thread *thread;
@@ -14,9 +14,9 @@ struct sio_permplex
 
 extern int sio_socket_event_dispatch(struct sio_event *events, int count);
 
-void *sio_permplex_start_routine(void *arg)
+void *sio_pmplex_start_routine(void *arg)
 {
-    struct sio_permplex *pmplex = (struct sio_permplex *)arg;
+    struct sio_pmplex *pmplex = (struct sio_pmplex *)arg;
     struct sio_mplex *mplex = pmplex->mplex;
 
     while (1) {
@@ -33,15 +33,15 @@ void *sio_permplex_start_routine(void *arg)
 }
 
 static inline
-struct sio_permplex *sio_permplex_create_imp(struct sio_mplex *mplex)
+struct sio_pmplex *sio_pmplex_create_imp(struct sio_mplex *mplex)
 {
-    struct sio_permplex *pmplex = malloc(sizeof(struct sio_permplex));
+    struct sio_pmplex *pmplex = malloc(sizeof(struct sio_pmplex));
     SIO_COND_CHECK_RETURN_VAL(!pmplex, NULL);
 
-    memset(pmplex, 0, sizeof(struct sio_permplex));
+    memset(pmplex, 0, sizeof(struct sio_pmplex));
     pmplex->mplex = mplex;
 
-    struct sio_thread *thread = sio_thread_create(sio_permplex_start_routine, pmplex);
+    struct sio_thread *thread = sio_thread_create(sio_pmplex_start_routine, pmplex);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!thread, NULL,
         free(pmplex));
 
@@ -55,26 +55,26 @@ struct sio_permplex *sio_permplex_create_imp(struct sio_mplex *mplex)
     return pmplex;
 }
 
-struct sio_permplex *sio_permplex_create(enum SIO_MPLEX_TYPE type)
+struct sio_pmplex *sio_pmplex_create(enum SIO_MPLEX_TYPE type)
 {
     struct sio_mplex_attr attr = { .type = type };
     struct sio_mplex *mplex = sio_mplex_create(&attr);
     SIO_COND_CHECK_RETURN_VAL(!mplex, NULL);
 
-    struct sio_permplex *pmplex = sio_permplex_create_imp(mplex);
+    struct sio_pmplex *pmplex = sio_pmplex_create_imp(mplex);
     SIO_COND_CHECK_RETURN_VAL(!pmplex, NULL);
     
     return pmplex;
 }
 
-struct sio_mplex *sio_permplex_mplex_ref(struct sio_permplex *pmplex)
+struct sio_mplex *sio_pmplex_mplex_ref(struct sio_pmplex *pmplex)
 {
     SIO_COND_CHECK_RETURN_VAL(!pmplex, NULL);
 
     return pmplex->mplex;
 }
 
-int sio_permplex_destory(struct sio_permplex *pmplex)
+int sio_pmplex_destory(struct sio_pmplex *pmplex)
 {
     SIO_COND_CHECK_RETURN_VAL(!pmplex, -1);
 
