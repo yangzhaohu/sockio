@@ -10,7 +10,6 @@
 #include "sio_sockssl.h"
 #include "sio_event.h"
 #include "sio_mplex.h"
-#include "sio_aio.h"
 #include "sio_errno.h"
 #include "sio_log.h"
 
