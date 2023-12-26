@@ -461,7 +461,7 @@ int sio_socket_set_addrreuse(struct sio_socket *sock, int reuse)
 }
 
 static inline
-int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_sockoptc cmd)
+int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_sockopc cmd)
 {
     SIO_COND_CHECK_RETURN_VAL(sock->fd == -1, -1);
 
@@ -483,7 +483,7 @@ int sio_socket_set_buffsize(struct sio_socket *sock, int size, enum sio_sockoptc
 }
 
 static inline
-int sio_socket_set_sock_timeout(struct sio_socket *sock, int ms, enum sio_sockoptc cmd)
+int sio_socket_set_sock_timeout(struct sio_socket *sock, int ms, enum sio_sockopc cmd)
 {
     int optname = cmd == SIO_SOCK_SNDTIMEO ? SO_SNDTIMEO : SO_RCVTIMEO;
 #ifdef WIN32
@@ -657,7 +657,7 @@ struct sio_socket *sio_socket_dup2(struct sio_socket *sock, char *placement)
     return sdup;
 }
 
-int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt)
+int sio_socket_setopt(struct sio_socket *sock, enum sio_sockopc cmd, union sio_sockopt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 
@@ -764,7 +764,7 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_
     return ret;
 }
 
-int sio_socket_getopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt)
+int sio_socket_getopt(struct sio_socket *sock, enum sio_sockopc cmd, union sio_sockopt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!sock || !opt, -1);
 

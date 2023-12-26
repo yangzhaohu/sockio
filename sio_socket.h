@@ -49,7 +49,7 @@ struct sio_sockops
     int (*closeable)(struct sio_socket *sock);
 };
 
-enum sio_sockoptc
+enum sio_sockopc
 {
     /* set pointer to private data */
     SIO_SOCK_PRIVATE,
@@ -105,8 +105,8 @@ struct sio_socket *sio_socket_create2(enum sio_sockprot prot, char *placement);
 struct sio_socket *sio_socket_dup(struct sio_socket *sock, char *placement);
 struct sio_socket *sio_socket_dup2(struct sio_socket *sock, char *placement);
 
-int sio_socket_setopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt);
-int sio_socket_getopt(struct sio_socket *sock, enum sio_sockoptc cmd, union sio_sockopt *opt);
+int sio_socket_setopt(struct sio_socket *sock, enum sio_sockopc cmd, union sio_sockopt *opt);
+int sio_socket_getopt(struct sio_socket *sock, enum sio_sockopc cmd, union sio_sockopt *opt);
 
 int sio_socket_peername(struct sio_socket *sock, struct sio_sockaddr *peer);
 int sio_socket_sockname(struct sio_socket *sock, struct sio_sockaddr *addr);

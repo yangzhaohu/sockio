@@ -320,7 +320,7 @@ struct sio_server *sio_server_create2(enum sio_sockprot prot, unsigned char thre
     return sio_server_create_imp(prot, threads);
 }
 
-int sio_server_setopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt)
+int sio_server_setopt(struct sio_server *serv, enum sio_servopc cmd, union sio_servopt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv, -1);
     SIO_COND_CHECK_RETURN_VAL(!opt, -1);
@@ -367,7 +367,7 @@ int sio_server_setopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_
     return ret;
 }
 
-int sio_server_getopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt)
+int sio_server_getopt(struct sio_server *serv, enum sio_servopc cmd, union sio_servopt *opt)
 {
     SIO_COND_CHECK_RETURN_VAL(!serv || !opt, -1);
 

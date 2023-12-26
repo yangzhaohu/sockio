@@ -11,7 +11,7 @@ enum sio_servio
     SIO_SERV_AIO
 };
 
-enum sio_servoptc
+enum sio_servopc
 {
     SIO_SERV_PRIVATE,
     SIO_SERV_OPS,
@@ -44,8 +44,8 @@ struct sio_server *sio_server_create(enum sio_sockprot prot);
 
 struct sio_server *sio_server_create2(enum sio_sockprot prot, unsigned char threads);
 
-int sio_server_setopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt);
-int sio_server_getopt(struct sio_server *serv, enum sio_servoptc cmd, union sio_servopt *opt);
+int sio_server_setopt(struct sio_server *serv, enum sio_servopc cmd, union sio_servopt *opt);
+int sio_server_getopt(struct sio_server *serv, enum sio_servopc cmd, union sio_servopt *opt);
 
 int sio_server_listen(struct sio_server *serv, struct sio_sockaddr *addr);
 
