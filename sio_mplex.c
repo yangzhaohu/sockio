@@ -19,41 +19,41 @@ struct sio_mplex
 static const 
 struct sio_mplex_ops g_mplex_select_ops =
 {
-    .create = sio_mplex_select_create,
-    .ctl  = sio_mplex_select_ctl,
-    .wait = sio_mplex_select_wait,
-    .close = sio_mplex_select_close,
-    .destory = sio_mplex_select_destory
+    .create = sio_select_create,
+    .ctl  = sio_select_ctl,
+    .wait = sio_select_wait,
+    .close = sio_select_close,
+    .destory = sio_select_destory
 };
 
 static const 
 struct sio_mplex_ops g_mplex_epoll_ops =
 {
-    .create = sio_mplex_epoll_create,
-    .ctl  = sio_mplex_epoll_ctl,
-    .wait = sio_mplex_epoll_wait,
-    .close = sio_mplex_epoll_close,
-    .destory = sio_mplex_epoll_destory
+    .create = sio_epoll_create,
+    .ctl  = sio_epoll_ctl,
+    .wait = sio_epoll_wait,
+    .close = sio_epoll_close,
+    .destory = sio_epoll_destory
 };
 
 static const 
 struct sio_mplex_ops g_mplex_iocp_ops =
 {
-    .create = sio_mplex_iocp_create,
-    .ctl  = sio_mplex_iocp_ctl,
-    .wait = sio_mplex_iocp_wait,
-    .close = sio_mplex_iocp_close,
-    .destory = sio_mplex_iocp_destory
+    .create = sio_iocp_create,
+    .ctl  = sio_iocp_ctl,
+    .wait = sio_iocp_wait,
+    .close = sio_iocp_close,
+    .destory = sio_iocp_destory
 };
 
 static const
 struct sio_mplex_ops g_mplex_uring_ops =
 {
-    .create = sio_mplex_uring_create,
-    .ctl  = sio_mplex_uring_ctl,
-    .wait = sio_mplex_uring_wait,
-    .close = sio_mplex_uring_close,
-    .destory = sio_mplex_uring_destory
+    .create = sio_uring_create,
+    .ctl  = sio_uring_ctl,
+    .wait = sio_uring_wait,
+    .close = sio_uring_close,
+    .destory = sio_uring_destory
 };
 
 static const

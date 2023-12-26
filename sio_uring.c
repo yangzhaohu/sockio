@@ -41,7 +41,7 @@ struct sio_aioseq *sio_aioseq_base_event(struct sio_event *event)
 }
 
 static inline
-int sio_mplex_uring_accept(struct sio_uring *uring, sio_fd_t fd, struct sio_event *event)
+int sio_uring_accept(struct sio_uring *uring, sio_fd_t fd, struct sio_event *event)
 {
     struct io_uring_sqe *sqe = io_uring_get_sqe(&uring->uring);
 
@@ -56,7 +56,7 @@ int sio_mplex_uring_accept(struct sio_uring *uring, sio_fd_t fd, struct sio_even
 }
 
 static inline
-int sio_mplex_uring_recv(struct sio_uring *uring, sio_fd_t fd, struct sio_event *event)
+int sio_uring_recv(struct sio_uring *uring, sio_fd_t fd, struct sio_event *event)
 {
     struct io_uring_sqe *sqe = io_uring_get_sqe(&uring->uring);
 
@@ -71,7 +71,7 @@ int sio_mplex_uring_recv(struct sio_uring *uring, sio_fd_t fd, struct sio_event 
 }
 
 static inline
-int sio_mplex_uring_send(struct sio_uring *uring, sio_fd_t fd, struct sio_event *event)
+int sio_uring_send(struct sio_uring *uring, sio_fd_t fd, struct sio_event *event)
 {
     struct io_uring_sqe *sqe = io_uring_get_sqe(&uring->uring);
 
@@ -130,7 +130,7 @@ int sio_uring_eventfd_notify(struct sio_uring *uring)
     return ret;
 }
 
-struct sio_mplex_ctx *sio_mplex_uring_create(void)
+struct sio_mplex_ctx *sio_uring_create(void)
 {
     struct sio_mplex_ctx *ctx = malloc(sizeof(struct sio_mplex_ctx));
     SIO_COND_CHECK_RETURN_VAL(!ctx, NULL);
@@ -163,7 +163,7 @@ struct sio_mplex_ctx *sio_mplex_uring_create(void)
     return ctx;
 }
 
-int sio_mplex_uring_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
+int sio_uring_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     int ret = -1;
     if (op == SIO_EV_OPT_ADD || op == SIO_EV_OPT_MOD) {
@@ -172,20 +172,20 @@ int sio_mplex_uring_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct s
         } else if (event->events & SIO_EVENTS_ASYNC_ACCEPT_RES) {
             event->events &= ~SIO_EVENTS_ASYNC_ACCEPT;
             struct sio_uring *uring = sio_mplex_get_uring(ctx);
-            ret = sio_mplex_uring_accept(uring, fd, event);
+            ret = sio_uring_accept(uring, fd, event);
         } else if (event->events & SIO_EVENTS_ASYNC_READ) {
             struct sio_uring *uring = sio_mplex_get_uring(ctx);
-            ret = sio_mplex_uring_recv(uring, fd, event);
+            ret = sio_uring_recv(uring, fd, event);
         } else if (event->events & SIO_EVENTS_ASYNC_WRITE) {
             struct sio_uring *uring = sio_mplex_get_uring(ctx);
-            ret = sio_mplex_uring_send(uring, fd, event);
+            ret = sio_uring_send(uring, fd, event);
         }
     }
 
     return ret;
 }
 
-int sio_mplex_uring_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
+int sio_uring_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
 {
     struct sio_uring *uring = sio_mplex_get_uring(ctx);
     struct io_uring_cqe *cqe;
@@ -213,7 +213,7 @@ int sio_mplex_uring_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int
     return ret;
 }
 
-int sio_mplex_uring_close(struct sio_mplex_ctx *ctx)
+int sio_uring_close(struct sio_mplex_ctx *ctx)
 {
     struct sio_uring *uring = sio_mplex_get_uring(ctx);
     int ret = sio_uring_eventfd_notify(uring);
@@ -223,7 +223,7 @@ int sio_mplex_uring_close(struct sio_mplex_ctx *ctx)
     return ret;
 }
 
-int sio_mplex_uring_destory(struct sio_mplex_ctx *ctx)
+int sio_uring_destory(struct sio_mplex_ctx *ctx)
 {
     struct sio_uring *uring = sio_mplex_get_uring(ctx);
     io_uring_queue_exit(&uring->uring);
@@ -236,27 +236,27 @@ int sio_mplex_uring_destory(struct sio_mplex_ctx *ctx)
 
 #else
 
-struct sio_mplex_ctx *sio_mplex_uring_create(void)
+struct sio_mplex_ctx *sio_uring_create(void)
 {
     return NULL;
 }
 
-int sio_mplex_uring_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
+int sio_uring_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     return -1;
 }
 
-int sio_mplex_uring_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
+int sio_uring_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
 {
     return -1;
 }
 
-int sio_mplex_uring_close(struct sio_mplex_ctx *ctx)
+int sio_uring_close(struct sio_mplex_ctx *ctx)
 {
     return -1;
 }
 
-int sio_mplex_uring_destory(struct sio_mplex_ctx *ctx)
+int sio_uring_destory(struct sio_mplex_ctx *ctx)
 {
     return -1;
 }

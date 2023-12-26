@@ -54,7 +54,7 @@ __thread struct sio_fdout tls_fout= { 0 };
 #endif
 
 static inline
-int sio_mplex_select_notify_read(struct sio_select *slt);
+int sio_select_notify_read(struct sio_select *slt);
 
 static inline 
 void sio_select_set_rwfds(struct sio_rwfds *rwfds, sio_fd_t fd, enum sio_events events)
@@ -185,7 +185,7 @@ int sio_in_event_index(struct sio_select *slt, sio_fd_t fd)
             fdset->fd_count--; \
             continue; \
         } else if (fd == slt->notify_pair[0]) { \
-            int mode = sio_mplex_select_notify_read(slt); \
+            int mode = sio_select_notify_read(slt); \
             if (mode == SIO_SELECT_NOTIFY_EXIT) { \
                 resolved = -1; \
                 break; \
@@ -217,7 +217,7 @@ int sio_select_event(struct sio_select *slt, struct sio_event *event, int count)
         unsigned int events = 0;
         if (SIO_FD_ISSET(pends, rfds)) {
             if (pends == slt->notify_pair[0]) {
-                int mode = sio_mplex_select_notify_read(slt);
+                int mode = sio_select_notify_read(slt);
                 if (mode == SIO_SELECT_NOTIFY_EXIT) {
                     resolved = -1;
                     break;
@@ -273,7 +273,7 @@ int sio_select_check_out_bounds(struct sio_select *slt, sio_fd_t fd)
 }
 
 static inline
-int sio_mplex_select_notifypair_create(struct sio_select *slt)
+int sio_select_notifypair_create(struct sio_select *slt)
 {
     sio_socket_t pair1 = socket(PF_INET, SOCK_DGRAM, 0);
     SIO_COND_CHECK_RETURN_VAL(pair1 == -1, -1);
@@ -307,7 +307,7 @@ int sio_mplex_select_notifypair_create(struct sio_select *slt)
 }
 
 static inline
-int sio_mplex_select_notify(struct sio_select *slt, SIO_SELECT_NOTIFY_MODE mode)
+int sio_select_notify(struct sio_select *slt, SIO_SELECT_NOTIFY_MODE mode)
 {
     struct sockaddr_in addr = { 0 };
     addr.sin_family = PF_INET;
@@ -320,7 +320,7 @@ int sio_mplex_select_notify(struct sio_select *slt, SIO_SELECT_NOTIFY_MODE mode)
 }
 
 static inline
-int sio_mplex_select_notify_read(struct sio_select *slt)
+int sio_select_notify_read(struct sio_select *slt)
 {
     SIO_SELECT_NOTIFY_MODE mode = 0;
     struct sockaddr_in addr = { 0 };
@@ -336,7 +336,7 @@ int sio_mplex_select_notify_read(struct sio_select *slt)
     return mode;
 }
 
-struct sio_mplex_ctx *sio_mplex_select_create(void)
+struct sio_mplex_ctx *sio_select_create(void)
 {
     struct sio_select *slt = malloc(sizeof(struct sio_select));
     SIO_COND_CHECK_RETURN_VAL(!slt, NULL);
@@ -348,7 +348,7 @@ struct sio_mplex_ctx *sio_mplex_select_create(void)
 
     slt->notify_port = sio_int_fetch_and_sub(&g_notify_port, 2);
 
-    int ret = sio_mplex_select_notifypair_create(slt);
+    int ret = sio_select_notifypair_create(slt);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, NULL,
         sio_int_fetch_and_add(&g_notify_port, 2),
         free(slt));
@@ -361,7 +361,7 @@ struct sio_mplex_ctx *sio_mplex_select_create(void)
     return &slt->ctx;
 }
 
-int sio_mplex_select_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
+int sio_select_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     struct sio_select *slt = (struct sio_select *)ctx;
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(sio_select_check_out_bounds(slt, fd) == -1, -1,
@@ -373,12 +373,12 @@ int sio_mplex_select_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct 
         sio_select_clr_event(slt, fd);
     }
 
-    sio_mplex_select_notify(slt, SIO_SELECT_NOTIFY_POLL); // notify唤醒select
+    sio_select_notify(slt, SIO_SELECT_NOTIFY_POLL); // notify唤醒select
 
     return 0;
 }
 
-int sio_mplex_select_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
+int sio_select_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
 {
     struct sio_select *slt = (struct sio_select *)ctx;
     int resolved = sio_select_event(slt, event, count);
@@ -403,18 +403,18 @@ int sio_mplex_select_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, in
     return resolved;
 }
 
-int sio_mplex_select_close(struct sio_mplex_ctx *ctx)
+int sio_select_close(struct sio_mplex_ctx *ctx)
 {
     struct sio_select *slt = (struct sio_select *)ctx;
 
-    int ret = sio_mplex_select_notify(slt, SIO_SELECT_NOTIFY_EXIT);
+    int ret = sio_select_notify(slt, SIO_SELECT_NOTIFY_EXIT);
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
         SIO_LOGE("select notify write failed\n"));
 
     return ret;
 }
 
-int sio_mplex_select_destory(struct sio_mplex_ctx *ctx)
+int sio_select_destory(struct sio_mplex_ctx *ctx)
 {
     free(ctx);
     return 0;

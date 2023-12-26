@@ -80,7 +80,7 @@ int sio_iocp_send(sio_fd_t fd, struct sio_event *event)
 }
 
 static inline
-void *sio_iocp_create()
+void *sio_iocp_create_iocp()
 {
     void *iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
     SIO_COND_CHECK_RETURN_VAL(iocp == NULL, NULL);
@@ -104,14 +104,14 @@ int sio_iocp_exit_notify(void *iocp)
     return PostQueuedCompletionStatus(iocp, 0, SIO_IOCP_EXIT_MAGIC, NULL);
 }
 
-struct sio_mplex_ctx *sio_mplex_iocp_create(void)
+struct sio_mplex_ctx *sio_iocp_create(void)
 {
     struct sio_mplex_ctx *ctx = malloc(sizeof(struct sio_mplex_ctx));
     SIO_COND_CHECK_RETURN_VAL(!ctx, NULL);
 
     memset(ctx, 0, sizeof(struct sio_mplex_ctx));
 
-    void *iocp = sio_iocp_create();
+    void *iocp = sio_iocp_create_iocp();
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!iocp, NULL,
         free(ctx));
 
@@ -119,7 +119,7 @@ struct sio_mplex_ctx *sio_mplex_iocp_create(void)
     return ctx;
 }
 
-int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
+int sio_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     int ret = 0;
     if (op == SIO_EV_OPT_ADD || op == SIO_EV_OPT_MOD) {
@@ -147,7 +147,7 @@ int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct si
     return ret;
 }
 
-int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
+int sio_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
 {
     unsigned long recv = 0;
     ULONG_PTR key;
@@ -180,13 +180,13 @@ int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int 
     return 1;
 }
 
-int sio_mplex_iocp_close(struct sio_mplex_ctx *ctx)
+int sio_iocp_close(struct sio_mplex_ctx *ctx)
 {
     void *iocp = sio_mplex_get_iocp(ctx);
     return sio_iocp_exit_notify(iocp);
 }
 
-int sio_mplex_iocp_destory(struct sio_mplex_ctx *ctx)
+int sio_iocp_destory(struct sio_mplex_ctx *ctx)
 {
     void *iocp = sio_mplex_get_iocp(ctx);
     int ret = CloseHandle(iocp);
@@ -198,27 +198,27 @@ int sio_mplex_iocp_destory(struct sio_mplex_ctx *ctx)
 
 #else
 
-struct sio_mplex_ctx *sio_mplex_iocp_create(void)
+struct sio_mplex_ctx *sio_iocp_create(void)
 {
     return NULL;
 }
 
-int sio_mplex_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
+int sio_iocp_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
 {
     return -1;
 }
 
-int sio_mplex_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
+int sio_iocp_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
 {
     return -1;
 }
 
-int sio_mplex_iocp_close(struct sio_mplex_ctx *ctx)
+int sio_iocp_close(struct sio_mplex_ctx *ctx)
 {
     return -1;
 }
 
-int sio_mplex_iocp_destory(struct sio_mplex_ctx *ctx)
+int sio_iocp_destory(struct sio_mplex_ctx *ctx)
 {
     return -1;
 }
