@@ -1,14 +1,18 @@
 #include "sio_uring.h"
 #include <string.h>
 #include <stdlib.h>
+#ifdef LINUX
 #include <unistd.h>
 #include <liburing.h>
 #include <poll.h>
 #include <sys/eventfd.h>
+#endif
 #include "sio_common.h"
 #include "sio_mplex_pri.h"
 #include "sio_aioseq.h"
 #include "sio_log.h"
+
+#ifdef LINUX
 
 struct sio_uring
 {
@@ -229,3 +233,32 @@ int sio_mplex_uring_destory(struct sio_mplex_ctx *ctx)
 
     return 0;
 }
+
+#else
+
+struct sio_mplex_ctx *sio_mplex_uring_create(void)
+{
+    return NULL;
+}
+
+int sio_mplex_uring_ctl(struct sio_mplex_ctx *ctx, int op, sio_fd_t fd, struct sio_event *event)
+{
+    return -1;
+}
+
+int sio_mplex_uring_wait(struct sio_mplex_ctx *ctx, struct sio_event *event, int count)
+{
+    return -1;
+}
+
+int sio_mplex_uring_close(struct sio_mplex_ctx *ctx)
+{
+    return -1;
+}
+
+int sio_mplex_uring_destory(struct sio_mplex_ctx *ctx)
+{
+    return -1;
+}
+
+#endif
