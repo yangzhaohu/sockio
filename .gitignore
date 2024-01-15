@@ -338,6 +338,8 @@ ASALocalRun/
 *.so
 *.dylib
 *.dll
+*.lib
+*.exp
 
 # Fortran module files
 *.mod
@@ -366,3 +368,4 @@ target/
 root/
 3dparty/
 depend/
+tmp/

@@ -9,26 +9,26 @@ FLAGS += /DWIN32 /MD /Fd
 CFLAGS += $(FLAGS) /TC
 CXXFLAGS += $(FLAGS) /TP
 
-OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.obj)
-OBJS := $(OBJS:%.cpp=$(OBJ_OUTPUT)%.obj)
+OBJS := $(SRCS:%.c=$(TMPLIB_DIR)%.obj)
+OBJS := $(OBJS:%.cpp=$(TMPLIB_DIR)%.obj)
 
 SYMBOlS := symbols.def
 
-$(OBJ_OUTPUT)%.obj : %.c
+$(TMPLIB_DIR)%.obj : %.c
 	@set -e; mkdir -p $(dir $@);
 	$(CC) /c $< $(INCLUDES) /nologo $(CFLAGS) /Fo: $@
 
-$(OBJ_OUTPUT)%.obj : %.cpp
+$(TMPLIB_DIR)%.obj : %.cpp
 	@set -e; mkdir -p $(dir $@);
 	$(CXX) /c $< $(INCLUDES) /nologo $(CXXFLAGS) /Fo: $@
 
 build: linklib linkdll
 
 linklib: $(OBJS)
-	$(AR) $(OBJS) /nologo /out:$(TARGET_OUT)/$(TARGET)_static.lib
+	$(AR) $(OBJS) /nologo /out:$(TARGET).a
 
 linkdll: $(OBJS)
-	$(LINK) $(OBJS) $(LIBS) /nologo /DEF:$(SYMBOlS) $(LIBPATH) $(LFLAGS) /out:$(TARGET_OUT)/$(TARGET).dll
+	$(LINK) $(OBJS) $(LIBS) /nologo /DEF:$(SYMBOlS) $(LIBPATH) $(LFLAGS) /out:$(TARGET).dll
 
 clean:
-	@set -e; rm -rf $(OBJS) $(TARGET_OUT)/$(TARGET)_static.lib $(TARGET_OUT)/$(TARGET).dll $(TARGET_OUT)/$(TARGET).lib
+	@set -e; rm -rf $(OBJS) $(TARGET).a $(TARGET).dll $(TARGET).lib

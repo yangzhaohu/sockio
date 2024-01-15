@@ -4,15 +4,24 @@ ifndef TOP_PATH
 TOP_PATH := ..
 endif
 
-ifndef TARGET_OUT
-TARGET_OUT := $(TOP_PATH)/target/
-$(shell mkdir -p $(TARGET_OUT))
+ifndef PREFIX
+$(info $(PREFIX))
+PREFIX := $(TOP_PATH)/target/
+$(shell mkdir -p $(PREFIX))
 endif
 
-ifndef OBJ_OUTPUT
-OBJ_OUTPUT := $(TOP_PATH)/out/lib/
-$(shell mkdir -p $(OBJ_OUTPUT))
+INSTALL_INCDIR = $(PREFIX)/include/sio
+$(shell mkdir -p $(INSTALL_INCDIR))
+
+INSTALL_LIBDIR = $(PREFIX)/lib
+$(shell mkdir -p $(INSTALL_LIBDIR))
+
+ifndef TMP_DIR
+TMP_DIR := $(TOP_PATH)/tmp
 endif
+
+TMPLIB_DIR := $(TOP_PATH)/tmp/lib/
+$(shell mkdir -p $(TMP_DIR))
 
 FLAGS :=
 LFLAGS :=
@@ -85,3 +94,22 @@ help:
 
 
 all: clean build
+
+install:
+	install -D -m 644 sio_event.h $(INSTALL_INCDIR)/sio_event.h
+	install -D -m 644 sio_socket.h $(INSTALL_INCDIR)/sio_socket.h
+	install -D -m 644 sio_server.h $(INSTALL_INCDIR)/sio_server.h
+	install -D -m 644 sio_mplex.h $(INSTALL_INCDIR)/sio_mplex.h
+	install -D -m 644 sio_pmplex.h $(INSTALL_INCDIR)/sio_pmplex.h
+	install -D -m 644 sio_global.h $(INSTALL_INCDIR)/sio_global.h
+	install -D -m 644 sio_thread.h $(INSTALL_INCDIR)/sio_thread.h
+	install -D -m 644 sio_atomic.h $(INSTALL_INCDIR)/sio_atomic.h
+	install -D -m 644 sio_stack.h $(INSTALL_INCDIR)/sio_stack.h
+	install -D -m 644 sio_queue.h $(INSTALL_INCDIR)/sio_queue.h
+	install -D -m 644 sio_mempool.h $(INSTALL_INCDIR)/sio_mempool.h
+	install -D -m 644 sio_regex.h $(INSTALL_INCDIR)/sio_regex.h
+	install -D -m 644 sio_time.h $(INSTALL_INCDIR)/sio_time.h
+	install -D -m 644 sio_timer.h $(INSTALL_INCDIR)/sio_timer.h
+	install -D -m 644 sio_dlopen.h $(INSTALL_INCDIR)/sio_dlopen.h
+	install -D -m 644 sio_log.h $(INSTALL_INCDIR)/sio_log.h
+	install -D -m 644 $(TARGET).* $(INSTALL_LIBDIR)/

@@ -13,25 +13,25 @@ CXXFLAGS += $(FLAGS)
 
 LIBS +=
 
-OBJS := $(SRCS:%.c=$(OBJ_OUTPUT)%.o)
-OBJS := $(OBJS:%.cpp=$(OBJ_OUTPUT)%.o)
+OBJS := $(SRCS:%.c=$(TMPLIB_DIR)%.o)
+OBJS := $(OBJS:%.cpp=$(TMPLIB_DIR)%.o)
 
-$(OBJ_OUTPUT)%.o : %.c
+$(TMPLIB_DIR)%.o : %.c
 	@set -e; mkdir -p $(dir $@);
 	$(CC) -MMD -c $< $(INCLUDES) $(CFLAGS) -o $@
 
-$(OBJ_OUTPUT)%.o : %.cpp
+$(TMPLIB_DIR)%.o : %.cpp
 	@set -e; mkdir -p $(dir $@);
 	$(CXX) -MMD -c $< $(INCLUDES) $(CXXFLAGS) -o $@
 
 build: $(OBJS)
-	$(CXX) $(OBJS) $(LIBPATH) $(LIBS) $(LFLAGS) -o $(TARGET_OUT)/$(TARGET).so
+	$(CXX) $(OBJS) $(LIBPATH) $(LIBS) $(LFLAGS) -o $(TARGET).so
 
 clean:
-	@set -e; rm -rf $(DEPS) $(OBJS) $(TARGET_OUT)/$(TARGET).so
+	@set -e; rm -rf $(DEPS) $(OBJS) $(TARGET).so
 
 #中间目标依赖文件.d
-DEPS := $(SRCS:%.c=$(OBJ_OUTPUT)%.d)
-DEPS := $(DEPS:%.cpp=$(OBJ_OUTPUT)%.d)
+DEPS := $(SRCS:%.c=$(TMPLIB_DIR)%.d)
+DEPS := $(DEPS:%.cpp=$(TMPLIB_DIR)%.d)
 
 -include $(DEPS)
