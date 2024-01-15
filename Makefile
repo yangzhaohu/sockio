@@ -2,8 +2,6 @@ TOP_PATH := $(shell pwd)
 
 PREFIX := $(TOP_PATH)/depend
 
-$(info $(PREFIX))
-
 .PHONY: all libsio install libsio-install clean libsio-clean
 
 libsio:

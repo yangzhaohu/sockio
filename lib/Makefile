@@ -5,16 +5,18 @@ TOP_PATH := ..
 endif
 
 ifndef PREFIX
-$(info $(PREFIX))
-PREFIX := $(TOP_PATH)/target/
-$(shell mkdir -p $(PREFIX))
+LIBPREFIX := ./
+else
+LIBPREFIX := $(PREFIX)
 endif
 
-INSTALL_INCDIR = $(PREFIX)/include/sio
-$(shell mkdir -p $(INSTALL_INCDIR))
+INSTALL_INCDIR = $(LIBPREFIX)/include/sio
+INSTALL_LIBDIR = $(LIBPREFIX)/lib
 
-INSTALL_LIBDIR = $(PREFIX)/lib
+ifdef PREFIX
+$(shell mkdir -p $(INSTALL_INCDIR))
 $(shell mkdir -p $(INSTALL_LIBDIR))
+endif
 
 ifndef TMP_DIR
 TMP_DIR := $(TOP_PATH)/tmp
