@@ -1,4 +1,4 @@
-TOP_PATH := $(PWD)
+TOP_PATH := $(shell pwd)
 
 .PHONY: all libsio libsio-clean clean
 
