@@ -1,19 +1,17 @@
 CC  := gcc
 CXX := g++
 
-TARGET_OUT := ../target/
-$(shell mkdir -p $(TARGET_OUT))
+PREFIX := ../target/
 
-OBJ_OUTPUT := ../out/
-$(shell mkdir -p $(OBJ_OUTPUT))
+TMP_DIR := ../out/
 
 ifeq ($(compiler), gcc)
 FLAGS := -fPIE -g
-INCLUDES := -I../ -I../depend/include
-LIBS := -L../target -lsockio -ldl
+INCLUDES := -I../ -I../depend/include -I../depend/include/sio
+LIBS := -L../depend/lib -lsio -ldl
 else
-INCLUDES := -I../ -I../depend/include
-LIBS := libsockio.lib
+INCLUDES := -I../ -I../depend/include -I../depend/include/sio
+LIBS := libsio.lib
 endif
 
 CFLAGS += $(FLAGS)
@@ -49,14 +47,14 @@ TARGET_LIST := $(patsubst %.cpp, %, $(TARGET_LIST))
 ifeq ($(compiler), gcc)
 all: $(OBJS) $(TARGET_LIST)
 $(TARGET_LIST):
-	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath=./ -Wl,-rpath-link=../depend/lib -o $(TARGET_OUT)$@
+	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath=./ -Wl,-rpath-link=../depend/lib -o $(PREFIX)$@
 
 else
 winall: $(TARGET_LIST)
 $(TARGET_LIST):
-	cl $@.c /I../ /I../depend/include /MD libsockio.lib /link /LIBPATH:../target /out:$(TARGET_OUT)/$@.exe
+	cl $@.c $(INCLUDES) /MD libsio.lib /link /LIBPATH:../depend/lib /out:$(PREFIX)/$@.exe
 endif
 
 clean:
 	rm -f $(OBJS)
-	cd $(TARGET_OUT) && rm -f $(TARGET_LIST)
+	cd $(PREFIX) && rm -f $(TARGET_LIST)

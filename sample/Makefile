@@ -8,8 +8,8 @@ OBJ_OUTPUT := ../out/
 $(shell mkdir -p $(OBJ_OUTPUT))
 
 FLAGS := -fPIE
-INCLUDES := -I../ -I../include
-LIBS := -L../target -lsockio -Wl,-rpath=. -Wl,-rpath-link=../depend/lib
+INCLUDES := -I../ -I../include -I../depend/include/sio
+LIBS := -L../depend/lib -lsio -Wl,-rpath=. -Wl,-rpath-link=../depend/lib
 
 #CFLAGS += $(FLAGS)
 #CXXFLAGS += $(FLAGS)
