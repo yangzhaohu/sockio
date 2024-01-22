@@ -13,11 +13,6 @@ endif
 INSTALL_INCDIR = $(LIBPREFIX)/include/sio
 INSTALL_LIBDIR = $(LIBPREFIX)/lib
 
-ifdef PREFIX
-$(shell mkdir -p $(INSTALL_INCDIR))
-$(shell mkdir -p $(INSTALL_LIBDIR))
-endif
-
 ifndef TMP_DIR
 TMP_DIR := $(TOP_PATH)/tmp
 endif
@@ -98,6 +93,8 @@ help:
 all: clean build
 
 install:
+	$(shell mkdir -p $(INSTALL_INCDIR))
+	$(shell mkdir -p $(INSTALL_LIBDIR))
 	install -D -m 644 sio_def.h $(INSTALL_INCDIR)/sio_def.h
 	install -D -m 644 sio_common.h $(INSTALL_INCDIR)/sio_common.h
 	install -D -m 644 sio_event.h $(INSTALL_INCDIR)/sio_event.h
