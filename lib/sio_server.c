@@ -61,14 +61,6 @@ struct sio_server
     struct sio_server_mlb mlb;
 };
 
-#define sio_socket_memptr char
-
-struct sio_sockunion
-{
-    struct sio_server *serv;
-    sio_socket_memptr sock[0];
-};
-
 sio_tls_t enum SIO_MPLEX_TYPE tls_mplex = SIO_SYNC_IO;
 
 static inline
@@ -77,37 +69,14 @@ int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock);
 static inline
 struct sio_socket *sio_server_alloc_socket(struct sio_server *serv, int flag)
 {
-    int blocksize = sizeof(struct sio_sockunion) + sio_socket_struct_size();
-    char *memptr = malloc(blocksize);
-    SIO_COND_CHECK_RETURN_VAL(!memptr, NULL);
-
-    memset(memptr, 0, blocksize);
-    struct sio_sockunion *sockuni = (struct sio_sockunion *)memptr;
-    sockuni->serv = serv;
-
-    char *sockmem = sockuni->sock;
     struct sio_socket *sock;
     if (flag) {
-        sock = sio_socket_dup2(serv->sock, sockmem);
+        sock = sio_socket_dup2(serv->sock, NULL);
     } else {
-        sock = sio_socket_dup(serv->sock, sockmem);
+        sock = sio_socket_dup(serv->sock, NULL);
     }
 
     return sock;
-}
-
-static inline
-void sio_server_free_socket(struct sio_socket *sock)
-{
-    struct sio_sockunion *sockuni = SIO_CONTAINER_OF(sock, struct sio_sockunion, sock);
-    free(sockuni);
-}
-
-static inline
-struct sio_server *sio_server_socket_get_server(struct sio_socket *sock)
-{
-    struct sio_sockunion *sockuni = SIO_CONTAINER_OF(sock, struct sio_sockunion, sock);
-    return sockuni->serv;
 }
 
 static inline
@@ -124,7 +93,7 @@ int sio_server_newconnection_cb(struct sio_server *serv, struct sio_socket *sock
 {
     struct sio_server_owner *owner = &serv->owner;
 
-    return owner->ops.newconnection == NULL ? 0 : owner->ops.newconnection(sock);
+    return owner->ops.newconnection == NULL ? 0 : owner->ops.newconnection(serv, sock);
 }
 
 static inline
@@ -145,7 +114,7 @@ int sio_server_accpet_socket(struct sio_socket *serv)
 
         ret = sio_socket_accept(serv, sock);
         SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-            sio_server_free_socket(sock));
+            sio_socket_destory(sock));
 
         sio_server_newconnection_cb(server, sock);
 
@@ -405,21 +374,6 @@ int sio_server_listen(struct sio_server *serv, struct sio_sockaddr *addr)
         sio_server_async_post_accept(serv));
 
     return 0;
-}
-
-struct sio_server *sio_server_socket_server(struct sio_socket *sock)
-{
-    return sio_server_socket_get_server(sock);
-}
-
-int sio_server_socket_reuse(struct sio_socket *sock)
-{
-    return -1;
-}
-
-void sio_server_socket_free(struct sio_socket *sock)
-{
-    sio_server_free_socket(sock);
 }
 
 int sio_server_shutdown(struct sio_server *serv)

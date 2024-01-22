@@ -47,12 +47,10 @@ int closed(struct sio_socket *sock)
     SIO_LOGI("close\n");
     sio_socket_destory(sock);
 
-    sio_server_socket_free(sock);
-
     return 0;
 }
 
-int socknew(struct sio_socket *sock)
+int socknew(struct sio_server *serv, struct sio_socket *sock)
 {
     union sio_sockopt opt = {
         .ops.readable = readable,
@@ -87,7 +85,7 @@ int writeable_async(struct sio_socket *sock, const char *data, int len)
     return 0;
 }
 
-int socknew_async(struct sio_socket *sock)
+int socknew_async(struct sio_server *serv, struct sio_socket *sock)
 {
     SIO_LOGI("new sock\n");
     union sio_sockopt opt = {
@@ -110,7 +108,7 @@ int socknew_async(struct sio_socket *sock)
 int main(int argc, char *argv[])
 {
     sio_logg_enable_prefix(0);
-    sio_server_set_default(SIO_SERV_AIO);
+    sio_server_set_default(SIO_SERV_NIO);
     int cmd = 0;
     struct sio_server *serv = NULL;
     union sio_servopt opt;
@@ -182,7 +180,7 @@ int main(int argc, char *argv[])
         serv = sio_server_create(g_prot);
     }
 
-    opt.ops.newconnection = socknew_async;
+    opt.ops.newconnection = socknew;
     sio_server_setopt(serv, SIO_SERV_OPS, &opt);
 
     sio_server_listen(serv, &g_addr);
