@@ -26,9 +26,13 @@ $(TMPLIB_DIR)%.o : %.cpp
 
 build: $(OBJS)
 	$(CXX) $(OBJS) $(LIBPATH) $(LIBS) $(LFLAGS) -o $(TARGET).so
+	$(shell mkdir -p .debug)
+	objcopy --only-keep-debug $(TARGET).so .debug/$(TARGET).so
+	strip $(TARGET).so
+	objcopy --add-gnu-debuglink=.debug/$(TARGET).so $(TARGET).so
 
 clean:
-	@set -e; rm -rf $(DEPS) $(OBJS) $(TARGET).so
+	@set -e; rm -rf $(DEPS) $(OBJS) $(TARGET).so .debug
 
 #中间目标依赖文件.d
 DEPS := $(SRCS:%.c=$(TMPLIB_DIR)%.d)

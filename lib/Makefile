@@ -12,6 +12,7 @@ endif
 
 INSTALL_INCDIR = $(LIBPREFIX)/include/sio
 INSTALL_LIBDIR = $(LIBPREFIX)/lib
+INSTALL_LIBDIR_DEBUG = $(LIBPREFIX)/lib/.debug
 
 ifndef TMP_DIR
 TMP_DIR := $(TOP_PATH)/tmp
@@ -76,7 +77,7 @@ SRCS := sio_global.cpp \
 
 ifdef compiler
 ifeq ($(compiler), gcc)
-FLAGS += -fPIC -Wl,-z,defs -shared -g -Wall -Werror -Wno-multichar
+FLAGS += -fPIC -Wl,-z,defs -shared -O2 -g -Wall -Werror -Wno-multichar
 LFLAGS += -fPIC -Wl,-z,defs -shared -Wl,-rpath=.
 else
 FLAGS +=
@@ -95,6 +96,7 @@ all: clean build
 install:
 	$(shell mkdir -p $(INSTALL_INCDIR))
 	$(shell mkdir -p $(INSTALL_LIBDIR))
+	$(shell mkdir -p $(INSTALL_LIBDIR_DEBUG))
 	install -D -m 644 sio_def.h $(INSTALL_INCDIR)/sio_def.h
 	install -D -m 644 sio_common.h $(INSTALL_INCDIR)/sio_common.h
 	install -D -m 644 sio_event.h $(INSTALL_INCDIR)/sio_event.h
@@ -113,4 +115,5 @@ install:
 	install -D -m 644 sio_timer.h $(INSTALL_INCDIR)/sio_timer.h
 	install -D -m 644 sio_dlopen.h $(INSTALL_INCDIR)/sio_dlopen.h
 	install -D -m 644 sio_log.h $(INSTALL_INCDIR)/sio_log.h
-	install -D -m 644 $(TARGET).* $(INSTALL_LIBDIR)/
+	install -D -m 644 $(TARGET).* $(INSTALL_LIBDIR)
+	install -D -m 644 .debug/$(TARGET).* $(INSTALL_LIBDIR_DEBUG)
