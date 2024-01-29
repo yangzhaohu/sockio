@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "sio_common.h"
 #include "sio_server.h"
 #include "sio_log.h"
 
@@ -40,7 +41,10 @@ static int socket_close(struct sio_socket *sock)
 
 static int server_newconn(struct sio_server *serv)
 {
-    struct sio_socket *sock = sio_socket_create(SIO_SOCK_TCP, NULL);
+    struct sio_socket *sock = NULL;
+    int ret = sio_server_accept(serv, &sock);
+    SIO_COND_CHECK_RETURN_VAL(ret != 0, 0);
+
     union sio_sockopt opt = {
         .ops.readable = socket_readable,
         .ops.writeable = socket_writeable,
@@ -48,16 +52,8 @@ static int server_newconn(struct sio_server *serv)
     };
     sio_socket_setopt(sock, SIO_SOCK_OPS, &opt);
 
-    int ret = sio_server_accept(serv, sock);
-    if(ret == -1) {
-        sio_socket_destory(sock);
-        return ret;
-    }
-
     opt.nonblock = 1;
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
-
-    sio_server_socket_mplex(serv, sock);
 
     return ret;
 }
@@ -67,7 +63,7 @@ int main()
     struct sio_server *serv = sio_server_create(SIO_SOCK_TCP);
 
     union sio_servopt ops = {
-        .ops.accept = server_newconn
+        .ops.newconnection = server_newconn
     };
     sio_server_setopt(serv, SIO_SERV_OPS, &ops);
 

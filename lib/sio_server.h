@@ -23,7 +23,7 @@ enum sio_servopc
 
 struct sio_servops
 {
-    int (*newconnection)(struct sio_server *serv, struct sio_socket *sock);
+    int (*newconnection)(struct sio_server *serv);
 };
 
 union sio_servopt
@@ -48,6 +48,8 @@ int sio_server_setopt(struct sio_server *serv, enum sio_servopc cmd, union sio_s
 int sio_server_getopt(struct sio_server *serv, enum sio_servopc cmd, union sio_servopt *opt);
 
 int sio_server_listen(struct sio_server *serv, struct sio_sockaddr *addr);
+
+int sio_server_accept(struct sio_server *serv, struct sio_socket **sock);
 
 int sio_server_shutdown(struct sio_server *serv);
 

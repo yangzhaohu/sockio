@@ -44,14 +44,20 @@ int writeable(struct sio_socket *sock)
 
 int closed(struct sio_socket *sock)
 {
-    SIO_LOGI("close\n");
+    union sio_sockopt opt = { 0 };
+    sio_socket_getopt(sock, SIO_SOCK_FD, &opt);
+    SIO_LOGI("close fd: %d\n", opt.fd);
     sio_socket_destory(sock);
 
     return 0;
 }
 
-int socknew(struct sio_server *serv, struct sio_socket *sock)
+int socknew(struct sio_server *serv)
 {
+    struct sio_socket *sock = NULL;
+    int ret = sio_server_accept(serv, &sock);
+    SIO_COND_CHECK_RETURN_VAL(ret != 0, 0);
+
     union sio_sockopt opt = {
         .ops.readable = readable,
         .ops.writeable = writeable,
@@ -68,12 +74,13 @@ int socknew(struct sio_server *serv, struct sio_socket *sock)
 int readable_async(struct sio_socket *sock, const char *data, int len)
 {
     // SIO_LOGI("recv %d: %s\n", len, data);
-    sio_socket_async_read(sock, (char *)data, 512);
 
     int l = strlen(g_resp);
     char *buf = sio_aiobuf_alloc(l);
     memcpy(buf, g_resp, strlen(g_resp));
     sio_socket_async_write(sock, buf, l);
+
+    sio_socket_async_read(sock, (char *)data, 512);
 
     return 0;
 }
@@ -85,9 +92,13 @@ int writeable_async(struct sio_socket *sock, const char *data, int len)
     return 0;
 }
 
-int socknew_async(struct sio_server *serv, struct sio_socket *sock)
+int socknew_async(struct sio_server *serv)
 {
     SIO_LOGI("new sock\n");
+    struct sio_socket *sock = NULL;
+    int ret = sio_server_accept(serv, &sock);
+    SIO_COND_CHECK_RETURN_VAL(ret != 0, 0);
+
     union sio_sockopt opt = {
         .ops.readasync = readable_async,
         .ops.writeasync = writeable_async,
@@ -105,14 +116,25 @@ int socknew_async(struct sio_server *serv, struct sio_socket *sock)
     return 0;
 }
 
+static struct sio_servops g_servops[] = {
+    [SIO_SERV_NIO] = {
+        .newconnection = socknew
+    },
+    [SIO_SERV_AIO] = {
+        .newconnection = socknew_async
+    }
+};
+
+#define TEST_SERVER_IO SIO_SERV_NIO
+
 int main(int argc, char *argv[])
 {
     sio_logg_enable_prefix(0);
-    sio_server_set_default(SIO_SERV_NIO);
+    sio_server_set_default(TEST_SERVER_IO);
     int cmd = 0;
     struct sio_server *serv = NULL;
     union sio_servopt opt;
-    while ((cmd = getopt(argc, argv, "p:c:k:a:v:h")) != -1) {
+    while ((cmd = getopt(argc, argv, "p:c:k:a:v:t:h")) != -1) {
         switch (cmd) {
             case 'p':
                 if (atoi(optarg) == 0) {
@@ -145,6 +167,9 @@ int main(int argc, char *argv[])
                     sio_server_setopt(serv, SIO_SERV_SSL_VERIFY_PEER, &opt);
                 }
                 break;
+            case 't':
+                sio_logg_setlevel(atoi(optarg));
+                break;
 
             case 'h':
                 SIO_LOGI("Usage: test_server [destination] [port] [options]\n");
@@ -154,6 +179,7 @@ int main(int argc, char *argv[])
                 SIO_LOGI("    -k userkey     user key filename\n");
                 SIO_LOGI("    -a cacert      cacert filename\n");
                 SIO_LOGI("    -v verify      verify peer, 0: disable, 1: enable\n");
+                SIO_LOGI("    -t print       print level\n");
                 return 0;
         }
     }
@@ -180,7 +206,7 @@ int main(int argc, char *argv[])
         serv = sio_server_create(g_prot);
     }
 
-    opt.ops.newconnection = socknew;
+    opt.ops.newconnection = g_servops[TEST_SERVER_IO].newconnection;
     sio_server_setopt(serv, SIO_SERV_OPS, &opt);
 
     sio_server_listen(serv, &g_addr);

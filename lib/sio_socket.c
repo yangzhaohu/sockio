@@ -224,7 +224,7 @@ __thread int tls_sock_readerr = 0;
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_READ) {                                \
         if (attr->mean == SIO_SOCK_MEAN_SOCKET                                  \
-            && event->res == 0) {                                               \
+            && event->res <= 0) {                                               \
             sio_socket_close_cleanup(sock);                                     \
             continue;                                                           \
         }                                                                       \
@@ -337,7 +337,7 @@ extern int sio_socket_event_dispatch(struct sio_event *events, int count)
         struct sio_socket_state *stat = &sock->stat;
         struct sio_socket_owner *owner = &sock->owner;
         struct sio_sockops *ops = &owner->ops;
-        SIO_LOGD("socket fd: %d, event: 0x%x\n", sock->fd, event->events);
+        SIO_LOGD("socket fd: %d, event: 0x%x, res: %d\n", sock->fd, event->events, event->res);
 
         sio_socket_event_dispatch_once(event);
     }
@@ -780,6 +780,9 @@ int sio_socket_getopt(struct sio_socket *sock, enum sio_sockopc cmd, union sio_s
     
     case SIO_SOCK_MPLEX:
         opt->mplex = sock->mp;
+        break;
+    case SIO_SOCK_FD:
+        opt->fd = sock->fd;
         break;
 
     default:

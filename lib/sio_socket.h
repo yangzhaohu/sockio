@@ -57,6 +57,8 @@ enum sio_sockopc
     SIO_SOCK_OPS,
     /* set socket mplex */
     SIO_SOCK_MPLEX,
+    /* get socket fd */
+    SIO_SOCK_FD,
     /* set recv buffer size */
     SIO_SOCK_RCVBUF,
     /* set send buffer size */
@@ -82,6 +84,7 @@ union sio_sockopt
     void *private;
     struct sio_sockops ops;
     struct sio_mplex *mplex;
+    int fd;
     int rcvbuf;
     int sndbuf;
     int nonblock;

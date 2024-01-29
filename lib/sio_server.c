@@ -63,6 +63,11 @@ struct sio_server
 
 sio_tls_t enum SIO_MPLEX_TYPE tls_mplex = SIO_SYNC_IO;
 
+sio_tls_t struct sio_socket *tls_sock = NULL;
+#define sio_socket_accept_pend_sock()     tls_sock
+#define sio_socket_accept_pend_sock_set(sock)   tls_sock = sock
+#define sio_socket_accept_pend_sock_clr()   tls_sock = NULL
+
 static inline
 int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock);
 
@@ -89,11 +94,32 @@ int sio_server_async_post_accept(struct sio_server *serv)
 }
 
 static inline
-int sio_server_newconnection_cb(struct sio_server *serv, struct sio_socket *sock)
+int sio_server_newconnection_cb(struct sio_server *serv)
 {
     struct sio_server_owner *owner = &serv->owner;
 
-    return owner->ops.newconnection == NULL ? 0 : owner->ops.newconnection(serv, sock);
+    return owner->ops.newconnection == NULL ? 0 : owner->ops.newconnection(serv);
+}
+
+static inline
+int sio_server_accept_imp(struct sio_server *serv, struct sio_socket **sock)
+{
+    SIO_COND_CHECK_RETURN_VAL(sio_socket_accept_pend_sock() != NULL, 0);
+
+    int ret = sio_socket_accept_has_pend(serv->sock);
+    SIO_COND_CHECK_RETURN_VAL(ret != 0, ret);
+
+    struct sio_socket *newsock = sio_server_alloc_socket(serv, 0);
+    SIO_COND_CHECK_RETURN_VAL(!newsock, -1);
+
+    ret = sio_socket_accept(serv->sock, newsock);
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
+        sio_socket_destory(newsock));
+
+    *sock = newsock;
+    sio_socket_accept_pend_sock_set(newsock);
+
+    return 0;
 }
 
 static inline
@@ -105,21 +131,18 @@ int sio_server_accpet_socket(struct sio_socket *serv)
     SIO_COND_CHECK_RETURN_VAL(!server, -1);
 
     do {
-        int ret = sio_socket_accept_has_pend(serv);
+        struct sio_socket *sock = NULL;
+        int ret = sio_server_accept_imp(server, &sock);
         SIO_COND_CHECK_BREAK(ret == SIO_ERRNO_AGAIN);
         SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
-        struct sio_socket *sock = sio_server_alloc_socket(server, 0);
-        SIO_COND_CHECK_RETURN_VAL(!sock, -1);
-
-        ret = sio_socket_accept(serv, sock);
-        SIO_COND_CHECK_CALLOPS_RETURN_VAL(ret == -1, -1,
-            sio_socket_destory(sock));
-
-        sio_server_newconnection_cb(server, sock);
-
         sio_server_socket_mlb(server, sock);
 
+        sio_server_newconnection_cb(server);
+
+        ret = sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
+        SIO_COND_CHECK_CALLOPS(ret == -1,
+            SIO_LOGE("socket mplex failed\n"));
     } while (1);
 
     return 0;
@@ -137,7 +160,8 @@ int sio_server_async_accpet_socket(struct sio_socket *serv, struct sio_socket *s
 
     sio_server_socket_mlb(server, sock);
 
-    sio_server_newconnection_cb(server, sock);
+    sio_socket_accept_pend_sock_set(sock);
+    sio_server_newconnection_cb(server);
 
     return 0;
 }
@@ -201,9 +225,6 @@ int sio_server_socket_mlb(struct sio_server *serv, struct sio_socket *sock)
         .mplex = mplex
     };
     int ret = sio_socket_setopt(sock, SIO_SOCK_MPLEX, &opt);
-    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
-
-    ret = sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
     round++;
@@ -370,10 +391,27 @@ int sio_server_listen(struct sio_server *serv, struct sio_sockaddr *addr)
     ret = sio_server_socket_mlb(serv, sock);
     SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
+    ret = sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
+    SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
+
     SIO_COND_CHECK_CALLOPS(ret == 0 && tls_mplex == SIO_ASYNC_IO,
         sio_server_async_post_accept(serv));
 
     return 0;
+}
+
+int sio_server_accept(struct sio_server *serv, struct sio_socket **sock)
+{
+    SIO_COND_CHECK_RETURN_VAL(!serv || !sock, -1);
+
+    *sock = sio_socket_accept_pend_sock();
+    SIO_COND_CHECK_CALLOPS_RETURN_VAL(*sock, 0,
+        sio_server_socket_mlb(serv, *sock),
+        sio_socket_accept_pend_sock_clr());
+
+    int ret = sio_server_accept_imp(serv, sock);
+
+    return ret;
 }
 
 int sio_server_shutdown(struct sio_server *serv)

@@ -93,12 +93,13 @@ help:
 
 all: clean build
 
-install:
+install: build
 	$(shell mkdir -p $(INSTALL_INCDIR))
 	$(shell mkdir -p $(INSTALL_LIBDIR))
 	$(shell mkdir -p $(INSTALL_LIBDIR_DEBUG))
 	install -D -m 644 sio_def.h $(INSTALL_INCDIR)/sio_def.h
 	install -D -m 644 sio_common.h $(INSTALL_INCDIR)/sio_common.h
+	install -D -m 644 sio_errno.h $(INSTALL_INCDIR)/sio_errno.h
 	install -D -m 644 sio_event.h $(INSTALL_INCDIR)/sio_event.h
 	install -D -m 644 sio_socket.h $(INSTALL_INCDIR)/sio_socket.h
 	install -D -m 644 sio_server.h $(INSTALL_INCDIR)/sio_server.h
