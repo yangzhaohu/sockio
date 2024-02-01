@@ -17,7 +17,7 @@
 #define DL_ERROR                dlerror()
 #endif
 
-typedef sio_dlsymsd* sio_dlsymsd_ref;
+typedef sio_dlsym* sio_dlsym_ref;
 
 sio_dl sio_dlopen(const char *file)
 {
@@ -25,12 +25,12 @@ sio_dl sio_dlopen(const char *file)
     return dl;
 }
 
-int sio_dlsyms(sio_dl dl, const sio_dlsymsd symsd[], unsigned short num, sio_dlsym syms)
+int sio_dlsyms(sio_dl dl, const sio_dlsymd symsd[], unsigned short num, sio_dlsym syms)
 {
     int count = 0;
-    sio_dlsymsd_ref sym = (sio_dlsymsd_ref)syms;
+    sio_dlsym_ref sym = (sio_dlsym_ref)syms;
     for (int i = 0; i < num; i++) {
-        *sym = (sio_dlsymsd)DL_SYM((DL_HANDLE)dl, symsd[i]);
+        *sym = (sio_dlsym)DL_SYM((DL_HANDLE)dl, symsd[i]);
         *sym != NULL ? count++ : 0;
         sym++;
     }
