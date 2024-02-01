@@ -410,6 +410,13 @@ int sio_server_accept(struct sio_server *serv, struct sio_socket **sock)
         sio_socket_accept_pend_sock_clr());
 
     int ret = sio_server_accept_imp(serv, sock);
+    SIO_COND_CHECK_RETURN_VAL(ret != 0, ret);
+
+    sio_server_socket_mlb(serv, sock);
+
+    ret = sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
+    SIO_COND_CHECK_CALLOPS(ret == -1,
+        SIO_LOGE("socket mplex failed\n"));
 
     return ret;
 }
