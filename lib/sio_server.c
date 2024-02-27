@@ -136,8 +136,9 @@ int sio_server_accpet_socket(struct sio_socket *serv)
         SIO_COND_CHECK_BREAK(ret == SIO_ERRNO_AGAIN);
         SIO_COND_CHECK_RETURN_VAL(ret == -1, -1);
 
-        sio_server_socket_mlb(server, sock);
+        // sio_server_socket_mlb(server, sock);
 
+        sio_socket_accept_pend_sock_set(sock);
         sio_server_newconnection_cb(server);
 
         ret = sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
@@ -158,7 +159,7 @@ int sio_server_async_accpet_socket(struct sio_socket *serv, struct sio_socket *s
 
     sio_server_async_post_accept(server);
 
-    sio_server_socket_mlb(server, sock);
+    // sio_server_socket_mlb(server, sock);
 
     sio_socket_accept_pend_sock_set(sock);
     sio_server_newconnection_cb(server);
@@ -412,10 +413,10 @@ int sio_server_accept(struct sio_server *serv, struct sio_socket **sock)
     int ret = sio_server_accept_imp(serv, sock);
     SIO_COND_CHECK_RETURN_VAL(ret != 0, ret);
 
-    sio_server_socket_mlb(serv, sock);
+    sio_server_socket_mlb(serv, *sock);
     sio_socket_accept_pend_sock_clr();
 
-    ret = sio_socket_mplex(sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
+    ret = sio_socket_mplex(*sock, SIO_EV_OPT_ADD, SIO_EVENTS_IN);
     SIO_COND_CHECK_CALLOPS(ret == -1,
         SIO_LOGE("socket mplex failed\n"));
 
