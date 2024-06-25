@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #ifdef LINUX
 #include <unistd.h>
+#ifdef ENABLE_LIBURING
 #include <liburing.h>
+#endif
 #include <poll.h>
 #include <sys/eventfd.h>
 #endif
@@ -13,6 +15,7 @@
 #include "sio_log.h"
 
 #ifdef LINUX
+#ifdef ENABLE_LIBURING
 
 struct sio_uring
 {
@@ -261,4 +264,5 @@ int sio_uring_destory(struct sio_mplex_ctx *ctx)
     return -1;
 }
 
+#endif
 #endif

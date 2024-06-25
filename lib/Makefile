@@ -33,14 +33,14 @@ ifeq ($(compiler), gcc)
 FLAGS +=
 INCLUDES += -I. -I$(TOP_PATH)/include -I$(TOP_PATH)/depend/include
 LIBPATH += -L$(TOP_PATH)/depend/lib
-STATICLIB += -Wl,-Bstatic -lhttp_parser -lpcre2-posix -lpcre2-8
-DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -luring -lpthread -lssl -lcrypto
+#STATICLIB += -Wl,-Bstatic -lhttp_parser -lpcre2-posix -lpcre2-8
+DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -lpthread
 else
 FLAGS :=
 INCLUDES += /I. /I$(TOP_PATH)/include /I$(TOP_PATH)/depend/include
 LIBPATH += /LIBPATH:$(TOP_PATH)/depend/lib
-STATICLIB += libhttp_parser.lib pcre2-posix-static.lib pcre2-8-static.lib
-DYNAMICLIB += mswsock.lib ws2_32.lib libssl.lib libcrypto.lib
+#STATICLIB += libhttp_parser.lib pcre2-posix-static.lib pcre2-8-static.lib
+DYNAMICLIB += mswsock.lib ws2_32.lib
 endif
 endif
 
@@ -67,7 +67,6 @@ SRCS := sio_global.cpp \
 		sio_stack.c \
 		sio_queue.c \
 		sio_mempool.c \
-		sio_regex.c \
 		sio_timer_posix.c \
 		sio_timer_win.c \
 		sio_timer.c \
@@ -79,9 +78,34 @@ ifdef compiler
 ifeq ($(compiler), gcc)
 FLAGS += -fPIC -Wl,-z,defs -shared -O2 -g -Wall -Werror -Wno-multichar
 LFLAGS += -fPIC -Wl,-z,defs -shared -Wl,-rpath=.
+
+ifdef ENABLE_LIBURING
+FLAGS += -DENABLE_LIBURING
+DYNAMICLIB += -luring
+endif
+ifdef ENABLE_SSL
+FLAGS += -DENABLE_SSL
+DYNAMICLIB += -lssl -lcrypto
+ifdef WITH_SSL
+INCLUDES += -I$(WITH_SSL)
+LIBPATH += -L$(WITH_SSL)/lib
+endif
+endif
+
+#############
 else
 FLAGS +=
 LFLAGS += /dll
+
+ifdef ENABLE_SSL
+FLAGS += /DENABLE_SSL
+DYNAMICLIB +=  libssl.lib libcrypto.lib
+ifdef WITH_SSL
+INCLUDES += /I$(WITH_SSL)
+LIBPATH += /LIBPATH:$(WITH_SSL)/lib
+endif
+endif
+
 endif
 include ../build/platfrom/make.$(compiler)
 endif
