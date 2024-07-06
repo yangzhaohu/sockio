@@ -1,10 +1,14 @@
 #include "sio_sockssl.h"
 #include <stdlib.h>
 #include <string.h>
+#ifdef ENABLE_SSL
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#endif
 #include "sio_common.h"
 #include "sio_log.h"
+
+#ifdef ENABLE_SSL
 
 struct sio_sockssl
 {
@@ -209,3 +213,85 @@ int sio_sockssl_destory(struct sio_sockssl *ssock)
 
     return 0;
 }
+
+#else
+struct sio_sockssl *sio_sockssl_create(sio_sslctx_t ctx)
+{
+    return NULL;
+}
+struct sio_sockssl *sio_sockssl_dup(struct sio_sockssl *ssock)
+{
+    return NULL;
+}
+
+int sio_sockssl_setopt(struct sio_sockssl *ssock, enum sio_sslopc cmd, union sio_sslopt *opt)
+{
+    return -1;
+}
+
+int sio_sockssl_setfd(struct sio_sockssl *ssock, sio_fd_t fd)
+{
+    return -1;
+}
+
+int sio_sockssl_enable_membio(struct sio_sockssl *ssock)
+{
+    return -1;
+}
+
+int sio_sockssl_accept(struct sio_sockssl *ssock)
+{
+    return -1;
+}
+
+int sio_sockssl_connect(struct sio_sockssl *ssock)
+{
+    return -1;
+}
+
+int sio_sockssl_handshake(struct sio_sockssl *ssock)
+{
+    return -1;
+}
+
+int sio_sockssl_readfrom_wbio(struct sio_sockssl *ssock, char *buf, int len)
+{
+    return -1;
+}
+
+int sio_sockssl_wbio_pending(struct sio_sockssl *ssock)
+{
+    return -1;
+}
+
+int sio_sockssl_writeto_rbio(struct sio_sockssl *ssock, char *buf, int len)
+{
+    return -1;
+}
+
+int sio_sockssl_read(struct sio_sockssl *ssock, char *buf, int len)
+{
+    return -1;
+}
+
+int sio_sockssl_write(struct sio_sockssl *ssock, const char *data, int len)
+{
+    return -1;
+}
+
+int sio_sockssl_shutdown(struct sio_sockssl *ssock)
+{
+    return -1;
+}
+
+int sio_sockssl_close(struct sio_sockssl *ssock)
+{
+    return -1;
+}
+
+int sio_sockssl_destory(struct sio_sockssl *ssock)
+{
+    return -1;
+}
+
+#endif

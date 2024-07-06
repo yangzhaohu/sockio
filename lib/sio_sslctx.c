@@ -1,10 +1,14 @@
 #include "sio_sslctx.h"
 #include <stdlib.h>
 #include <string.h>
+#ifdef ENABLE_SSL
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#endif
 #include "sio_common.h"
 #include "sio_log.h"
+
+#ifdef ENABLE_SSL
 
 sio_sslctx_t sio_sslctx_create()
 {
@@ -64,3 +68,22 @@ int sio_sslctx_destory(sio_sslctx_t ctx)
 
     return 0;
 }
+
+#else
+
+sio_sslctx_t sio_sslctx_create()
+{
+    return NULL;
+}
+
+int sio_sslctx_setopt(sio_sslctx_t ctx, enum sio_sslopc cmd, union sio_sslopt *opt)
+{
+    return -1;
+}
+
+int sio_sslctx_destory(sio_sslctx_t ctx)
+{
+    return -1;
+}
+
+#endif
