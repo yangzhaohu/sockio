@@ -9,16 +9,16 @@ FLAGS += /DWIN32 /MD /Fd
 CFLAGS += $(FLAGS) /TC
 CXXFLAGS += $(FLAGS) /TP
 
-OBJS := $(SRCS:%.c=$(TMPLIB_DIR)%.obj)
-OBJS := $(OBJS:%.cpp=$(TMPLIB_DIR)%.obj)
+OBJS := $(SRCS:%.c=$(TMPLIB_DIR)%.c.obj)
+OBJS := $(OBJS:%.cpp=$(TMPLIB_DIR)%.cpp.obj)
 
 SYMBOlS := symbols.def
 
-$(TMPLIB_DIR)%.obj : %.c
+$(TMPLIB_DIR)%.c.obj : %.c
 	@set -e; mkdir -p $(dir $@);
 	$(CC) /c $< $(INCLUDES) /nologo $(CFLAGS) /Fo: $@
 
-$(TMPLIB_DIR)%.obj : %.cpp
+$(TMPLIB_DIR)%.cpp.obj : %.cpp
 	@set -e; mkdir -p $(dir $@);
 	$(CXX) /c $< $(INCLUDES) /nologo $(CXXFLAGS) /Fo: $@
 

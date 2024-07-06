@@ -13,14 +13,14 @@ CXXFLAGS += $(FLAGS)
 
 LIBS +=
 
-OBJS := $(SRCS:%.c=$(TMPLIB_DIR)%.o)
-OBJS := $(OBJS:%.cpp=$(TMPLIB_DIR)%.o)
+OBJS := $(SRCS:%.c=$(TMPLIB_DIR)%.c.o)
+OBJS := $(OBJS:%.cpp=$(TMPLIB_DIR)%.cpp.o)
 
-$(TMPLIB_DIR)%.o : %.c
+$(TMPLIB_DIR)%.c.o : %.c
 	@set -e; mkdir -p $(dir $@);
 	$(CC) -MMD -c $< $(INCLUDES) $(CFLAGS) -o $@
 
-$(TMPLIB_DIR)%.o : %.cpp
+$(TMPLIB_DIR)%.cpp.o : %.cpp
 	@set -e; mkdir -p $(dir $@);
 	$(CXX) -MMD -c $< $(INCLUDES) $(CXXFLAGS) -o $@
 
