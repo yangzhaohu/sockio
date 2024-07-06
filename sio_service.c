@@ -53,7 +53,7 @@ int sio_service_newconn(struct sio_server *serv)
     union sio_servopt opts = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);
 
-    struct sio_service *service = opts.private;
+    struct sio_service *service = opts.pri;
     struct sio_submod *submod = &service->submod;
 
     if (submod->newconn) {
@@ -117,7 +117,7 @@ struct sio_service *sio_service_create(enum sio_service_type type)
         free(service));
     
     union sio_servopt ops = {
-        .private = service
+        .pri = service
     };
     sio_server_setopt(serv, SIO_SERV_PRIVATE, &ops);
     service->serv = serv;

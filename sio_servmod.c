@@ -53,7 +53,7 @@ int sio_socket_readable(struct sio_socket *sock)
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_servmod *servmod = opt.private;
+    struct sio_servmod *servmod = opt.pri;
 
     struct sio_mod *mod = servmod->mod;
 
@@ -79,7 +79,7 @@ int sio_socket_closeable(struct sio_socket *sock)
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_servmod *servmod = opt.private;
+    struct sio_servmod *servmod = opt.pri;
     struct sio_mod *mod = servmod->mod;
     struct sio_submod *submod = &mod->submod;
 
@@ -124,12 +124,12 @@ int sio_servmod_newconn(struct sio_server *serv)
     union sio_servopt opts = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opts);
 
-    struct sio_servmod *servmod = opts.private;
+    struct sio_servmod *servmod = opts.pri;
     struct sio_mod *mod = servmod->mod;
     struct sio_submod *submod = &mod->submod;
 
     union sio_sockopt opt = {
-        .private = servmod
+        .pri = servmod
     };
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
@@ -171,7 +171,7 @@ struct sio_servmod *sio_servmod_create(enum sio_submod_type type)
         free(servmod));
     
     union sio_servopt ops = {
-        .private = servmod
+        .pri = servmod
     };
     sio_server_setopt(serv, SIO_SERV_PRIVATE, &ops);
     servmod->serv = serv;

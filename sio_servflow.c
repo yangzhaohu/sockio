@@ -75,7 +75,7 @@ static int sio_socket_readable(struct sio_socket *sock)
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_sockflow *sockflow = opt.private;
+    struct sio_sockflow *sockflow = opt.pri;
     struct sio_servflow *servflow = sockflow->servflow;
 
     struct sio_servflow_owner *owner = &servflow->owner;
@@ -138,7 +138,7 @@ static int sio_socket_closeable(struct sio_socket *sock)
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_sockflow *sockflow = opt.private;
+    struct sio_sockflow *sockflow = opt.pri;
     struct sio_servflow *servflow = sockflow->servflow;
     struct sio_servflow_sockpool *spool = &servflow->spool;
 
@@ -193,7 +193,7 @@ int sio_sockflow_accept(struct sio_servflow *servflow, struct sio_sockflow *sock
     sio_socket_setopt(sock, SIO_SOCK_NONBLOCK, &opt);
 
     sockflow->servflow = servflow;
-    opt.private = sockflow;
+    opt.pri = sockflow;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     return 0;
@@ -203,7 +203,7 @@ static int sio_server_newconn(struct sio_server *serv)
 {
     union sio_servopt opt = { 0 };
     sio_server_getopt(serv, SIO_SERV_PRIVATE, &opt);
-    struct sio_servflow *servflow = opt.private;
+    struct sio_servflow *servflow = opt.pri;
     struct sio_servflow_sockpool *spool = &servflow->spool;
 
     struct sio_sockflow *sockflow = sio_sockflow_get(spool);
@@ -317,7 +317,7 @@ struct sio_servflow *sio_servflow_create_imp(enum sio_servflow_proto type, sio_t
         free(servflow));
 
     union sio_servopt ops = {
-        .private = servflow
+        .pri = servflow
     };
     sio_server_setopt(serv, SIO_SERV_PRIVATE, &ops);
 
@@ -385,15 +385,15 @@ int sio_servflow_listen(struct sio_servflow *flow, struct sio_servflow_addr *add
 }
 
 static inline
-void sio_sockflow_set_private(struct sio_sockflow *flow, void *private)
+void sio_sockflow_set_private(struct sio_sockflow *flow, void *pri)
 {
-    flow->pri = private;
+    flow->pri = pri;
 }
 
 static inline
-void sio_sockflow_get_private(struct sio_sockflow *flow, void **private)
+void sio_sockflow_get_private(struct sio_sockflow *flow, void **pri)
 {
-    *private = flow->pri;
+    *pri = flow->pri;
 }
 
 int sio_sockflow_setopt(struct sio_sockflow *flow, enum sio_sockflow_optcmd cmd, union sio_sockflow_opt *opt)
@@ -401,7 +401,7 @@ int sio_sockflow_setopt(struct sio_sockflow *flow, enum sio_sockflow_optcmd cmd,
     int ret = 0;
     switch (cmd) {
     case SIO_SOCKFLOW_PRIVATE:
-        sio_sockflow_set_private(flow, opt->private);
+        sio_sockflow_set_private(flow, opt->pri);
         break;
 
     default:
@@ -417,7 +417,7 @@ int sio_sockflow_getopt(struct sio_sockflow *flow, enum sio_sockflow_optcmd cmd,
     int ret = 0;
     switch (cmd) {
     case SIO_SOCKFLOW_PRIVATE:
-        sio_sockflow_get_private(flow, &opt->private);
+        sio_sockflow_get_private(flow, &opt->pri);
         break;
 
     default:

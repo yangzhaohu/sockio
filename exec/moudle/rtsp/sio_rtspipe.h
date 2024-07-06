@@ -35,7 +35,7 @@ enum sio_rtspipe_optcmd
 
 union sio_rtspipe_opt
 {
-    void *private;
+    void *pri;
     struct sio_rtspipe_ops ops;
 };
 

@@ -208,7 +208,7 @@ struct sio_http_conn *sio_httpmod_httpconn_create(struct sio_httpmod *mod)
         free(mem),
         free(httpconn));
     union sio_httpprot_opt hopt = {
-        .private = httpconn
+        .pri = httpconn
     };
     sio_httpprot_setopt(httpprot, SIO_HTTPPROT_PRIVATE, &hopt);
     hopt.ops.prot_stat = sio_httpmod_protostat;
@@ -236,7 +236,7 @@ int sio_httpmod_socket_readable(struct sio_socket *sock)
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_http_conn *hconn = opt.private;
+    struct sio_http_conn *hconn = opt.pri;
     struct sio_httpprot *httpprot = hconn->httpprot;
     struct sio_http_buffer *buf = &hconn->buf;
 
@@ -270,7 +270,7 @@ int sio_httpmod_socket_closeable(struct sio_socket *sock)
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_http_conn *hconn = opt.private;
+    struct sio_http_conn *hconn = opt.pri;
     sio_httpmod_httpconn_destory(hconn);
 
     sio_socket_destory(sock);
@@ -335,7 +335,7 @@ int sio_httpmod_newconn(sio_submod_t mod, struct sio_server *server)
     struct sio_http_conn *hconn = sio_httpmod_httpconn_create(mod);
     hconn->sock = sock;
 
-    opt.private = hconn;
+    opt.pri = hconn;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     ret = sio_server_socket_mplex(server, sock);

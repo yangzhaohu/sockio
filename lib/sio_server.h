@@ -28,7 +28,7 @@ struct sio_servops
 
 union sio_servopt
 {
-    void *private;
+    void *pri;
     struct sio_servops ops;
     const char *data;
     unsigned char enable;

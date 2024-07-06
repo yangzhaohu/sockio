@@ -128,7 +128,7 @@ struct sio_rtsp_conn *sio_rtspmod_get_rtspconn_from_conn(struct sio_socket *sock
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_rtsp_conn *rconn = opt.private;
+    struct sio_rtsp_conn *rconn = opt.pri;
     return rconn;
 }
 
@@ -415,7 +415,7 @@ int sio_rtspmod_record_response(struct sio_socket *sock)
 {
     struct sio_rtsp_conn *rconn = sio_rtspmod_get_rtspconn_from_conn(sock);
 
-    union sio_rtspipe_opt opt = { .private = rconn };
+    union sio_rtspipe_opt opt = { .pri = rconn };
     sio_rtspipe_setopt(rconn->rtpipe, SIO_RTPCHN_PRIVATE, &opt);
 
     opt.ops.rtpack = sio_rtspmod_live_record;
@@ -582,7 +582,7 @@ static void sio_rtspmod_live_record(struct sio_rtspipe *rtpipe, const char *data
     union sio_rtspipe_opt opt = { 0 };
     sio_rtspipe_getopt(rtpipe, SIO_RTPCHN_PRIVATE, &opt);
 
-    struct sio_rtsp_conn *rconn = opt.private;
+    struct sio_rtsp_conn *rconn = opt.pri;
     struct sio_rtspdev *rtdev = &rconn->rtdev;
 
     rtdev->record(rtdev->dev, data, len);
@@ -813,7 +813,7 @@ int sio_rtspmod_newconn(sio_submod_t mod, struct sio_server *server)
     struct sio_rtsp_conn *rconn = sio_rtspmod_rtspconn_create(NULL);
     rconn->mod = mod;
 
-    opt.private = rconn;
+    opt.pri = rconn;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     ret = sio_server_socket_mplex(server, sock);

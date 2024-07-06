@@ -372,17 +372,17 @@ unsigned short sio_socket_domain(enum sio_sockprot prot)
 }
 
 static inline
-void sio_socket_set_private(struct sio_socket *sock, void *private)
+void sio_socket_set_private(struct sio_socket *sock, void *pri)
 {
     struct sio_socket_owner *owner = &sock->owner;
-    owner->pri = private;
+    owner->pri = pri;
 }
 
 static inline
-void sio_socket_get_private(struct sio_socket *sock, void **private)
+void sio_socket_get_private(struct sio_socket *sock, void **pri)
 {
     struct sio_socket_owner *owner = &sock->owner;
-    *private = owner->pri;
+    *pri = owner->pri;
 }
 
 static inline
@@ -664,7 +664,7 @@ int sio_socket_setopt(struct sio_socket *sock, enum sio_sockopc cmd, union sio_s
     int ret = 0;
     switch (cmd) {
     case SIO_SOCK_PRIVATE:
-        sio_socket_set_private(sock, opt->private);
+        sio_socket_set_private(sock, opt->pri);
         break;
 
     case SIO_SOCK_OPS:
@@ -771,7 +771,7 @@ int sio_socket_getopt(struct sio_socket *sock, enum sio_sockopc cmd, union sio_s
     int ret = 0;
     switch (cmd) {
     case SIO_SOCK_PRIVATE:
-        sio_socket_get_private(sock, &opt->private);
+        sio_socket_get_private(sock, &opt->pri);
         break;
 
     case SIO_SOCK_OPS:

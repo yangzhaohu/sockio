@@ -7,7 +7,7 @@
 
 struct sio_httpprot_owner
 {
-    void *private;
+    void *pri;
     struct sio_httpprot_ops ops;
 };
 
@@ -23,7 +23,7 @@ struct sio_httpprot
         struct sio_httpprot *httpprot = (struct sio_httpprot *)parser; \
         struct sio_httpprot_owner *owner = &httpprot->owner; \
         if (owner->ops.func != NULL) { \
-            int ret = owner->ops.func(owner->private, ##__VA_ARGS__); \
+            int ret = owner->ops.func(owner->pri, ##__VA_ARGS__); \
             if (ret == -1) { \
                 http_parser_pause(parser, 1); \
             } \
@@ -159,7 +159,7 @@ int sio_httpprot_setopt(struct sio_httpprot *httpprot, enum sio_httpprot_optcmd 
     int ret = 0;
     switch (cmd) {
     case SIO_HTTPPROT_PRIVATE:
-        owner->private = opt->private;
+        owner->pri = opt->pri;
         break;
 
     case SIO_HTTPPROT_OPS:

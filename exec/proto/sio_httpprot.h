@@ -42,7 +42,7 @@ struct sio_httpprot_ops
 
 union sio_httpprot_opt
 {
-    void *private;
+    void *pri;
     struct sio_httpprot_ops ops;
 };
 

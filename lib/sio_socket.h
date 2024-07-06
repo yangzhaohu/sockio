@@ -51,7 +51,7 @@ struct sio_sockops
 
 enum sio_sockopc
 {
-    /* set pointer to private data */
+    /* set pointer to pri data */
     SIO_SOCK_PRIVATE,
     /* set callback ops function */
     SIO_SOCK_OPS,
@@ -81,7 +81,7 @@ enum sio_sockopc
 
 union sio_sockopt
 {
-    void *private;
+    void *pri;
     struct sio_sockops ops;
     struct sio_mplex *mplex;
     int fd;

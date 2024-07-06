@@ -171,7 +171,7 @@ static int test_equip_socket_readable(struct sio_socket *sock)
 {
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
-    struct test_doip_entity *entity = opt.private;
+    struct test_doip_entity *entity = opt.pri;
     struct test_doipmsg *dmsg = &entity->dmsg;
 
     char buf[1024] = { 0 };
@@ -274,7 +274,7 @@ int test_equip_connect_entity(int fd, unsigned short la)
     opt.nonblock = 1;
     ret = sio_socket_setopt(entity->tcpsock, SIO_SOCK_NONBLOCK, &opt);
 
-    opt.private = entity;
+    opt.pri = entity;
     ret = sio_socket_setopt(entity->tcpsock, SIO_SOCK_PRIVATE, &opt);
 
     struct sio_mplex *mplex = sio_pmplex_mplex_ref(TEST_EQUIP_PERMPLEX);

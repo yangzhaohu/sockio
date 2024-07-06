@@ -127,7 +127,7 @@ int sio_server_accpet_socket(struct sio_socket *serv)
 {
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(serv, SIO_SOCK_PRIVATE, &opt);
-    struct sio_server *server = opt.private;
+    struct sio_server *server = opt.pri;
     SIO_COND_CHECK_RETURN_VAL(!server, -1);
 
     do {
@@ -154,7 +154,7 @@ int sio_server_async_accpet_socket(struct sio_socket *serv, struct sio_socket *s
 {
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(serv, SIO_SOCK_PRIVATE, &opt);
-    struct sio_server *server = opt.private;
+    struct sio_server *server = opt.pri;
     SIO_COND_CHECK_RETURN_VAL(!server, -1);
 
     sio_server_async_post_accept(server);
@@ -249,7 +249,7 @@ struct sio_server *sio_server_create_imp(enum sio_sockprot prot, unsigned char t
         free(serv));
 
     union sio_sockopt opt = { 0 };
-    opt.private = serv;
+    opt.pri = serv;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     opt.ops.readable = sio_server_accpet_socket;
@@ -267,17 +267,17 @@ struct sio_server *sio_server_create_imp(enum sio_sockprot prot, unsigned char t
 }
 
 static inline
-void sio_server_set_private(struct sio_server *serv, void *private)
+void sio_server_set_private(struct sio_server *serv, void *pri)
 {
     struct sio_server_owner *owner = &serv->owner;
-    owner->pri = private;
+    owner->pri = pri;
 }
 
 static inline
-void sio_server_get_private(struct sio_server *serv, void **private)
+void sio_server_get_private(struct sio_server *serv, void **pri)
 {
     struct sio_server_owner *owner = &serv->owner;
-    *private = owner->pri;
+    *pri = owner->pri;
 }
 
 static inline
@@ -319,7 +319,7 @@ int sio_server_setopt(struct sio_server *serv, enum sio_servopc cmd, union sio_s
     int ret = 0;
     switch (cmd) {
     case SIO_SERV_PRIVATE:
-        sio_server_set_private(serv, opt->private);
+        sio_server_set_private(serv, opt->pri);
         break;
     case SIO_SERV_OPS:
         sio_server_set_ops(serv, &opt->ops);
@@ -365,7 +365,7 @@ int sio_server_getopt(struct sio_server *serv, enum sio_servopc cmd, union sio_s
     int ret = 0;
     switch (cmd) {
     case SIO_SERV_PRIVATE:
-        sio_server_get_private(serv, &opt->private);
+        sio_server_get_private(serv, &opt->pri);
         break;
 
     default:

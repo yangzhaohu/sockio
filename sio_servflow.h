@@ -41,7 +41,7 @@ union sio_servflow_opt
 
 union sio_sockflow_opt
 {
-    void *private;
+    void *pri;
 };
 
 #ifdef __cplusplus

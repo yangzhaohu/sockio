@@ -148,7 +148,7 @@ struct sio_doip_conn *sio_doipmod_get_doipconn_from_conn(struct sio_socket *sock
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_doip_conn *rconn = opt.private;
+    struct sio_doip_conn *rconn = opt.pri;
     return rconn;
 }
 
@@ -294,7 +294,7 @@ int sio_doipmod_newconn(sio_submod_t mod, struct sio_server *server)
 
     sio_doip_conhead_add(mod, dcon);
 
-    opt.private = dcon;
+    opt.pri = dcon;
     sio_socket_setopt(sock, SIO_SOCK_PRIVATE, &opt);
 
     ret = sio_server_socket_mplex(server, sock);

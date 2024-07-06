@@ -7,7 +7,7 @@ enum sio_sslopc
     SIO_SSL_CACERT,
     /* set user cert */
     SIO_SSL_USERCERT,
-    /* set user private key */
+    /* set user pri key */
     SIO_SSL_USERKEY,
     /* verify peer */
     SIO_SSL_VERIFY_PEER

@@ -6,7 +6,7 @@
 
 struct sio_rtspipe_owner
 {
-    void *private;
+    void *pri;
     struct sio_rtspipe_ops ops;
 };
 
@@ -66,7 +66,7 @@ int sio_rtspipe_rtpack_readable_from(struct sio_socket *sock)
     union sio_sockopt opt = { 0 };
     sio_socket_getopt(sock, SIO_SOCK_PRIVATE, &opt);
 
-    struct sio_rtspipe *rtpipe = opt.private;
+    struct sio_rtspipe *rtpipe = opt.pri;
     if (rtpipe->owner.ops.rtpack) {
         rtpipe->owner.ops.rtpack(rtpipe, data, len);
     }
@@ -128,7 +128,7 @@ int sio_rtspipe_open_videochn(struct sio_rtspipe *rtpipe, int rtp, int rtcp)
     };
     sio_socket_setopt(rtpsock, SIO_SOCK_OPS, &opt);
 
-    opt.private = rtpipe;
+    opt.pri = rtpipe;
     sio_socket_setopt(rtpsock, SIO_SOCK_PRIVATE, &opt);
 
     // mplex
@@ -167,7 +167,7 @@ int sio_rtspipe_setopt(struct sio_rtspipe *rtpipe,
 {
     switch (cmd) {
     case SIO_RTPCHN_PRIVATE:
-        rtpipe->owner.private = opt->private;
+        rtpipe->owner.pri = opt->pri;
         break;
 
     case SIO_RTPCHN_OPS:
@@ -187,7 +187,7 @@ int sio_rtspipe_getopt(struct sio_rtspipe *rtpipe,
     switch (cmd)
     {
     case SIO_RTPCHN_PRIVATE:
-        opt->private = rtpipe->owner.private;
+        opt->pri = rtpipe->owner.pri;
         break;
 
     default:

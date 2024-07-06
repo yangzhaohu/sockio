@@ -77,7 +77,7 @@ struct sio_rtspprot_fsa
 
 struct sio_rtspprot_owner
 {
-    void *private;
+    void *pri;
     struct sio_rtspprot_ops ops;
 };
 
@@ -115,7 +115,7 @@ int sio_rtspprot_setopt(struct sio_rtspprot *rtspprot, enum sio_rtspprot_optcmd 
     int ret = 0;
     switch (cmd) {
     case SIO_RTSPPROT_PRIVATE:
-        owner->private = opt->private;
+        owner->pri = opt->pri;
         break;
 
     case SIO_RTSPPROT_OPS:
@@ -138,7 +138,7 @@ int sio_rtspprot_getopt(struct sio_rtspprot *rtspprot, enum sio_rtspprot_optcmd 
     int ret = 0;
     switch (cmd) {
     case SIO_RTSPPROT_PRIVATE:
-        opt->private = owner->private;
+        opt->pri = owner->pri;
         break;
     
     default:

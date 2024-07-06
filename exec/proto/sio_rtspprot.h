@@ -37,7 +37,7 @@ enum sio_rtspprot_optcmd
 
 union sio_rtspprot_opt
 {
-    void *private;
+    void *pri;
     struct sio_rtspprot_ops ops;
 };
 

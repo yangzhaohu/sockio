@@ -18,7 +18,7 @@ enum sio_rtpstream_optcmd
 
 union sio_rtpstream_opt
 {
-    void *private;
+    void *pri;
     struct sio_rtpstream_ops ops;
 };
 

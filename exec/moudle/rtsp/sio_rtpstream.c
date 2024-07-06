@@ -9,7 +9,7 @@
 
 struct sio_rtpstream_owner
 {
-    void *private;
+    void *pri;
     struct sio_rtpstream_ops ops;
 };
 
@@ -153,7 +153,7 @@ int sio_rtpstream_setopt(struct sio_rtpstream *stream,
     struct sio_rtpstream_owner *owner = &stream->owner;
     switch (cmd) {
     case SIO_RTPSTREAM_PRIVATE:
-        owner->private = opt->private;
+        owner->pri = opt->pri;
         break;
 
     case SIO_RTPSTREAM_OPS:
@@ -177,7 +177,7 @@ int sio_rtpstream_getopt(struct sio_rtpstream *stream,
     struct sio_rtpstream_owner *owner = &stream->owner;
     switch (cmd) {
     case SIO_RTPSTREAM_PRIVATE:
-        opt->private = owner->private;
+        opt->pri = owner->pri;
         break;
 
     case SIO_RTPSTREAM_OPS:

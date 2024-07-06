@@ -26,7 +26,7 @@ void sio_rtpvod_rtpack_send(struct sio_rtpstream *stream, struct sio_packet *pac
     union sio_rtpstream_opt opt = { 0 };
     sio_rtpstream_getopt(stream, SIO_RTPSTREAM_PRIVATE, &opt);
 
-    struct sio_rtpvod *rtpvod = opt.private;
+    struct sio_rtpvod *rtpvod = opt.pri;
     struct sio_rtspipe *rtpchn = rtpvod->rtpchn;
 
     sio_rtspipe_rtpsend(rtpchn, SIO_RTSPIPE_VIDEO, SIO_RTSPCHN_RTP, (char *)packet->data, packet->length);
@@ -61,7 +61,7 @@ sio_rtspdev_t sio_rtpvod_open(const char *name)
     SIO_COND_CHECK_CALLOPS_RETURN_VAL(!stream, NULL,
         free(rtpvod));
 
-    union sio_rtpstream_opt opt = { .private = rtpvod };
+    union sio_rtpstream_opt opt = { .pri = rtpvod };
     sio_rtpstream_setopt(stream, SIO_RTPSTREAM_PRIVATE, &opt);
     opt.ops.rtpack = sio_rtpvod_rtpack_send;
     sio_rtpstream_setopt(stream, SIO_RTPSTREAM_OPS, &opt);
