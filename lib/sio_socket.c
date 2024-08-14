@@ -230,17 +230,17 @@ __thread int tls_sock_readerr = 0;
         }                                                                       \
         if (sock->attr.prot == SIO_SOCK_SSL) {                                  \
             int len = sio_sockssl_writeto_rbio(sock->ssl.sock,                  \
-                event->buf.ptr, event->buf.len);                                \
+                event->buf.ptr, event->res);                                    \
             len = sio_sockssl_read(sock->ssl.sock,                              \
                 event->buf.ptr, event->buf.len);                                \
-            event->buf.len = len;                                               \
+            event->res = len;                                                   \
         }                                                                       \
         sio_socket_ops_call(ops->readasync,                                     \
-            sock, event->buf.ptr, event->buf.len);                              \
+            sock, event->buf.ptr, event->res);                                  \
     }                                                                           \
     if (event->events & SIO_EVENTS_ASYNC_WRITE) {                               \
         sio_socket_ops_call(ops->writeasync,                                    \
-            sock, event->buf.ptr, event->buf.len);                              \
+            sock, event->buf.ptr, event->res);                                  \
     }                                                                           \
     if (event->events &                                                         \
         (SIO_EVENTS_ASYNC_ACCEPT | SIO_EVENTS_ASYNC_ACCEPT_RES)) {              \
