@@ -29,20 +29,48 @@ STATICLIB :=
 DYNAMICLIB :=
 
 ifdef compiler
+
 ifeq ($(compiler), gcc)
 FLAGS +=
 INCLUDES += -I. -I$(TOP_PATH)/include -I$(TOP_PATH)/depend/include
 LIBPATH += -L$(TOP_PATH)/depend/lib
 #STATICLIB += -Wl,-Bstatic -lhttp_parser -lpcre2-posix -lpcre2-8
 DYNAMICLIB += -Wl,-Bdynamic -ldl -lrt -lpthread
+
+ifdef ENABLE_LIBURING
+FLAGS += -DENABLE_LIBURING
+DYNAMICLIB += -luring
+endif
+
+ifdef ENABLE_SSL
+FLAGS += -DENABLE_SSL
+DYNAMICLIB += -lssl -lcrypto
+ifdef WITH_SSL
+INCLUDES += -I$(WITH_SSL)/include/openssl
+LIBPATH += -L$(WITH_SSL)/lib
+endif
+endif
+
 else
 FLAGS :=
 INCLUDES += /I. /I$(TOP_PATH)/include /I$(TOP_PATH)/depend/include
 LIBPATH += /LIBPATH:$(TOP_PATH)/depend/lib
 #STATICLIB += libhttp_parser.lib pcre2-posix-static.lib pcre2-8-static.lib
 DYNAMICLIB += mswsock.lib ws2_32.lib
+
+ifdef ENABLE_SSL
+FLAGS += /DENABLE_SSL
+DYNAMICLIB +=  libssl.lib libcrypto.lib
+ifdef WITH_SSL
+INCLUDES += /I$(WITH_SSL)/include/openssl
+LIBPATH += /LIBPATH:$(WITH_SSL)/lib
 endif
 endif
+
+endif
+
+endif
+
 
 LIBS := $(STATICLIB) $(DYNAMICLIB)
 
@@ -78,34 +106,9 @@ ifdef compiler
 ifeq ($(compiler), gcc)
 FLAGS += -fPIC -Wl,-z,defs -shared -O2 -g -Wall -Werror -Wno-multichar
 LFLAGS += -fPIC -Wl,-z,defs -shared -Wl,-rpath=.
-
-ifdef ENABLE_LIBURING
-FLAGS += -DENABLE_LIBURING
-DYNAMICLIB += -luring
-endif
-ifdef ENABLE_SSL
-FLAGS += -DENABLE_SSL
-DYNAMICLIB += -lssl -lcrypto
-ifdef WITH_SSL
-INCLUDES += -I$(WITH_SSL)
-LIBPATH += -L$(WITH_SSL)/lib
-endif
-endif
-
-#############
 else
 FLAGS +=
 LFLAGS += /dll
-
-ifdef ENABLE_SSL
-FLAGS += /DENABLE_SSL
-DYNAMICLIB +=  libssl.lib libcrypto.lib
-ifdef WITH_SSL
-INCLUDES += /I$(WITH_SSL)
-LIBPATH += /LIBPATH:$(WITH_SSL)/lib
-endif
-endif
-
 endif
 include ../build/platfrom/make.$(compiler)
 endif
@@ -135,7 +138,6 @@ install: build
 	install -D -m 644 sio_stack.h $(INSTALL_INCDIR)/sio_stack.h
 	install -D -m 644 sio_queue.h $(INSTALL_INCDIR)/sio_queue.h
 	install -D -m 644 sio_mempool.h $(INSTALL_INCDIR)/sio_mempool.h
-	install -D -m 644 sio_regex.h $(INSTALL_INCDIR)/sio_regex.h
 	install -D -m 644 sio_time.h $(INSTALL_INCDIR)/sio_time.h
 	install -D -m 644 sio_timer.h $(INSTALL_INCDIR)/sio_timer.h
 	install -D -m 644 sio_dlopen.h $(INSTALL_INCDIR)/sio_dlopen.h
