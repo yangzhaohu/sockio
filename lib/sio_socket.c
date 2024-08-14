@@ -176,7 +176,7 @@ __thread int tls_sock_readerr = 0;
         int err = sslops(sockpri->ssl.sock);                                \
         if (err == SIO_SOCKSSL_EWANTREAD) {                                 \
             sio_socket_async_handshake_read(sockpri);                       \
-        } else if (err == SIO_SOCKSSL_EWANTREAD) {                          \
+        } else if (err == SIO_SOCKSSL_EWANTWRITE) {                         \
             sio_socket_async_handshake_write(sockpri);                      \
         } else if (err == 0) {                                              \
             sockpri->stat.what = SIO_SOCK_ESTABLISHED;                      \
