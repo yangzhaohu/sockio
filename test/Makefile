@@ -1,16 +1,23 @@
 CC  := gcc
 CXX := g++
 
-PREFIX := ../target/
+PREFIX := ../target/test/
+LIBSIO_PREFIX := ../target/
 
 TMP_DIR := ../out/
 
+$(shell mkdir -p $(PREFIX))
+
+ifndef compiler
+compiler := gcc
+endif
+
 ifeq ($(compiler), gcc)
 FLAGS := -fPIE -g
-INCLUDES := -I../ -I../depend/include -I../depend/include/sio
-LIBS := -L../depend/lib -lsio -ldl
+INCLUDES := -I../ -I$(LIBSIO_PREFIX)/include -I$(LIBSIO_PREFIX)/include/sio
+LIBS := -L$(LIBSIO_PREFIX)/lib -lsio -ldl
 else
-INCLUDES := -I../ -I../depend/include -I../depend/include/sio
+INCLUDES := -I../ -I$(LIBSIO_PREFIX)/include -I$(LIBSIO_PREFIX)/include/sio
 LIBS := libsio.lib
 endif
 
@@ -47,12 +54,12 @@ TARGET_LIST := $(patsubst %.cpp, %, $(TARGET_LIST))
 ifeq ($(compiler), gcc)
 all: $(OBJS) $(TARGET_LIST)
 $(TARGET_LIST):
-	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath=./ -Wl,-rpath-link=../depend/lib -o $(PREFIX)$@
+	$(CXX) $(OBJ_OUTPUT)$@.o $(LIBS) -Wl,-rpath='$$ORIGIN':'$$ORIGIN'/lib:'$$ORIGIN'/../:'$$ORIGIN'/../lib -Wl,-rpath-link=$(LIBSIO_PREFIX)/lib -o $(PREFIX)/$@
 
 else
 winall: $(TARGET_LIST)
 $(TARGET_LIST):
-	cl $@.c $(INCLUDES) /MD libsio.lib /link /LIBPATH:../depend/lib /out:$(PREFIX)/$@.exe
+	cl $@.c $(INCLUDES) /MD libsio.lib /link /LIBPATH:$(LIBSIO_PREFIX)/lib /out:$(PREFIX)/$@.exe
 endif
 
 clean:

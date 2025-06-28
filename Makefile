@@ -1,6 +1,6 @@
 TOP_PATH := $(shell pwd)
 
-PREFIX := $(TOP_PATH)/depend
+PREFIX := $(TOP_PATH)/target
 
 .PHONY: all libsio install libsio-install clean libsio-clean
 

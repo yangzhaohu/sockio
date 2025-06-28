@@ -5,9 +5,9 @@ TOP_PATH := ..
 endif
 
 ifndef PREFIX
-LIBPREFIX := ./
+LIBPREFIX := $(TOP_PATH)/target/
 else
-LIBPREFIX := $(PREFIX)
+LIBPREFIX := $(PREFIX)/
 endif
 
 INSTALL_INCDIR = $(LIBPREFIX)/include/sio
@@ -21,6 +21,7 @@ endif
 TMPLIB_DIR := $(TOP_PATH)/tmp/lib/
 $(shell mkdir -p $(TMP_DIR))
 
+COMPILER :=
 FLAGS :=
 LFLAGS :=
 INCLUDES :=
@@ -29,8 +30,12 @@ STATICLIB :=
 DYNAMICLIB :=
 
 ifdef compiler
+COMPILER := $(compiler)
+else
+COMPILER := gcc
+endif
 
-ifeq ($(compiler), gcc)
+ifeq ($(COMPILER), gcc)
 FLAGS +=
 INCLUDES += -I. -I$(TOP_PATH)/include -I$(TOP_PATH)/depend/include
 LIBPATH += -L$(TOP_PATH)/depend/lib
@@ -49,7 +54,7 @@ ifdef WITH_SSL
 INCLUDES += -I$(WITH_SSL)/include/openssl
 LIBPATH += -L$(WITH_SSL)/lib
 endif
-endif
+endif # ENABLE_SSL
 
 else
 FLAGS :=
@@ -65,11 +70,9 @@ ifdef WITH_SSL
 INCLUDES += /I$(WITH_SSL)/include/openssl
 LIBPATH += /LIBPATH:$(WITH_SSL)/lib
 endif
-endif
+endif # ENABLE_SSL
 
-endif
-
-endif
+endif # COMPILER
 
 
 LIBS := $(STATICLIB) $(DYNAMICLIB)
@@ -102,16 +105,15 @@ SRCS := sio_global.cpp \
 
 .PHONY: incre all clean help
 
-ifdef compiler
-ifeq ($(compiler), gcc)
+ifeq ($(COMPILER), gcc)
 FLAGS += -fPIC -Wl,-z,defs -shared -O2 -g -Wall -Werror -Wno-multichar
 LFLAGS += -fPIC -Wl,-z,defs -shared -Wl,-rpath=.
 else
 FLAGS +=
 LFLAGS += /dll
 endif
-include ../build/platfrom/make.$(compiler)
-endif
+
+include ../build/platfrom/make.$(COMPILER)
 
 help:
 	@set -e; echo "compiler=<compiler>"; \
